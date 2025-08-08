@@ -133,9 +133,11 @@ class ProxmoxMCPServer:
             memory: Annotated[int, Field(description="Memory size in MB (e.g. 2048 for 2GB)", ge=512, le=131072)],
             disk_size: Annotated[int, Field(description="Disk size in GB (e.g. 10, 20, 50)", ge=5, le=1000)],
             storage: Annotated[Optional[str], Field(description="Storage name (optional, will auto-detect)", default=None)] = None,
-            ostype: Annotated[Optional[str], Field(description="OS type (optional, default: 'l26' for Linux)", default=None)] = None
+            ostype: Annotated[Optional[str], Field(description="OS type (optional, default: 'l26' for Linux)", default=None)] = None,
+            iso_name: Annotated[Optional[str], Field(description="ISO file name to mount (optional)", default=None)] = None,
+            iso_storage: Annotated[Optional[str], Field(description="Storage containing the ISO (optional)", default=None)] = None,
         ):
-            return self.vm_tools.create_vm(node, vmid, name, cpus, memory, disk_size, storage, ostype)
+            return self.vm_tools.create_vm(node, vmid, name, cpus, memory, disk_size, storage, ostype, iso_name, iso_storage)
 
         @self.mcp.tool(description=EXECUTE_VM_COMMAND_DESC)
         async def execute_vm_command(
