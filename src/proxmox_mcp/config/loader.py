@@ -59,16 +59,59 @@ def load_config(config_path: Optional[str] = None) -> Config:
                  - Required fields are missing
                  - Field values are invalid
     """
-    if not config_path:
+    # If a config path is provided, load from JSON file
+    if config_path:
+        try:
+            with open(config_path) as f:
+                config_data = json.load(f)
+                if not config_data.get('proxmox', {}).get('host'):
+                    raise ValueError("Proxmox host cannot be empty")
+                return Config(**config_data)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in config file: {e}")
+        except Exception as e:
+            raise ValueError(f"Failed to load config: {e}")
+
+    # Otherwise, build config from environment variables (test-friendly path)
+    proxmox_host = os.getenv("PROXMOX_HOST")
+    proxmox_user = os.getenv("PROXMOX_USER")
+    token_name = os.getenv("PROXMOX_TOKEN_NAME")
+    token_value = os.getenv("PROXMOX_TOKEN_VALUE")
+    log_level = os.getenv("LOG_LEVEL", "INFO")
+
+    if not all([proxmox_host, proxmox_user, token_name, token_value]):
         raise ValueError("PROXMOX_MCP_CONFIG environment variable must be set")
 
+    # Optional overrides
+    port_str = os.getenv("PROXMOX_PORT")
+    verify_ssl_str = os.getenv("PROXMOX_VERIFY_SSL")
+    service = os.getenv("PROXMOX_SERVICE", "PVE")
+
     try:
-        with open(config_path) as f:
-            config_data = json.load(f)
-            if not config_data.get('proxmox', {}).get('host'):
-                raise ValueError("Proxmox host cannot be empty")
-            return Config(**config_data)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid JSON in config file: {e}")
-    except Exception as e:
-        raise ValueError(f"Failed to load config: {e}")
+        port = int(port_str) if port_str else 8006
+    except ValueError:
+        raise ValueError("Invalid PROXMOX_PORT value; must be integer")
+
+    if verify_ssl_str is None:
+        verify_ssl = True
+    else:
+        verify_ssl = verify_ssl_str.lower() in ("1", "true", "yes", "on")
+
+    config_data = {
+        "proxmox": {
+            "host": proxmox_host,
+            "port": port,
+            "verify_ssl": verify_ssl,
+            "service": service,
+        },
+        "auth": {
+            "user": proxmox_user,
+            "token_name": token_name,
+            "token_value": token_value,
+        },
+        "logging": {
+            "level": log_level,
+        },
+    }
+
+    return Config(**config_data)
