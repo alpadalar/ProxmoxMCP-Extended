@@ -33,10 +33,13 @@ memory* - Memory size in MB (e.g. 2048 for 2GB, 4096 for 4GB)
 disk_size* - Disk size in GB (e.g. 10, 20, 50)
 storage - Storage name (optional, will auto-detect if not specified)
 ostype - OS type (optional, default: 'l26' for Linux)
+iso_name - ISO file name to mount (optional, e.g. 'debian-12.iso')
+iso_storage - Storage name where the ISO is located (optional)
 
 Examples:
 - Create VM with 1 CPU, 2GB RAM, 10GB disk: node='pve', vmid='200', name='test-vm', cpus=1, memory=2048, disk_size=10
-- Create VM with 2 CPUs, 4GB RAM, 20GB disk: node='pve', vmid='201', name='web-server', cpus=2, memory=4096, disk_size=20"""
+- Create VM with 2 CPUs, 4GB RAM, 20GB disk: node='pve', vmid='201', name='web-server', cpus=2, memory=4096, disk_size=20
+- Create VM and mount ISO: node='pve', vmid='202', name='iso-vm', cpus=2, memory=4096, disk_size=20, iso_name='debian-12.iso'"""
 
 EXECUTE_VM_COMMAND_DESC = """Execute commands in a VM via QEMU guest agent.
 
