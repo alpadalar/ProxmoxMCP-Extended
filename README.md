@@ -1,146 +1,155 @@
-# ProxmoxMCP-Plus - Enhanced Proxmox MCP Server
+# ProxmoxMCP-Plus - Geliştirilmiş Proxmox MCP Sunucusu
 
 
-An enhanced Python-based Model Context Protocol (MCP) server for interacting with Proxmox virtualization platforms. This project is built upon **[canvrno/ProxmoxMCP](https://github.com/canvrno/ProxmoxMCP)** with numerous new features and improvements, providing complete OpenAPI integration and more powerful virtualization management capabilities.
+Proxmox sanallaştırma platformlarıyla etkileşim için geliştirilmiş, Python tabanlı bir Model Context Protocol (MCP) sunucusu. Bu proje, **[canvrno/ProxmoxMCP](https://github.com/canvrno/ProxmoxMCP)** üzerine inşa edilmiştir ve kapsamlı OpenAPI entegrasyonu ile daha güçlü sanallaştırma yönetimi yetenekleri dahil olmak üzere çok sayıda yeni özellik ve iyileştirme sunar.
 
-## Acknowledgments
+## Teşekkürler
 
-This project is built upon the excellent open-source project [ProxmoxMCP](https://github.com/canvrno/ProxmoxMCP) by [@canvrno](https://github.com/canvrno). Thanks to the original author for providing the foundational framework and creative inspiration!
+Bu proje, [@canvrno](https://github.com/canvrno) tarafından geliştirilen açık kaynak [ProxmoxMCP](https://github.com/canvrno/ProxmoxMCP) projesi üzerine kuruludur. Temel çerçeveyi ve ilhamı sağladığı için orijinal yazara teşekkürler!
 
-## 🆕 New Features and Improvements
+## Çatallanma (Fork) Geçmişi
 
-### Major enhancements compared to the original version:
+- Orijinal proje: [canvrno/ProxmoxMCP](https://github.com/canvrno/ProxmoxMCP)
+- İlk fork: [RekklesNA/ProxmoxMCP-Plus](https://github.com/RekklesNA/ProxmoxMCP-Plus)
+- Bu fork (buradasınız): Plus fork’u üzerine ek geliştirmeler içerir:
+  - VM oluştururken opsiyonel ISO bağlama (yeni `iso_name`/`iso_storage` parametreleri)
+  - Test süitinin modernleştirilmesi ve düzeltilmesi (eski testler, güncel formatlı çıktılara ve agent exec/status akışına uygunlandı)
+  - İngilizce ve Türkçe dokümantasyon güncellemeleri
 
-- ✨ **Complete VM Lifecycle Management**
-  - Brand new `create_vm` tool - Support for creating virtual machines with custom configurations
-  - New `delete_vm` tool - Safe VM deletion (with force deletion option)
-  - Enhanced intelligent storage type detection (LVM/file-based)
+## 🆕 Yeni Özellikler ve İyileştirmeler
 
-- 🔧 **Extended Power Management Features**
-  - `start_vm` - Start virtual machines
-  - `stop_vm` - Force stop virtual machines
-  - `shutdown_vm` - Graceful shutdown
-  - `reset_vm` - Restart virtual machines
+### Orijinal sürüme göre başlıca iyileştirmeler:
 
-- 🐳 **New Container Support**
-  - `get_containers` - List all LXC containers and their status
+- ✨ **Tam VM Yaşam Döngüsü Yönetimi**
+  - Yeni `create_vm` aracı - Özel yapılandırmalarla sanal makine oluşturma desteği
+  - Yeni `delete_vm` aracı - Güvenli VM silme (zorla silme seçeneğiyle)
+  - Gelişmiş akıllı depolama türü algılama (LVM/dosya tabanlı)
 
-- 📊 **Enhanced Monitoring and Display**
-  - Improved storage pool status monitoring
-  - More detailed cluster health status checks
-  - Rich output formatting and themes
+- 🔧 **Genişletilmiş Güç Yönetimi Özellikleri**
+  - `start_vm` - Sanal makine başlatma
+  - `stop_vm` - Sanal makineyi zorla durdurma
+  - `shutdown_vm` - Zarif kapatma
+  - `reset_vm` - Sanal makineyi yeniden başlatma
 
-- 🌐 **Complete OpenAPI Integration**
-  - 11 complete REST API endpoints
-  - Production-ready Docker deployment
-  - Perfect Open WebUI integration
-  - Natural language VM creation support
+- 🐳 **Yeni Konteyner Desteği**
+  - `get_containers` - Tüm LXC konteynerlerini ve durumlarını listeleme
 
-- 🛡️ **Production-grade Security and Stability**
-  - Enhanced error handling mechanisms
-  - Comprehensive parameter validation
-  - Production-level logging
-  - Complete unit test coverage
+- 📊 **Gelişmiş İzleme ve Görselleştirme**
+  - Geliştirilmiş depolama havuzu durum izleme
+  - Daha detaylı küme sağlık kontrolü
+  - Zengin çıktı biçimlendirme ve temalar
 
-## Built With
+- 🌐 **Eksiksiz OpenAPI Entegrasyonu**
+  - 11 tam işlevsel REST API uç noktası
+  - Üretime hazır Docker dağıtımı
+  - Open WebUI ile kusursuz entegrasyon
+  - Doğal dil ile VM oluşturma desteği
 
-- [Cline](https://github.com/cline/cline) - Autonomous coding agent - Go faster with Cline
-- [Proxmoxer](https://github.com/proxmoxer/proxmoxer) - Python wrapper for Proxmox API
+- 🛡️ **Üretim Seviyesinde Güvenlik ve Kararlılık**
+  - Gelişmiş hata yönetimi mekanizmaları
+  - Kapsamlı parametre doğrulama
+  - Üretim seviyesinde logging
+  - Tam birim test kapsamı
+
+## Kullanılan Teknolojiler
+
+- [Cline](https://github.com/cline/cline) - Otonom kodlama ajanı - Cline ile daha hızlı
+- [Proxmoxer](https://github.com/proxmoxer/proxmoxer) - Proxmox API için Python sarmalayıcısı
 - [MCP SDK](https://github.com/modelcontextprotocol/sdk) - Model Context Protocol SDK
-- [Pydantic](https://docs.pydantic.dev/) - Data validation using Python type annotations
+- [Pydantic](https://docs.pydantic.dev/) - Python tip açıklamalarıyla veri doğrulama
 
-## Features
+## Özellikler
 
-- 🤖 Full integration with Cline and Open WebUI
-- 🛠️ Built with the official MCP SDK
-- 🔒 Secure token-based authentication with Proxmox
-- 🖥️ Complete VM lifecycle management (create, start, stop, reset, shutdown, delete)
-- 💻 VM console command execution
-- 🐳 LXC container management support
-- 🗃️ Intelligent storage type detection (LVM/file-based)
-- 📝 Configurable logging system
-- ✅ Type-safe implementation with Pydantic
-- 🎨 Rich output formatting with customizable themes
-- 🌐 OpenAPI REST endpoints for integration
-- 📡 11 fully functional API endpoints
+- 🤖 Cline ve Open WebUI ile tam entegrasyon
+- 🛠️ Resmi MCP SDK ile geliştirilmiştir
+- 🔒 Proxmox ile güvenli token tabanlı kimlik doğrulama
+- 🖥️ Tam VM yaşam döngüsü yönetimi (oluştur, başlat, durdur, reset, kapat, sil)
+- 💻 VM konsol komutu çalıştırma
+- 🐳 LXC konteyner yönetimi desteği
+- 🗃️ Akıllı depolama türü algılama (LVM/dosya tabanlı)
+- 📝 Yapılandırılabilir logging sistemi
+- ✅ Pydantic ile tip güvenli uygulama
+- 🎨 Özelleştirilebilir temalarla zengin çıktı biçimlendirme
+- 🌐 Entegrasyon için OpenAPI REST uç noktaları
+- 📡 11 tam işlevsel API uç noktası
 
 
-## Installation
+## Kurulum
 
-### Prerequisites
-- UV package manager (recommended)
-- Python 3.9 or higher
+### Önkoşullar
+- UV paket yöneticisi (önerilir)
+- Python 3.9 veya üzeri
 - Git
-- Access to a Proxmox server with API token credentials
+- API token bilgilerine sahip bir Proxmox sunucusuna erişim
 
-Before starting, ensure you have:
-- [ ] Proxmox server hostname or IP
-- [ ] Proxmox API token (see [API Token Setup](#proxmox-api-token-setup))
-- [ ] UV installed (`pip install uv`)
+Başlamadan önce emin olun:
+- [ ] Proxmox sunucu ana bilgisayar adı veya IP adresi
+- [ ] Proxmox API token (bkz. [Proxmox API Token Kurulumu](#proxmox-api-token-kurulumu))
+- [ ] UV kurulu (`pip install uv`)
 
-### Option 1: Quick Install (Recommended)
+### Seçenek 1: Hızlı Kurulum (Önerilen)
 
-1. Clone and set up environment:
+1. Klonla ve ortamı hazırla:
    ```bash
-   # Clone repository
+   # Depoyu klonla
    git clone https://github.com/RekklesNA/ProxmoxMCP-Plus.git
    cd ProxmoxMCP-Plus
 
-   # Create and activate virtual environment
+   # Sanal ortam oluştur ve aktifleştir
    uv venv
    source .venv/bin/activate  # Linux/macOS
-   # OR
+   # VEYA
    .\.venv\Scripts\Activate.ps1  # Windows
    ```
 
-2. Install dependencies:
+2. Bağımlılıkları yükle:
    ```bash
-   # Install with development dependencies
+   # Geliştirme bağımlılıklarıyla yükle
    uv pip install -e ".[dev]"
    ```
 
-3. Create configuration:
+3. Yapılandırmayı oluştur:
    ```bash
-   # Create config directory and copy template
+   # Yapılandırma klasörünü oluştur ve şablonu kopyala
    mkdir -p proxmox-config
    cp proxmox-config/config.example.json proxmox-config/config.json
    ```
 
-4. Edit `proxmox-config/config.json`:
+4. `proxmox-config/config.json` dosyasını düzenle:
    ```json
    {
        "proxmox": {
-           "host": "PROXMOX_HOST",        # Required: Your Proxmox server address
-           "port": 8006,                  # Optional: Default is 8006
-           "verify_ssl": false,           # Optional: Set false for self-signed certs
-           "service": "PVE"               # Optional: Default is PVE
+           "host": "PROXMOX_HOST",        # Zorunlu: Proxmox sunucu adresiniz
+           "port": 8006,                  # Opsiyonel: Varsayılan 8006
+           "verify_ssl": false,           # Opsiyonel: Self-signed sertifikalar için false
+           "service": "PVE"               # Opsiyonel: Varsayılan PVE
        },
        "auth": {
-           "user": "USER@pve",            # Required: Your Proxmox username
-           "token_name": "TOKEN_NAME",    # Required: API token ID
-           "token_value": "TOKEN_VALUE"   # Required: API token value
+           "user": "USER@pve",            # Zorunlu: Proxmox kullanıcı adınız
+           "token_name": "TOKEN_NAME",    # Zorunlu: API token ID
+           "token_value": "TOKEN_VALUE"   # Zorunlu: API token değeri
        },
        "logging": {
-           "level": "INFO",               # Optional: DEBUG for more detail
+           "level": "INFO",               # Opsiyonel: Daha fazla detay için DEBUG
            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-           "file": "proxmox_mcp.log"      # Optional: Log to file
+           "file": "proxmox_mcp.log"      # Opsiyonel: Dosyaya logla
        }
    }
    ```
 
-### Verifying Installation
+### Kurulumu Doğrulama
 
-1. Check Python environment:
+1. Python ortamını kontrol et:
    ```bash
    python -c "import proxmox_mcp; print('Installation OK')"
    ```
 
-2. Run the tests:
+2. Testleri çalıştır:
    ```bash
    pytest
    ```
 
-3. Verify configuration:
+3. Yapılandırmayı doğrula:
    ```bash
    # Linux/macOS
    PROXMOX_MCP_CONFIG="proxmox-config/config.json" python -m proxmox_mcp.server
@@ -149,126 +158,129 @@ Before starting, ensure you have:
    $env:PROXMOX_MCP_CONFIG="proxmox-config\config.json"; python -m proxmox_mcp.server
    ```
 
-## Configuration
+## Yapılandırma
 
-### Proxmox API Token Setup
-1. Log into your Proxmox web interface
-2. Navigate to Datacenter -> Permissions -> API Tokens
-3. Create a new API token:
-   - Select a user (e.g., root@pam)
-   - Enter a token ID (e.g., "mcp-token")
-   - Uncheck "Privilege Separation" if you want full access
-   - Save and copy both the token ID and secret
+### Proxmox API Token Kurulumu
+1. Proxmox web arayüzünüze giriş yapın
+2. Datacenter -> Permissions -> API Tokens bölümüne gidin
+3. Yeni bir API token oluşturun:
+   - Bir kullanıcı seçin (ör. root@pam)
+   - Bir token ID girin (ör. "mcp-token")
+   - Tam erişim istiyorsanız "Privilege Separation" işaretini kaldırın
+   - Kaydedin ve token ID ile secret değerini kopyalayın
 
-## Running the Server
+## Sunucuyu Çalıştırma
 
-### Development Mode
-For testing and development:
+### Geliştirme Modu
+Test ve geliştirme için:
 ```bash
-# Activate virtual environment first
+# Önce sanal ortamı aktifleştirin
 source .venv/bin/activate  # Linux/macOS
-# OR
+# VEYA
 .\.venv\Scripts\Activate.ps1  # Windows
 
-# Run the server
+# Sunucuyu çalıştır
 python -m proxmox_mcp.server
 ```
 
-### OpenAPI Deployment (Production Ready)
+### OpenAPI Dağıtımı (Üretime Hazır)
 
-Deploy ProxmoxMCP Plus as standard OpenAPI REST endpoints for integration with Open WebUI and other applications.
+ProxmoxMCP Plus’u Open WebUI ve diğer uygulamalarla entegrasyon için standart OpenAPI REST uç noktaları olarak dağıtın.
 
-#### Quick OpenAPI Start
+#### Hızlı OpenAPI Başlatma
 ```bash
-# Install mcpo (MCP-to-OpenAPI proxy)
+# mcpo (MCP-to-OpenAPI proxy) kurun
 pip install mcpo
 
-# Start OpenAPI service on port 8811
+# OpenAPI servisini 8811 portunda başlatın
 ./start_openapi.sh
 ```
 
-#### Docker Deployment
+#### Docker Dağıtımı
 ```bash
-# Build and run with Docker
+# Docker ile imajı oluşturun ve çalıştırın
 docker build -t proxmox-mcp-api .
 docker run -d --name proxmox-mcp-api -p 8811:8811 \
   -v $(pwd)/proxmox-config:/app/proxmox-config proxmox-mcp-api
 
-# Or use Docker Compose
+# Ya da Docker Compose kullanın
 docker-compose up -d
 ```
 
-#### Access OpenAPI Service
-Once deployed, access your service at:
-- **📖 API Documentation**: http://your-server:8811/docs
-- **🔧 OpenAPI Specification**: http://your-server:8811/openapi.json
-- **❤️ Health Check**: http://your-server:8811/health
+#### OpenAPI Servisine Erişim
+Dağıtım tamamlandığında servis erişimi:
+- **📖 API Dokümantasyonu**: http://your-server:8811/docs
+- **🔧 OpenAPI Spesifikasyonu**: http://your-server:8811/openapi.json
+- **❤️ Sağlık Kontrolü**: http://your-server:8811/health
 
-### Cline Desktop Integration
+### Cline Masaüstü Entegrasyonu
 
-For Cline users, add this configuration to your MCP settings file (typically at `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`):
+Cline kullanıcıları için, MCP ayar dosyanıza (genellikle `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`) şu yapılandırmayı ekleyin:
 
 ```json
 {
-    "mcpServers": {
-        "ProxmoxMCP-Plus": {
-            "command": "/absolute/path/to/ProxmoxMCP-Plus/.venv/bin/python",
-            "args": ["-m", "proxmox_mcp.server"],
-            "cwd": "/absolute/path/to/ProxmoxMCP-Plus",
-            "env": {
-                "PYTHONPATH": "/absolute/path/to/ProxmoxMCP-Plus/src",
-                "PROXMOX_MCP_CONFIG": "/absolute/path/to/ProxmoxMCP-Plus/proxmox-config/config.json",
-                "PROXMOX_HOST": "your-proxmox-host",
-                "PROXMOX_USER": "username@pve",
-                "PROXMOX_TOKEN_NAME": "token-name",
-                "PROXMOX_TOKEN_VALUE": "token-value",
-                "PROXMOX_PORT": "8006",
-                "PROXMOX_VERIFY_SSL": "false",
-                "PROXMOX_SERVICE": "PVE",
-                "LOG_LEVEL": "DEBUG"
-            },
-            "disabled": false,
-            "autoApprove": []
-        }
+  "mcpServers": {
+    "ProxmoxMCP-Plus": {
+      "command": "/absolute/path/to/ProxmoxMCP-Plus/.venv/bin/python",
+      "args": ["-m", "proxmox_mcp.server"],
+      "cwd": "/absolute/path/to/ProxmoxMCP-Plus",
+      "env": {
+        "PYTHONPATH": "/absolute/path/to/ProxmoxMCP-Plus/src",
+        "PROXMOX_MCP_CONFIG": "/absolute/path/to/ProxmoxMCP-Plus/proxmox-config/config.json",
+        "PROXMOX_HOST": "your-proxmox-host",
+        "PROXMOX_USER": "username@pve",
+        "PROXMOX_TOKEN_NAME": "token-name",
+        "PROXMOX_TOKEN_VALUE": "token-value",
+        "PROXMOX_PORT": "8006",
+        "PROXMOX_VERIFY_SSL": "false",
+        "PROXMOX_SERVICE": "PVE",
+        "LOG_LEVEL": "DEBUG"
+      },
+      "disabled": false,
+      "autoApprove": []
     }
+  }
 }
 ```
 
-## Available Tools & API Endpoints
+## Mevcut Araçlar ve API Uç Noktaları
 
-The server provides 11 comprehensive MCP tools and corresponding REST API endpoints:
+Sunucu, MCP araçları ve karşılık gelen REST API uç noktaları sağlar (11 adet):
 
-### VM Management Tools
+### VM Yönetim Araçları
 
 #### create_vm 
-Create a new virtual machine with specified resources.
+Belirtilen kaynaklarla yeni bir sanal makine oluşturur. Oluşturma sırasında opsiyonel olarak ISO bağlayabilir.
 
-**Parameters:**
-- `node` (string, required): Name of the node
-- `vmid` (string, required): ID for the new VM
-- `name` (string, required): Name for the VM
-- `cpus` (integer, required): Number of CPU cores (1-32)
-- `memory` (integer, required): Memory in MB (512-131072)
-- `disk_size` (integer, required): Disk size in GB (5-1000)
-- `storage` (string, optional): Storage pool name
-- `ostype` (string, optional): OS type (default: l26)
+**Parametreler:**
+- `node` (string, zorunlu): Düğüm adı
+- `vmid` (string, zorunlu): Yeni VM için ID
+- `name` (string, zorunlu): VM adı
+- `cpus` (integer, zorunlu): CPU çekirdek sayısı (1-32)
+- `memory` (integer, zorunlu): Bellek MB cinsinden (512-131072)
+- `disk_size` (integer, zorunlu): Disk boyutu GB cinsinden (5-1000)
+- `storage` (string, opsiyonel): Depolama havuzu adı
+- `ostype` (string, opsiyonel): İşletim sistemi türü (varsayılan: l26)
+- `iso_name` (string, opsiyonel): Bağlanacak ISO dosya adı (ör. `debian-12.iso`)
+- `iso_storage` (string, opsiyonel): ISO'nun bulunduğu depolama adı (verilmezse otomatik bulunur)
 
-**API Endpoint:**
+**API Uç Noktası:**
 ```http
 POST /create_vm
 Content-Type: application/json
 
 {
-    "node": "pve",
-    "vmid": "200",
-    "name": "my-vm",
-    "cpus": 1,
-    "memory": 2048,
-    "disk_size": 10
+  "node": "pve",
+  "vmid": "200",
+  "name": "my-vm",
+  "cpus": 1,
+  "memory": 2048,
+  "disk_size": 10,
+  "iso_name": "debian-12.5.0-amd64-netinst.iso"
 }
 ```
 
-**Example Response:**
+**Örnek Yanıt:**
 ```
 🎉 VM 200 created successfully!
 
@@ -282,50 +294,51 @@ Content-Type: application/json
   • Storage Type: lvmthin
   • Network: virtio (bridge=vmbr0)
   • QEMU Agent: Enabled
+  • ISO: debian-12.5.0-amd64-netinst.iso (from local on ide3)
 
 🔧 Task ID: UPID:pve:001AB729:0442E853:682FF380:qmcreate:200:root@pam!mcp
 ```
 
-#### VM Power Management 🆕
+#### VM Güç Yönetimi 🆕
 
-**start_vm**: Start a virtual machine
+**start_vm**: Sanal makine başlatma
 ```http
 POST /start_vm
 {"node": "pve", "vmid": "200"}
 ```
 
-**stop_vm**: Force stop a virtual machine
+**stop_vm**: Sanal makineyi zorla durdurma
 ```http
 POST /stop_vm
 {"node": "pve", "vmid": "200"}
 ```
 
-**shutdown_vm**: Gracefully shutdown a virtual machine
+**shutdown_vm**: Sanal makineyi zarif şekilde kapatma
 ```http
 POST /shutdown_vm
 {"node": "pve", "vmid": "200"}
 ```
 
-**reset_vm**: Reset (restart) a virtual machine
+**reset_vm**: Sanal makineyi resetleme (yeniden başlatma)
 ```http
 POST /reset_vm
 {"node": "pve", "vmid": "200"}
 ```
 
-**delete_vm** 🆕: Completely delete a virtual machine
+**delete_vm** 🆕: Sanal makineyi tamamen silme
 ```http
 POST /delete_vm
 {"node": "pve", "vmid": "200", "force": false}
 ```
 
-### 🆕 Container Management Tools
+### 🆕 Konteyner Yönetim Araçları
 
 #### get_containers 🆕
-List all LXC containers across the cluster.
+Küme genelindeki tüm LXC konteynerleri listeleme.
 
-**API Endpoint:** `POST /get_containers`
+**API Uç Noktası:** `POST /get_containers`
 
-**Example Response:**
+**Örnek Yanıt:**
 ```
 🐳 Containers
 
@@ -336,14 +349,14 @@ List all LXC containers across the cluster.
   • Memory: 1.5 GB / 2.0 GB (75.0%)
 ```
 
-### Monitoring Tools
+### İzleme Araçları
 
 #### get_nodes
-Lists all nodes in the Proxmox cluster.
+Proxmox kümesindeki tüm düğümleri listeler.
 
-**API Endpoint:** `POST /get_nodes`
+**API Uç Noktası:** `POST /get_nodes`
 
-**Example Response:**
+**Örnek Yanıt:**
 ```
 🖥️ Proxmox Nodes
 
@@ -355,49 +368,49 @@ Lists all nodes in the Proxmox cluster.
 ```
 
 #### get_node_status
-Get detailed status of a specific node.
+Belirli bir düğümün detaylı durumunu verir.
 
-**Parameters:**
-- `node` (string, required): Name of the node
+**Parametreler:**
+- `node` (string, zorunlu): Düğüm adı
 
-**API Endpoint:** `POST /get_node_status`
+**API Uç Noktası:** `POST /get_node_status`
 
 #### get_vms
-List all VMs across the cluster.
+Küme genelindeki tüm VM’leri listeler.
 
-**API Endpoint:** `POST /get_vms`
+**API Uç Noktası:** `POST /get_vms`
 
 #### get_storage
-List available storage pools.
+Mevcut depolama havuzlarını listeler.
 
-**API Endpoint:** `POST /get_storage`
+**API Uç Noktası:** `POST /get_storage`
 
 #### get_cluster_status
-Get overall cluster status and health.
+Genel küme durumu ve sağlık bilgisi.
 
-**API Endpoint:** `POST /get_cluster_status`
+**API Uç Noktası:** `POST /get_cluster_status`
 
 #### execute_vm_command
-Execute a command in a VM's console using QEMU Guest Agent.
+QEMU Guest Agent kullanarak bir VM’in konsolunda komut çalıştırır.
 
-**Parameters:**
-- `node` (string, required): Name of the node where VM is running
-- `vmid` (string, required): ID of the VM
-- `command` (string, required): Command to execute
+**Parametreler:**
+- `node` (string, zorunlu): VM’in çalıştığı düğüm adı
+- `vmid` (string, zorunlu): VM’in ID’si
+- `command` (string, zorunlu): Çalıştırılacak komut
 
-**API Endpoint:** `POST /execute_vm_command`
+**API Uç Noktası:** `POST /execute_vm_command`
 
-**Requirements:**
-- VM must be running
-- QEMU Guest Agent must be installed and running in the VM
+**Gereksinimler:**
+- VM çalışır durumda olmalı
+- VM içinde QEMU Guest Agent kurulu ve çalışır olmalı
 
-## Open WebUI Integration
+## Open WebUI Entegrasyonu
 
-### Configure Open WebUI
+### Open WebUI’yi Yapılandırma
 
-1. Access your Open WebUI instance
-2. Navigate to **Settings** → **Connections** → **OpenAPI**
-3. Add new API configuration:
+1. Open WebUI instance’ınıza erişin
+2. **Settings** → **Connections** → **OpenAPI** yolunu izleyin
+3. Yeni bir API yapılandırması ekleyin:
 
 ```json
 {
@@ -408,105 +421,105 @@ Execute a command in a VM's console using QEMU Guest Agent.
 }
 ```
 
-### Natural Language VM Creation
+### Doğal Dille VM Oluşturma
 
-Users can now request VMs using natural language:
+Kullanıcılar artık doğal dil ile VM talep edebilir:
 
-- **"Can you create a VM with 1 cpu core and 2 GB ram with 10GB of storage disk"**
-- **"Create a new VM for testing with minimal resources"**
-- **"I need a development server with 4 cores and 8GB RAM"**
+- **"1 cpu çekirdek ve 2 GB ram ile 10GB diskli bir VM oluşturur musun"**
+- **"Minimal kaynaklarla test için yeni bir VM oluştur"**
+- **"4 çekirdek ve 8GB RAM’li bir geliştirme sunucusuna ihtiyacım var"**
 
-The AI assistant will automatically call the appropriate APIs and provide detailed feedback.
+Yapay zeka asistanı otomatik olarak uygun API’leri çağırır ve detaylı geri bildirim sunar.
 
-## Storage Type Support
+## Depolama Türü Desteği
 
-### Intelligent Storage Detection
+### Akıllı Depolama Algılama
 
-ProxmoxMCP Plus automatically detects storage types and selects appropriate disk formats:
+ProxmoxMCP Plus, depolama türlerini otomatik algılar ve uygun disk formatlarını seçer:
 
-#### LVM Storage (local-lvm, vm-storage)
+#### LVM Depolama (local-lvm, vm-storage)
 - ✅ Format: `raw`
-- ✅ High performance
-- ⚠️ No cloud-init image support
+- ✅ Yüksek performans
+- ⚠️ Cloud-init imaj desteği yok
 
-#### File-based Storage (local, NFS, CIFS)
+#### Dosya Tabanlı Depolama (local, NFS, CIFS)
 - ✅ Format: `qcow2`
-- ✅ Cloud-init support
-- ✅ Flexible snapshot capabilities
+- ✅ Cloud-init desteği
+- ✅ Esnek anlık görüntü (snapshot) yetenekleri
 
-## Project Structure
+## Proje Yapısı
 
 ```
 ProxmoxMCP-Plus/
-├── 📁 src/                          # Source code
+├── 📁 src/                          # Kaynak kod
 │   └── proxmox_mcp/
-│       ├── server.py                # Main MCP server implementation
-│       ├── config/                  # Configuration handling
-│       ├── core/                    # Core functionality
-│       ├── formatting/              # Output formatting and themes
-│       ├── tools/                   # Tool implementations
-│       │   ├── vm.py               # VM management (create/power) 🆕
-│       │   ├── container.py        # Container management 🆕
-│       │   └── console/            # VM console operations
-│       └── utils/                   # Utilities (auth, logging)
+│       ├── server.py                # Ana MCP sunucu uygulaması
+│       ├── config/                  # Yapılandırma işlemleri
+│       ├── core/                    # Çekirdek işlevler
+│       ├── formatting/              # Çıktı biçimlendirme ve temalar
+│       ├── tools/                   # Araç implementasyonları
+│       │   ├── vm.py               # VM yönetimi (oluşturma/güç) 🆕
+│       │   ├── container.py        # Konteyner yönetimi 🆕
+│       │   └── console/            # VM konsol işlemleri
+│       └── utils/                   # Yardımcılar (auth, logging)
 │
-├── 📁 tests/                       # Unit test suite
-├── 📁 test_scripts/                # Integration tests & demos
-│   ├── README.md                   # Test documentation
-│   ├── test_vm_power.py           # VM power management tests 🆕
-│   ├── test_vm_start.py           # VM startup tests
-│   ├── test_create_vm.py          # VM creation tests 🆕
-│   └── test_openapi.py            # OpenAPI service tests
+├── 📁 tests/                       # Birim testleri
+├── 📁 test_scripts/                # Entegrasyon testleri ve demolar
+│   ├── README.md                   # Test dokümantasyonu
+│   ├── test_vm_power.py           # VM güç yönetimi testleri 🆕
+│   ├── test_vm_start.py           # VM başlatma testleri
+│   ├── test_create_vm.py          # VM oluşturma testleri 🆕
+│   └── test_openapi.py            # OpenAPI servis testleri
 │
-├── 📁 proxmox-config/              # Configuration files
-│   └── config.json                # Server configuration
+├── 📁 proxmox-config/              # Yapılandırma dosyaları
+│   └── config.json                # Sunucu yapılandırması
 │
-├── 📄 Configuration Files
-│   ├── pyproject.toml             # Project metadata
-│   ├── docker-compose.yml         # Docker orchestration
-│   ├── Dockerfile                 # Docker image definition
-│   └── requirements.in            # Dependencies
+├── 📄 Yapılandırma Dosyaları
+│   ├── pyproject.toml             # Proje meta verisi
+│   ├── docker-compose.yml         # Docker orkestrasyonu
+│   ├── Dockerfile                 # Docker imaj tanımı
+│   └── requirements.in            # Bağımlılıklar
 │
-├── 📄 Scripts
-│   ├── start_server.sh            # MCP server launcher
-│   └── start_openapi.sh           # OpenAPI service launcher
+├── 📄 Scriptler
+│   ├── start_server.sh            # MCP sunucu başlatıcı
+│   └── start_openapi.sh           # OpenAPI servis başlatıcı
 │
-└── 📄 Documentation
-    ├── README.md                  # This file
-    ├── VM_CREATION_GUIDE.md       # VM creation guide
-    ├── OPENAPI_DEPLOYMENT.md      # OpenAPI deployment
-    └── LICENSE                    # MIT License
+└── 📄 Dokümantasyon
+    ├── README.md                  # Bu dosya
+    ├── VM_CREATION_GUIDE.md       # VM oluşturma kılavuzu
+    ├── OPENAPI_DEPLOYMENT.md      # OpenAPI dağıtımı
+    └── LICENSE                    # MIT Lisansı
 ```
 
-## Testing
+## Test
 
-### Run Unit Tests
+### Birim Testlerini Çalıştır
 ```bash
 pytest
 ```
 
-### Run Integration Tests
+### Entegrasyon Testlerini Çalıştır
 ```bash
 cd test_scripts
 
-# Test VM power management
+# VM güç yönetimi testi
 python test_vm_power.py
 
-# Test VM creation
+# VM oluşturma testi
 python test_create_vm.py
 
-# Test OpenAPI service
+# OpenAPI servis testi
 python test_openapi.py
 ```
 
-### API Testing with curl
+### curl ile API Testi
 ```bash
-# Test node listing
+# Düğüm listeleme testi
 curl -X POST "http://your-server:8811/get_nodes" \
   -H "Content-Type: application/json" \
   -d "{}"
 
-# Test VM creation
+# VM oluşturma testi
 curl -X POST "http://your-server:8811/create_vm" \
   -H "Content-Type: application/json" \
   -d '{
@@ -519,18 +532,18 @@ curl -X POST "http://your-server:8811/create_vm" \
   }'
 ```
 
-## Production Security
+## Üretim Güvenliği
 
-### API Key Authentication
-Set up secure API access:
+### API Anahtarı ile Kimlik Doğrulama
+Güvenli API erişimini ayarlayın:
 
 ```bash
 export PROXMOX_API_KEY="your-secure-api-key"
 export PROXMOX_MCP_CONFIG="/app/proxmox-config/config.json"
 ```
 
-### Nginx Reverse Proxy
-Example nginx configuration:
+### Nginx Ters Vekil (Reverse Proxy)
+Örnek nginx yapılandırması:
 
 ```nginx
 server {
@@ -545,83 +558,85 @@ server {
 }
 ```
 
-## Troubleshooting
+## Sorun Giderme
 
-### Common Issues
+### Yaygın Sorunlar
 
-1. **Port already in use**
+1. **Port zaten kullanımda**
    ```bash
    netstat -tlnp | grep 8811
-   # Change port if needed
+   # Gerekirse portu değiştirin
    mcpo --port 8812 -- ./start_server.sh
    ```
 
-2. **Configuration errors**
+2. **Yapılandırma hataları**
    ```bash
-   # Verify config file
+   # Yapılandırma dosyasını doğrulayın
    cat proxmox-config/config.json
    ```
 
-3. **Connection issues**
+3. **Bağlantı sorunları**
    ```bash
-   # Test Proxmox connectivity
+   # Proxmox bağlantısını test edin
    curl -k https://your-proxmox:8006/api2/json/version
    ```
 
-### View Logs
+### Logları Görüntüle
 ```bash
-# View service logs
+# Servis loglarını görüntüle
 tail -f proxmox_mcp.log
 
-# Docker logs
+# Docker logları
 docker logs proxmox-mcp-api -f
 ```
 
-## Deployment Status
+## Dağıtım Durumu
 
-### ✅ Feature Completion: 100%
+### ✅ Özellik Tamamlama: %100
 
-- [x] VM Creation (user requirement: 1 CPU + 2GB RAM + 10GB storage) 🆕
-- [x] VM Power Management (start VPN-Server ID:101) 🆕
-- [x] VM Deletion Feature 🆕
-- [x] Container Management (LXC) 🆕
-- [x] Storage Compatibility (LVM/file-based)
-- [x] OpenAPI Integration (port 8811)
-- [x] Open WebUI Integration
-- [x] Error Handling & Validation
-- [x] Complete Documentation & Testing
+- [x] VM Oluşturma (kullanıcı isteği: 1 CPU + 2GB RAM + 10GB disk) 🆕
+- [x] VM Güç Yönetimi (start VPN-Server ID:101) 🆕
+- [x] VM Silme Özelliği 🆕
+- [x] Konteyner Yönetimi (LXC) 🆕
+- [x] Depolama Uyumluluğu (LVM/dosya tabanlı)
+- [x] OpenAPI Entegrasyonu (port 8811)
+- [x] Open WebUI Entegrasyonu
+- [x] Hata Yönetimi ve Doğrulama
+- [x] Tam Dokümantasyon ve Test
 
-### Production Ready!
+### Üretime Hazır!
 
-**ProxmoxMCP Plus is now fully ready for production use!**
+**ProxmoxMCP Plus artık üretim kullanımına tamamen hazır!**
 
-When users say **"Can you create a VM with 1 cpu core and 2 GB ram with 10GB of storage disk"**, the AI assistant can:
+Kullanıcılar **"1 cpu çekirdek ve 2 GB ram ile 10GB diskli bir VM oluşturur musun"** dediğinde, yapay zeka asistanı:
 
-1. 📞 Call the `create_vm` API
-2. 🔧 Automatically select appropriate storage and format
-3. 🎯 Create VMs that match requirements
-4. 📊 Return detailed configuration information
-5. 💡 Provide next-step recommendations
+1. 📞 `create_vm` API’sini çağırır
+2. 🔧 Uygun depolama ve formatı otomatik seçer
+3. 🎯 İstenilen özelliklerde VM oluşturur
+4. 📊 Detaylı yapılandırma bilgisini döner
+5. 💡 Sonraki adımlar için öneriler sağlar
 
-## Development
+## Geliştirme
 
-After activating your virtual environment:
+Sanal ortamı aktifleştirdikten sonra:
 
-- Run tests: `pytest`
-- Format code: `black .`
-- Type checking: `mypy .`
+- Testleri çalıştır: `pytest`
+- Kod biçimlendirme: `black .`
+- Tip kontrolü: `mypy .`
 - Lint: `ruff .`
 
-## License
+## Lisans
 
-MIT License
+MIT Lisansı
 
-## Special Thanks
+## Özel Teşekkürler
 
-- Thanks to [@canvrno](https://github.com/canvrno) for the excellent foundational project [ProxmoxMCP](https://github.com/canvrno/ProxmoxMCP)
-- Thanks to the Proxmox community for providing the powerful virtualization platform
-- Thanks to all contributors and users for their support
+- Mükemmel temel projeyi sağlayan [@canvrno](https://github.com/canvrno) ve [ProxmoxMCP](https://github.com/canvrno/ProxmoxMCP) için teşekkürler
+- Güçlü sanallaştırma platformunu sağlayan Proxmox topluluğuna teşekkürler
+- Tüm katkıda bulunanlara ve kullanıcılara destekleri için teşekkürler
 
 ---
 
-**Ready to Deploy!** 🎉 Your enhanced Proxmox MCP service with OpenAPI integration is ready for production use.
+**Dağıtıma Hazır!** 🎉 OpenAPI entegrasyonlu, geliştirilmiş Proxmox MCP servisiniz üretim için hazır.
+
+
