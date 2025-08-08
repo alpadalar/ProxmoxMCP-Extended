@@ -115,8 +115,9 @@ class VMTools(ProxmoxTool):
         except Exception as e:
             self._handle_error("get VMs", e)
 
-    def create_vm(self, node: str, vmid: str, name: str, cpus: int, memory: int, 
-                  disk_size: int, storage: Optional[str] = None, ostype: Optional[str] = None) -> List[Content]:
+    def create_vm(self, node: str, vmid: str, name: str, cpus: int, memory: int,
+                  disk_size: int, storage: Optional[str] = None, ostype: Optional[str] = None,
+                  iso_name: Optional[str] = None, iso_storage: Optional[str] = None) -> List[Content]:
         """Create a new virtual machine with specified configuration.
         
         Args:
@@ -128,6 +129,8 @@ class VMTools(ProxmoxTool):
             disk_size: Disk size in GB (e.g., 10, 20, 50)
             storage: Storage name (e.g., 'local-lvm', 'vm-storage'). If None, will auto-detect
             ostype: OS type (e.g., 'l26' for Linux, 'win10' for Windows). Default: 'l26'
+            iso_name: Optional ISO file name to mount on creation (e.g., 'debian-12.iso')
+            iso_storage: Optional storage name where ISO resides (auto-detected if not provided)
             
         Returns:
             List of Content objects containing creation result
@@ -202,6 +205,23 @@ class VMTools(ProxmoxTool):
                 vm_config_storage = {
                     "scsi0": f"{storage}:{disk_size},format={disk_format}",
                 }
+
+            # Optional ISO mount configuration
+            iso_config_note = ""
+            if iso_name:
+                # Auto-detect ISO-capable storage if not provided
+                if not iso_storage:
+                    for s in storage_list:
+                        if "iso" in s.get("content", ""):
+                            iso_storage = s["storage"]
+                            break
+                    if not iso_storage:
+                        raise ValueError("No storage with ISO content found to mount the ISO")
+
+                # Choose IDE device (avoid overwriting cloudinit on ide2)
+                ide_dev = "ide2" if "ide2" not in vm_config_storage else "ide3"
+                vm_config_storage[ide_dev] = f"{iso_storage}:iso/{iso_name},media=cdrom"
+                iso_config_note = f"\n  • ISO: {iso_name} (from {iso_storage} on {ide_dev})"
             
             # Set default OS type
             if ostype is None:
@@ -243,7 +263,7 @@ class VMTools(ProxmoxTool):
   • Storage Type: {storage_type}
   • OS Type: {ostype}
   • Network: virtio (bridge=vmbr0)
-  • QEMU Agent: Enabled{cloudinit_note}
+  • QEMU Agent: Enabled{cloudinit_note}{iso_config_note}
 
 🔧 Task ID: {task_result}
 
