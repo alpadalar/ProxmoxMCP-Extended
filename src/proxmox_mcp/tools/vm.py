@@ -610,3 +610,105 @@ class VMTools(ProxmoxTool):
             return [Content(type="text", text="\n".join(result_lines))]
         except Exception as e:
             self._handle_error(f"get usage for VM {vmid}", e)
+
+    def update_vm(self, node: str, vmid: str, memory: Optional[int] = None, 
+                  cpus: Optional[int] = None, name: Optional[str] = None) -> List[Content]:
+        """Update VM configuration (memory, CPU cores, name).
+        
+        This function allows updating VM resources. Note that some changes
+        may require the VM to be stopped for the changes to take effect.
+        
+        Args:
+            node: Host node name (e.g., 'pve')
+            vmid: VM ID number (e.g., '100')
+            memory: New memory size in MB (e.g., 4096 for 4GB, 6144 for 6GB)
+            cpus: New number of CPU cores (e.g., 1, 2, 4)
+            name: New VM name
+            
+        Returns:
+            List of Content objects containing update result
+            
+        Raises:
+            ValueError: If VM is not found or invalid parameters
+            RuntimeError: If update operation fails
+        """
+        try:
+            # Check if VM exists and get current status
+            try:
+                vm_status = self.proxmox.nodes(node).qemu(vmid).status.current.get()
+                current_status = vm_status.get("status")
+                current_name = vm_status.get("name", f"VM-{vmid}")
+            except Exception as e:
+                if "does not exist" in str(e).lower() or "not found" in str(e).lower():
+                    raise ValueError(f"VM {vmid} not found on node {node}")
+                raise e
+            
+            # Get current VM configuration
+            current_config = self.proxmox.nodes(node).qemu(vmid).config.get()
+            
+            # Prepare update parameters
+            update_params = {}
+            changes = []
+            
+            # Memory update
+            if memory is not None:
+                if memory < 512 or memory > 131072:
+                    raise ValueError("Memory must be between 512 MB and 131072 MB (128 GB)")
+                current_memory = current_config.get("memory", 0)
+                if memory != current_memory:
+                    update_params["memory"] = memory
+                    changes.append(f"Memory: {current_memory} MB → {memory} MB ({memory/1024:.1f} GB)")
+            
+            # CPU cores update
+            if cpus is not None:
+                if cpus < 1 or cpus > 32:
+                    raise ValueError("CPU cores must be between 1 and 32")
+                current_cpus = current_config.get("cores", 1)
+                if cpus != current_cpus:
+                    update_params["cores"] = cpus
+                    changes.append(f"CPU Cores: {current_cpus} → {cpus}")
+            
+            # Name update
+            if name is not None:
+                if name != current_name:
+                    update_params["name"] = name
+                    changes.append(f"Name: '{current_name}' → '{name}'")
+            
+            # Check if any changes are requested
+            if not update_params:
+                result_text = f"ℹ️ No changes requested for VM {vmid} ({current_name})"
+                return [Content(type="text", text=result_text)]
+            
+            # Check if VM needs to be stopped for changes
+            requires_stop = False
+            if current_status == "running":
+                if memory is not None or cpus is not None:
+                    requires_stop = True
+                    result_text = f"⚠️ VM {vmid} ({current_name}) is currently running.\n"
+                    result_text += f"Resource changes require the VM to be stopped first.\n"
+                    result_text += f"Please stop the VM using shutdown_vm or stop_vm before updating.\n\n"
+                    result_text += f"Requested changes:\n"
+                    for change in changes:
+                        result_text += f"  • {change}\n"
+                    return [Content(type="text", text=result_text)]
+            
+            # Apply updates
+            if update_params:
+                task_result = self.proxmox.nodes(node).qemu(vmid).config.put(**update_params)
+                
+                result_text = f"✅ VM {vmid} configuration updated successfully!\n\n"
+                result_text += f"📋 Applied Changes:\n"
+                for change in changes:
+                    result_text += f"  • {change}\n"
+                
+                if current_status == "running":
+                    result_text += f"\n⚠️ Note: Some changes may require VM restart to take full effect."
+                
+                result_text += f"\n🔧 Task ID: {task_result}"
+                
+                return [Content(type="text", text=result_text)]
+            
+        except ValueError as e:
+            raise e
+        except Exception as e:
+            self._handle_error(f"update VM {vmid}", e)

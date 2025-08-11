@@ -139,6 +139,24 @@ This will permanently remove:
 Example:
 Delete test VM with ID 998 on node pve"""
 
+UPDATE_VM_DESC = """Update VM configuration (memory, CPU cores, name).
+
+Parameters:
+node* - Host node name (e.g. 'pve')
+vmid* - VM ID number (e.g. '100')
+memory - New memory size in MB (e.g. 4096 for 4GB, 6144 for 6GB) (optional)
+cpus - New number of CPU cores (e.g. 1, 2, 4) (optional)
+name - New VM name (optional)
+
+⚠️ NOTE: Resource changes (memory/CPU) require the VM to be stopped first.
+If VM is running, this tool will inform you to stop it before updating.
+
+Examples:
+- Update memory to 6GB: node='pve', vmid='100', memory=6144
+- Update CPU cores to 4: node='pve', vmid='100', cpus=4
+- Update both memory and CPU: node='pve', vmid='100', memory=8192, cpus=4
+- Rename VM: node='pve', vmid='100', name='new-vm-name'"""
+
 # Container tool descriptions
 GET_CONTAINERS_DESC = """List all LXC containers across the cluster with their status and configuration.
 

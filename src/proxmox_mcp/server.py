@@ -44,6 +44,7 @@ from .tools.definitions import (
     SHUTDOWN_VM_DESC,
     RESET_VM_DESC,
     DELETE_VM_DESC,
+    UPDATE_VM_DESC,
     GET_CONTAINERS_DESC,
     GET_STORAGE_DESC,
     GET_CLUSTER_STATUS_DESC,
@@ -188,6 +189,16 @@ class ProxmoxMCPServer:
             force: Annotated[bool, Field(description="Force deletion even if VM is running", default=False)] = False
         ):
             return self.vm_tools.delete_vm(node, vmid, force)
+
+        @self.mcp.tool(description=UPDATE_VM_DESC)
+        def update_vm(
+            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
+            vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
+            memory: Annotated[Optional[int], Field(description="New memory size in MB (e.g. 4096 for 4GB, 6144 for 6GB)", default=None)] = None,
+            cpus: Annotated[Optional[int], Field(description="New number of CPU cores (e.g. 1, 2, 4)", default=None)] = None,
+            name: Annotated[Optional[str], Field(description="New VM name", default=None)] = None,
+        ):
+            return self.vm_tools.update_vm(node, vmid, memory, cpus, name)
 
         # VM snapshot tools
         @self.mcp.tool(description=CREATE_SNAPSHOT_DESC)
