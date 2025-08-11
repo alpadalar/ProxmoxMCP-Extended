@@ -211,7 +211,7 @@ docker-compose up -d
 Dağıtım tamamlandığında servis erişimi:
 - **📖 API Dokümantasyonu**: http://your-server:8811/docs
 - **🔧 OpenAPI Spesifikasyonu**: http://your-server:8811/openapi.json
-- **❤️ Sağlık Kontrolü**: http://your-server:8811/health
+- **❤️ Sağlık Kontrolü**: POST http://your-server:8811/health (gövde: `{}`)
 
 ### Cline Masaüstü Entegrasyonu
 

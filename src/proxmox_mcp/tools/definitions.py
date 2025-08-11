@@ -156,3 +156,12 @@ GET_CLUSTER_STATUS_DESC = """Get overall Proxmox cluster health and configuratio
 
 Example:
 {"name": "proxmox", "quorum": "ok", "nodes": 3, "ha_status": "active"}"""
+
+# System tool descriptions
+HEALTH_DESC = """Health check endpoint.
+
+Returns the server health status. If startup tests were run and passed,
+status will be 'ok'; otherwise returns 'degraded' or 'unknown'.
+
+Example:
+{"status": "ok", "tests_passed": true, "details": "Startup tests passed"}"""

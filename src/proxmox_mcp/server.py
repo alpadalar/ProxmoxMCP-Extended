@@ -50,6 +50,7 @@ from .tools.definitions import (
     CREATE_SNAPSHOT_DESC,
     ROLLBACK_SNAPSHOT_DESC,
     GET_VM_USAGE_DESC,
+    HEALTH_DESC,
 )
 
 class ProxmoxMCPServer:
@@ -77,6 +78,7 @@ class ProxmoxMCPServer:
         
         # Initialize MCP server
         self.mcp = FastMCP("ProxmoxMCP")
+        self._tests_passed: Optional[bool] = None
         self._setup_tools()
 
     def _setup_tools(self) -> None:
@@ -224,6 +226,16 @@ class ProxmoxMCPServer:
         def get_cluster_status():
             return self.cluster_tools.get_cluster_status()
 
+        # System tools
+        @self.mcp.tool(description=HEALTH_DESC)
+        def health():
+            status = "ok" if self._tests_passed is True else ("degraded" if self._tests_passed is False else "unknown")
+            return [Content(type="text", text=json.dumps({
+                "status": status,
+                "tests_passed": self._tests_passed,
+                "details": "Startup tests passed" if self._tests_passed else ("Startup tests failed" if self._tests_passed is False else "No tests executed")
+            }))]
+
     def start(self) -> None:
         """Start the MCP server.
         
@@ -245,6 +257,21 @@ class ProxmoxMCPServer:
         signal.signal(signal.SIGTERM, signal_handler)
 
         try:
+            # Optionally run tests before serving
+            run_tests = os.getenv("RUN_TESTS_ON_START", "0").lower() in ("1", "true", "yes", "on")
+            if run_tests:
+                import subprocess
+                self.logger.info("Running startup tests (pytest)...")
+                env = os.environ.copy()
+                # Ensure src on PYTHONPATH for tests
+                env["PYTHONPATH"] = f"{os.getcwd()}/src" + (":" + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+                result = subprocess.run([sys.executable, "-m", "pytest", "-q"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+                self._tests_passed = (result.returncode == 0)
+                if not self._tests_passed:
+                    self.logger.error("Startup tests failed. Health will be 'degraded'. Output:\n" + result.stdout.decode())
+                else:
+                    self.logger.info("Startup tests passed.")
+
             self.logger.info("Starting MCP server...")
             anyio.run(self.mcp.run_stdio_async)
         except Exception as e:

@@ -211,7 +211,7 @@ docker-compose up -d
 Once deployed, access your service at:
 - **📖 API Documentation**: http://your-server:8811/docs
 - **🔧 OpenAPI Specification**: http://your-server:8811/openapi.json
-- **❤️ Health Check**: http://your-server:8811/health
+- **❤️ Health Check**: POST http://your-server:8811/health (body: `{}`)
 
 ### Cline Desktop Integration
 
