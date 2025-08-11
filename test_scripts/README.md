@@ -120,5 +120,5 @@ When adding new tests, please:
 
 ---
 
-**Last Updated**: December 2024
-**Maintainer**: ProxmoxMCP Development Team 
+**Last Updated**: August 2025
+**Maintainer**: Alperen Adalar <alp.adalar@gmail.com>

@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "A Model Context Protocol server for interacting with Proxmox hypervisors"
 requires-python = ">=3.9"
 authors = [
-    {name = "Kevin", email = "kevin@example.com"}
+    {name = "Alperen Adalar", email = "alp.adalar@gmail.com"}
 ]
 readme = "README.md"
 license = {text = "MIT"}
@@ -44,10 +44,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/proxmox-mcp"
-Documentation = "https://github.com/yourusername/proxmox-mcp#readme"
-Repository = "https://github.com/yourusername/proxmox-mcp.git"
-Issues = "https://github.com/yourusername/proxmox-mcp/issues"
+Homepage = "https://github.com/alpadalar/ProxmoxMCP-Extended"
+Documentation = "https://github.com/alpadalar/ProxmoxMCP-Extended#readme"
+Repository = "https://github.com/alpadalar/ProxmoxMCP-Extended.git"
+Issues = "https://github.com/alpadalar/ProxmoxMCP-Extended/issues"
 
 [project.scripts]
 proxmox-mcp = "proxmox_mcp.server:main"
