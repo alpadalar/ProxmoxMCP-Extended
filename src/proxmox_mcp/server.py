@@ -46,7 +46,10 @@ from .tools.definitions import (
     DELETE_VM_DESC,
     GET_CONTAINERS_DESC,
     GET_STORAGE_DESC,
-    GET_CLUSTER_STATUS_DESC
+    GET_CLUSTER_STATUS_DESC,
+    CREATE_SNAPSHOT_DESC,
+    ROLLBACK_SNAPSHOT_DESC,
+    GET_VM_USAGE_DESC,
 )
 
 class ProxmoxMCPServer:
@@ -183,6 +186,33 @@ class ProxmoxMCPServer:
             force: Annotated[bool, Field(description="Force deletion even if VM is running", default=False)] = False
         ):
             return self.vm_tools.delete_vm(node, vmid, force)
+
+        # VM snapshot tools
+        @self.mcp.tool(description=CREATE_SNAPSHOT_DESC)
+        def create_snapshot(
+            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
+            vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
+            name: Annotated[str, Field(description="Snapshot name (e.g. 'pre-upgrade')")],
+            description: Annotated[Optional[str], Field(description="Optional description", default=None)] = None,
+            vmstate: Annotated[bool, Field(description="Include VM memory state", default=False)] = False,
+        ):
+            return self.vm_tools.create_snapshot(node, vmid, name, description, vmstate)
+
+        @self.mcp.tool(description=ROLLBACK_SNAPSHOT_DESC)
+        def rollback_snapshot(
+            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
+            vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
+            name: Annotated[str, Field(description="Snapshot name to rollback to")],
+        ):
+            return self.vm_tools.rollback_snapshot(node, vmid, name)
+
+        # VM usage tool
+        @self.mcp.tool(description=GET_VM_USAGE_DESC)
+        def get_vm_usage(
+            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
+            vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
+        ):
+            return self.vm_tools.get_vm_usage(node, vmid)
 
         # Storage tools
         @self.mcp.tool(description=GET_STORAGE_DESC)

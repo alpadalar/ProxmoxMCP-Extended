@@ -59,6 +59,9 @@ async def test_list_tools(server):
     assert "get_nodes" in tool_names
     assert "get_vms" in tool_names
     assert "get_containers" in tool_names
+    assert "create_snapshot" in tool_names
+    assert "rollback_snapshot" in tool_names
+    assert "get_vm_usage" in tool_names
     assert "execute_vm_command" in tool_names
 
 @pytest.mark.asyncio
@@ -142,6 +145,50 @@ async def test_get_storage(server, mock_proxmox):
     response = await server.mcp.call_tool("get_storage", {})
     text = response[0].text
     assert "local" in text and "ceph" in text
+
+@pytest.mark.asyncio
+async def test_get_vm_usage(server, mock_proxmox):
+    """Test get_vm_usage tool output formatting."""
+    mock_proxmox.return_value.nodes.return_value.qemu.return_value.status.current.get.return_value = {
+        "cpu": 0.235,
+        "mem": 1200 * 1024 * 1024,
+        "maxmem": 4 * 1024 * 1024 * 1024,
+        "disk": 10 * 1024 * 1024 * 1024,
+        "maxdisk": 50 * 1024 * 1024 * 1024,
+    }
+    response = await server.mcp.call_tool("get_vm_usage", {"node": "node1", "vmid": "100"})
+    text = response[0].text
+    assert "CPU:" in text and "%" in text
+    assert "Memory:" in text
+    assert "Disk:" in text
+
+@pytest.mark.asyncio
+async def test_create_snapshot(server, mock_proxmox):
+    """Test create_snapshot tool."""
+    mock_proxmox.return_value.nodes.return_value.qemu.return_value.status.current.get.return_value = {}
+    mock_proxmox.return_value.nodes.return_value.qemu.return_value.snapshot.post.return_value = "UPID:taskid"
+    response = await server.mcp.call_tool(
+        "create_snapshot",
+        {"node": "node1", "vmid": "100", "name": "pre-upgrade", "description": "test", "vmstate": False},
+    )
+    text = response[0].text
+    assert "Snapshot 'pre-upgrade'" in text
+    assert "Task ID" in text
+
+@pytest.mark.asyncio
+async def test_rollback_snapshot(server, mock_proxmox):
+    """Test rollback_snapshot tool."""
+    mock_proxmox.return_value.nodes.return_value.qemu.return_value.status.current.get.return_value = {}
+    snap_resource = MagicMock()
+    snap_resource.rollback.post.return_value = "UPID:taskid"
+    mock_proxmox.return_value.nodes.return_value.qemu.return_value.snapshot.return_value = snap_resource
+    response = await server.mcp.call_tool(
+        "rollback_snapshot",
+        {"node": "node1", "vmid": "100", "name": "pre-upgrade"},
+    )
+    text = response[0].text
+    assert "Rollback to snapshot 'pre-upgrade'" in text
+    assert "Task ID" in text
 
 @pytest.mark.asyncio
 async def test_get_cluster_status(server, mock_proxmox):

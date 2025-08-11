@@ -22,6 +22,39 @@ GET_VMS_DESC = """List all virtual machines across the cluster with their status
 Example:
 {"vmid": "100", "name": "ubuntu", "status": "running", "cpu": 2, "memory": 4096}"""
 
+CREATE_SNAPSHOT_DESC = """Create a snapshot for a virtual machine.
+
+Parameters:
+node* - Host node name (e.g. 'pve')
+vmid* - VM ID number (e.g. '100')
+name* - Snapshot name (e.g. 'pre-upgrade')
+description - Optional description for the snapshot
+vmstate - Include VM memory state (optional, default: false)
+
+Example:
+Create snapshot 'pre-upgrade' for VM 100 on node pve"""
+
+ROLLBACK_SNAPSHOT_DESC = """Rollback a virtual machine to a specific snapshot.
+
+⚠️ WARNING: Rolling back will discard the current VM state!
+
+Parameters:
+node* - Host node name (e.g. 'pve')
+vmid* - VM ID number (e.g. '100')
+name* - Snapshot name to rollback to (e.g. 'pre-upgrade')
+
+Example:
+Rollback VM 100 on node pve to snapshot 'pre-upgrade'"""
+
+GET_VM_USAGE_DESC = """Get real-time resource usage details for a specific VM.
+
+Parameters:
+node* - Host node name (e.g. 'pve')
+vmid* - VM ID number (e.g. '100')
+
+Example:
+{\"cpu_percent\": 23.5, \"memory\": {\"used\": \"1.2GB\", \"total\": \"4.0GB\", \"percent\": 30.0}, \"disk\": {\"used\": \"10GB\", \"total\": \"50GB\"}}"""
+
 CREATE_VM_DESC = """Create a new virtual machine with specified configuration.
 
 Parameters:

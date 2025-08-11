@@ -18,7 +18,13 @@ detailed VM information might be temporarily unavailable.
 from typing import List, Optional
 from mcp.types import TextContent as Content
 from .base import ProxmoxTool
-from .definitions import GET_VMS_DESC, EXECUTE_VM_COMMAND_DESC
+from .definitions import (
+    GET_VMS_DESC,
+    EXECUTE_VM_COMMAND_DESC,
+    CREATE_SNAPSHOT_DESC,
+    ROLLBACK_SNAPSHOT_DESC,
+    GET_VM_USAGE_DESC,
+)
 from .console.manager import VMConsoleManager
 
 class VMTools(ProxmoxTool):
@@ -517,3 +523,90 @@ class VMTools(ProxmoxTool):
             raise e
         except Exception as e:
             self._handle_error(f"delete VM {vmid}", e)
+
+    def create_snapshot(
+        self,
+        node: str,
+        vmid: str,
+        name: str,
+        description: Optional[str] = None,
+        vmstate: bool = False,
+    ) -> List[Content]:
+        """Create a snapshot for a VM.
+        
+        Args:
+            node: Host node name
+            vmid: VM ID number
+            name: Snapshot name
+            description: Optional description
+            vmstate: Include VM memory state
+        """
+        try:
+            # Ensure VM exists
+            self.proxmox.nodes(node).qemu(vmid).status.current.get()
+            params = {"snapname": name}
+            if description:
+                params["description"] = description
+            if vmstate:
+                params["vmstate"] = 1
+            task_result = self.proxmox.nodes(node).qemu(vmid).snapshot.post(**params)
+            result_text = (
+                f"📸 Snapshot '{name}' creation initiated for VM {vmid} on node {node}\n"
+                f"🔧 Task ID: {task_result}"
+            )
+            return [Content(type="text", text=result_text)]
+        except Exception as e:
+            self._handle_error(f"create snapshot for VM {vmid}", e)
+
+    def rollback_snapshot(self, node: str, vmid: str, name: str) -> List[Content]:
+        """Rollback a VM to a snapshot.
+        
+        WARNING: This discards current VM state.
+        """
+        try:
+            # Ensure VM exists
+            self.proxmox.nodes(node).qemu(vmid).status.current.get()
+            task_result = (
+                self.proxmox.nodes(node)
+                .qemu(vmid)
+                .snapshot(name)
+                .rollback.post()
+            )
+            result_text = (
+                f"↩️ Rollback to snapshot '{name}' initiated for VM {vmid} on node {node}\n"
+                f"🔧 Task ID: {task_result}"
+            )
+            return [Content(type="text", text=result_text)]
+        except Exception as e:
+            self._handle_error(f"rollback VM {vmid} to snapshot {name}", e)
+
+    def get_vm_usage(self, node: str, vmid: str) -> List[Content]:
+        """Get real-time resource usage for a VM (CPU, memory, disk)."""
+        try:
+            status = self.proxmox.nodes(node).qemu(vmid).status.current.get()
+            cpu = status.get("cpu", 0.0) * 100.0  # fraction to percent
+            mem_used = status.get("mem", 0)
+            mem_total = status.get("maxmem", 0)
+            disk_used = status.get("disk", 0)
+            disk_total = status.get("maxdisk", 0)
+
+            # Format into a friendly output
+            from ..formatting import ProxmoxFormatters
+
+            mem_percent = (mem_used / mem_total * 100.0) if mem_total else 0.0
+            result_lines = [
+                "🧠 VM Real-time Usage",
+                f"  • CPU: {cpu:.1f}%",
+                f"  • Memory: {ProxmoxFormatters.format_bytes(mem_used)} / "
+                f"{ProxmoxFormatters.format_bytes(mem_total)} ({mem_percent:.1f}%)",
+            ]
+            if disk_total:
+                disk_percent = (disk_used / disk_total * 100.0) if disk_total else 0.0
+                result_lines.append(
+                    f"  • Disk: {ProxmoxFormatters.format_bytes(disk_used)} / "
+                    f"{ProxmoxFormatters.format_bytes(disk_total)} ({disk_percent:.1f}%)"
+                )
+
+            return [Content(type="text", text="\n".join(result_lines))]
+        except Exception as e:
+            self._handle_error(f"get usage for VM {vmid}", e)

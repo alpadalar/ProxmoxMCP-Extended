@@ -128,6 +128,46 @@ def list_available_apis():
     except Exception as e:
         print(f"❌ Get API list error: {e}")
 
+def test_snapshot_and_usage_api():
+    """Test snapshot creation/rollback and VM usage APIs"""
+    print("\n📸 Test snapshot and usage APIs")
+    print("=" * 50)
+
+    data = {"node": "pve", "vmid": "100"}
+
+    # Create snapshot
+    try:
+        resp = requests.post(
+            f"{BASE_URL}/create_snapshot",
+            json={**data, "name": "pre-upgrade", "description": "test", "vmstate": False},
+            headers={"Content-Type": "application/json"},
+        )
+        print(f"📸 create_snapshot: {resp.status_code}")
+    except Exception as e:
+        print(f"❌ create_snapshot error: {e}")
+
+    # Get usage
+    try:
+        resp = requests.post(
+            f"{BASE_URL}/get_vm_usage",
+            json=data,
+            headers={"Content-Type": "application/json"},
+        )
+        print(f"📊 get_vm_usage: {resp.status_code}")
+    except Exception as e:
+        print(f"❌ get_vm_usage error: {e}")
+
+    # Rollback snapshot
+    try:
+        resp = requests.post(
+            f"{BASE_URL}/rollback_snapshot",
+            json={**data, "name": "pre-upgrade"},
+            headers={"Content-Type": "application/json"},
+        )
+        print(f"↩️ rollback_snapshot: {resp.status_code}")
+    except Exception as e:
+        print(f"❌ rollback_snapshot error: {e}")
+
 if __name__ == "__main__":
     print("🔍 ProxmoxMCP OpenAPI functionality test")
     print("=" * 60)
