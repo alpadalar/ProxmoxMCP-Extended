@@ -71,7 +71,7 @@ Bu proje, [@canvrno](https://github.com/canvrno) tarafından geliştirilen açı
 - ✅ Pydantic ile tip güvenli uygulama
 - 🎨 Özelleştirilebilir temalarla zengin çıktı biçimlendirme
 - 🌐 Entegrasyon için OpenAPI REST uç noktaları
-- 📡 11 tam işlevsel API uç noktası
+- 📡 14 tam işlevsel API uç noktası
 
 
 ## Kurulum
@@ -245,7 +245,7 @@ Cline kullanıcıları için, MCP ayar dosyanıza (genellikle `~/.config/Code/Us
 
 ## Mevcut Araçlar ve API Uç Noktaları
 
-Sunucu, MCP araçları ve karşılık gelen REST API uç noktaları sağlar (11 adet):
+Sunucu, MCP araçları ve karşılık gelen REST API uç noktaları sağlar (14 adet):
 
 ### VM Yönetim Araçları
 
@@ -403,6 +403,54 @@ QEMU Guest Agent kullanarak bir VM’in konsolunda komut çalıştırır.
 **Gereksinimler:**
 - VM çalışır durumda olmalı
 - VM içinde QEMU Guest Agent kurulu ve çalışır olmalı
+
+### Anlık Görüntü (Snapshot) Yönetimi ve VM Kullanımı
+
+#### create_snapshot
+Bir VM için snapshot oluşturur.
+
+```http
+POST /create_snapshot
+{"node": "pve", "vmid": "100", "name": "pre-upgrade", "description": "yükseltme öncesi", "vmstate": false}
+```
+
+**Parametreler:**
+- `node` (string, zorunlu): Düğüm adı
+- `vmid` (string, zorunlu): VM ID
+- `name` (string, zorunlu): Snapshot adı
+- `description` (string, opsiyonel): Açıklama
+- `vmstate` (boolean, opsiyonel): Bellek durumunu dahil et (varsayılan: false)
+
+**API Uç Noktası:** `POST /create_snapshot`
+
+#### rollback_snapshot
+Bir VM’i belirli bir snapshot’a geri alır.
+
+```http
+POST /rollback_snapshot
+{"node": "pve", "vmid": "100", "name": "pre-upgrade"}
+```
+
+**Parametreler:**
+- `node` (string, zorunlu): Düğüm adı
+- `vmid` (string, zorunlu): VM ID
+- `name` (string, zorunlu): Snapshot adı
+
+**API Uç Noktası:** `POST /rollback_snapshot`
+
+#### get_vm_usage
+Bir VM için anlık kaynak kullanımını döner (CPU, bellek, disk).
+
+```http
+POST /get_vm_usage
+{"node": "pve", "vmid": "100"}
+```
+
+**Parametreler:**
+- `node` (string, zorunlu): Düğüm adı
+- `vmid` (string, zorunlu): VM ID
+
+**API Uç Noktası:** `POST /get_vm_usage`
 
 ## Open WebUI Entegrasyonu
 

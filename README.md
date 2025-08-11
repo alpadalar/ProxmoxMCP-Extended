@@ -71,7 +71,7 @@ This project is built upon the excellent open-source project [ProxmoxMCP](https:
 - ✅ Type-safe implementation with Pydantic
 - 🎨 Rich output formatting with customizable themes
 - 🌐 OpenAPI REST endpoints for integration
-- 📡 11 fully functional API endpoints
+- 📡 14 fully functional API endpoints
 
 
 ## Installation
@@ -245,7 +245,7 @@ For Cline users, add this configuration to your MCP settings file (typically at 
 
 ## Available Tools & API Endpoints
 
-The server provides 11 comprehensive MCP tools and corresponding REST API endpoints:
+The server provides 14 comprehensive MCP tools and corresponding REST API endpoints:
 
 ### VM Management Tools
 
@@ -403,6 +403,54 @@ Execute a command in a VM's console using QEMU Guest Agent.
 **Requirements:**
 - VM must be running
 - QEMU Guest Agent must be installed and running in the VM
+
+### Snapshot Management and VM Usage
+
+#### create_snapshot
+Create a snapshot for a VM.
+
+**Parameters:**
+- `node` (string, required): Name of the node
+- `vmid` (string, required): VM ID number
+- `name` (string, required): Snapshot name
+- `description` (string, optional): Description for the snapshot
+- `vmstate` (boolean, optional): Include VM memory state (default: false)
+
+```http
+POST /create_snapshot
+{"node": "pve", "vmid": "100", "name": "pre-upgrade", "description": "before upgrade", "vmstate": false}
+```
+
+**API Endpoint:** `POST /create_snapshot`
+
+#### rollback_snapshot
+Rollback a VM to a snapshot.
+
+**Parameters:**
+- `node` (string, required): Name of the node
+- `vmid` (string, required): VM ID number
+- `name` (string, required): Snapshot name to rollback to
+
+```http
+POST /rollback_snapshot
+{"node": "pve", "vmid": "100", "name": "pre-upgrade"}
+```
+
+**API Endpoint:** `POST /rollback_snapshot`
+
+#### get_vm_usage
+Get real-time usage for a VM (CPU, memory, disk).
+
+**Parameters:**
+- `node` (string, required): Name of the node
+- `vmid` (string, required): VM ID number
+
+```http
+POST /get_vm_usage
+{"node": "pve", "vmid": "100"}
+```
+
+**API Endpoint:** `POST /get_vm_usage`
 
 ## Open WebUI Integration
 
