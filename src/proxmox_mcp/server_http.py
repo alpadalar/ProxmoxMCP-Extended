@@ -252,38 +252,12 @@ class ProxmoxMCPHTTPServer:
             self.logger.info(f"Starting ProxmoxMCP HTTP server on {self.host}:{self.port}{self.path}")
             self.logger.info(f"Authentication: {'Django' if self.use_django_auth else 'Disabled'}")
             
-            # Run with HTTP transport (FastMCP 2.11.2 style)
-            import uvicorn
-            
-            # Get the HTTP app from FastMCP (using new API)
-            try:
-                app = self.mcp.http_app
-            except AttributeError:
-                # Fallback to deprecated method if needed
-                app = self.mcp.streamable_http_app
-            
-            # Mount the app on the specified path
-            from fastapi import FastAPI
-            from fastapi.middleware.cors import CORSMiddleware
-            
-            root_app = FastAPI()
-            root_app.add_middleware(
-                CORSMiddleware,
-                allow_origins=["*"],
-                allow_credentials=True,
-                allow_methods=["*"],
-                allow_headers=["*"],
-            )
-            
-            # Mount the MCP app on the specified path
-            root_app.mount(self.path, app)
-            
-            # Run with uvicorn
-            uvicorn.run(
-                root_app,
+            # Run with FastMCP's built-in HTTP transport
+            self.mcp.run(
+                transport="http",
                 host=self.host,
                 port=self.port,
-                log_level="info"
+                path=self.path
             )
         except Exception as e:
             self.logger.error(f"HTTP server error: {e}")
