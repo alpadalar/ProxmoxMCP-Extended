@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
-RUN pip install mcpo uv
+RUN pip install uv
 
 # Copy project files
 COPY . .
@@ -19,16 +19,17 @@ COPY . .
 # Create virtual environment and install dependencies
 RUN uv venv && \
     . .venv/bin/activate && \
-    uv pip install -e ".[dev]"
+    uv pip install -e ".[dev]" && \
+    uv pip install fastmcp asgiref
 
 # Expose port
-EXPOSE 8811
+EXPOSE 8812
 
 # Set environment variables
 ENV PROXMOX_MCP_CONFIG="/app/proxmox-config/config.json"
-ENV API_HOST="0.0.0.0"
-ENV API_PORT="8811"
+ENV HTTP_HOST="0.0.0.0"
+ENV HTTP_PORT="8812"
+ENV HTTP_PATH="/mcp"
 
-# Startup command
-CMD ["mcpo", "--host", "0.0.0.0", "--port", "8811", "--", \
-     "/bin/bash", "-c", "cd /app && source .venv/bin/activate && python -m proxmox_mcp.server"]
+# Startup command - HTTP MCP Server
+CMD ["/bin/bash", "-c", "cd /app && source .venv/bin/activate && python -m proxmox_mcp.server_http --host ${HTTP_HOST} --port ${HTTP_PORT} --path ${HTTP_PATH}"]

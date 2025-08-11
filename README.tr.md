@@ -9,12 +9,35 @@ Bu proje, [@canvrno](https://github.com/canvrno) tarafından geliştirilen açı
 
 ## Çatallanma (Fork) Geçmişi
 
-- Orijinal proje: [canvrno/ProxmoxMCP](https://github.com/canvrno/ProxmoxMCP)
-- İlk fork: [RekklesNA/ProxmoxMCP-Plus](https://github.com/RekklesNA/ProxmoxMCP-Plus)
-- Bu fork (buradasınız): Plus fork’u üzerine ek geliştirmeler içerir:
-  - VM oluştururken opsiyonel ISO bağlama (yeni `iso_name`/`iso_storage` parametreleri)
-  - Test süitinin modernleştirilmesi ve düzeltilmesi (eski testler, güncel formatlı çıktılara ve agent exec/status akışına uygunlandı)
-  - İngilizce ve Türkçe dokümantasyon güncellemeleri
+- **Orijinal proje**: [canvrno/ProxmoxMCP](https://github.com/canvrno/ProxmoxMCP)
+- **İlk fork**: [RekklesNA/ProxmoxMCP-Plus](https://github.com/RekklesNA/ProxmoxMCP-Plus)  
+- **Bu fork**: [alpadalar/ProxmoxMCP-Extended](https://github.com/alpadalar/ProxmoxMCP-Extended) (buradasınız)
+
+### 🚀 **ProxmoxMCP-Extended'deki Büyük Geliştirmeler:**
+
+- **🎯 Gelişmiş VM Yönetimi**
+  - VM oluşturma sırasında isteğe bağlı ISO bağlama (`iso_name`/`iso_storage` parametreleri)
+  - Kapsamlı VM snapshot yönetimi (`create_snapshot`, `rollback_snapshot`)
+  - VM kaynak kullanım izleme (`get_vm_usage`)
+  - Geliştirilmiş konteyner desteği (`get_containers`)
+
+- **⚡ HTTP MCP Server Entegrasyonu**
+  - Modern MCP istemcileri için FastMCP tabanlı HTTP taşıması
+  - 8812 portunda Docker Compose dağıtımı
+  - Gerçek zamanlı Server-Sent Events (SSE) desteği
+  - MCP Inspector uyumluluğu
+
+- **🔧 Altyapı İyileştirmeleri**  
+  - Test takımı modernizasyonu ve kapsamlı kapsam
+  - Import yan etkilerini önlemek için ProxmoxMCPServer lazy loading
+  - Sağlık kontrolü uç noktaları ve başlatma doğrulaması
+  - Gelişmiş hata yönetimi ve yapılandırma yönetimi
+
+- **📚 Dokümantasyon ve Yerelleştirme**
+  - Kapsamlı İngilizce ve Türkçe dokümantasyon
+  - Docker Compose hızlı başlangıç kılavuzları
+  - Cursor/VS Code entegrasyon örnekleri
+  - API uç nokta dokümantasyonu (11'den 14 araca genişletildi)
 
 ## 🆕 Yeni Özellikler ve İyileştirmeler
 
@@ -40,10 +63,31 @@ Bu proje, [@canvrno](https://github.com/canvrno) tarafından geliştirilen açı
   - Zengin çıktı biçimlendirme ve temalar
 
 - 🌐 **Eksiksiz OpenAPI Entegrasyonu**
-  - 11 tam işlevsel REST API uç noktası
+  - 14 tam işlevsel REST API uç noktası (11'den genişletildi)
   - Üretime hazır Docker dağıtımı
   - Open WebUI ile kusursuz entegrasyon
   - Doğal dil ile VM oluşturma desteği
+
+- 🚀 **HTTP MCP Server (YENİ!)**
+  - Cursor/VS Code entegrasyonu için FastMCP tabanlı HTTP taşıması
+  - Gerçek zamanlı Server-Sent Events (SSE) desteği
+  - 8812 portunda Docker Compose dağıtımı
+  - MCP Inspector uyumlu uç nokta
+
+- 📸 **Gelişmiş VM Snapshot Yönetimi (YENİ!)**
+  - `create_snapshot` - İsteğe bağlı bellek durumu ile VM snapshot'ları oluşturma
+  - `rollback_snapshot` - VM'leri önceki snapshot'lara geri döndürme
+  - Tam snapshot yaşam döngüsü yönetimi
+
+- 📊 **Gelişmiş VM İzleme (YENİ!)**
+  - `get_vm_usage` - Gerçek zamanlı VM kaynak kullanım takibi
+  - CPU, bellek, disk ve ağ kullanım metrikleri
+  - Performans izleme yetenekleri
+
+- 🏥 **Sağlık Kontrolü ve Teşhis**
+  - İzleme için yerleşik sağlık kontrolü uç noktaları
+  - Başlatma doğrulaması ve isteğe bağlı test
+  - Gelişmiş hata teşhisi ve loglama
 
 - 🛡️ **Üretim Seviyesinde Güvenlik ve Kararlılık**
   - Gelişmiş hata yönetimi mekanizmaları
@@ -171,7 +215,34 @@ Başlamadan önce emin olun:
 
 ## Sunucuyu Çalıştırma
 
-### Geliştirme Modu
+### 🐳 Docker Compose (Önerilen)
+
+ProxmoxMCP-Extended'i çalıştırmanın en kolay yolu Docker Compose kullanmaktır:
+
+```bash
+# Hızlı başlatma
+docker compose up -d
+
+# Durumu kontrol et
+docker compose ps
+
+# Logları görüntüle
+docker compose logs -f
+
+# Sunucuyu durdur
+docker compose down
+```
+
+**🌐 HTTP MCP Server URL:** `http://localhost:8812/mcp`
+
+**Özellikler:**
+- ✅ Cursor/VS Code entegrasyonu için HTTP/SSE taşıması
+- ✅ MCP Inspector uyumluluğu
+- ✅ Üretime hazır konteyner dağıtımı
+- ✅ Otomatik sağlık kontrolleri
+- ✅ Konteyner adı: `ProxmoxMCP-Extended`
+
+### Geliştirme Modu (Stdio)
 Test ve geliştirme için:
 ```bash
 # Önce sanal ortamı aktifleştirin
@@ -182,6 +253,22 @@ source .venv/bin/activate  # Linux/macOS
 # Sunucuyu çalıştır
 python -m proxmox_mcp.server
 ```
+
+### HTTP Modu (Yerel Geliştirme)
+Yerel HTTP taşıması geliştirmesi için:
+```bash
+# HTTP sunucusunu başlat
+./start_http_server.sh
+
+# Veya özel ayarlarla
+python -m proxmox_mcp.server_http --host 0.0.0.0 --port 8812 --path /mcp
+```
+
+**Özellikler:**
+- ✅ FastMCP HTTP taşıması
+- ✅ Server-Sent Events (SSE) desteği
+- ✅ MCP Inspector entegrasyonu
+- ✅ Gerçek zamanlı araç etkileşimi
 
 ### OpenAPI Dağıtımı (Üretime Hazır)
 
@@ -213,9 +300,44 @@ Dağıtım tamamlandığında servis erişimi:
 - **🔧 OpenAPI Spesifikasyonu**: http://your-server:8811/openapi.json
 - **❤️ Sağlık Kontrolü**: POST http://your-server:8811/health (gövde: `{}`)
 
-### Cline Masaüstü Entegrasyonu
+### Cursor/VS Code Entegrasyonu
 
-Cline kullanıcıları için, MCP ayar dosyanıza (genellikle `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`) şu yapılandırmayı ekleyin:
+#### Seçenek 1: Docker Compose (Önerilen)
+Docker ile üretim dağıtımı için:
+
+```json
+{
+    "mcpServers": {
+        "ProxmoxMCP-Extended": {
+            "transport": {
+                "type": "http",
+                "url": "http://localhost:8812/mcp"
+            },
+            "description": "ProxmoxMCP-Extended with HTTP Transport"
+        }
+    }
+}
+```
+
+#### Seçenek 2: Yerel HTTP Server
+Yerel geliştirme sunucusu için:
+
+```json
+{
+    "mcpServers": {
+        "ProxmoxMCP-Local": {
+            "transport": {
+                "type": "http",
+                "url": "http://localhost:8812/mcp"
+            },
+            "description": "ProxmoxMCP Local Development"
+        }
+    }
+}
+```
+
+#### Seçenek 3: Geleneksel Stdio (Eski)
+Cline kullanıcıları için, MCP ayar dosyanıza şu yapılandırmayı ekleyin:
 
 ```json
 {

@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "ProxmoxMCP-HTTP": {
+      "command": "curl",
+      "args": [
+        "-X", "POST",
+        "-H", "Content-Type: application/json",
+        "-H", "Authorization: Bearer YOUR_TOKEN_HERE",
+        "http://localhost:8812/mcp"
+      ],
+      "env": {
+        "MCP_SERVER_URL": "http://localhost:8812/mcp",
+        "MCP_TOKEN": "YOUR_TOKEN_HERE"
+      },
+      "disabled": false,
+      "description": "ProxmoxMCP HTTP Server with Django Authentication"
+    },
+    "ProxmoxMCP-HTTP-SSE": {
+      "transport": {
+        "type": "sse",
+        "url": "http://localhost:8812/mcp",
+        "headers": {
+          "Authorization": "Bearer YOUR_TOKEN_HERE",
+          "Content-Type": "application/json"
+        }
+      },
+      "description": "ProxmoxMCP via Server-Sent Events",
+      "disabled": false
+    }
+  }
+}

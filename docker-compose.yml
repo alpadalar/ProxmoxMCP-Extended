@@ -1,20 +1,19 @@
-version: '3.8'
-
 services:
-  proxmox-mcp-api:
+  proxmox-mcp-extended:
     build: .
+    container_name: ProxmoxMCP-Extended
     ports:
-      - "8811:8811"
+      - "8812:8812"
     volumes:
       - ./proxmox-config:/app/proxmox-config:ro
     environment:
       - PROXMOX_MCP_CONFIG=/app/proxmox-config/config.json
-      - API_HOST=0.0.0.0
-      - API_PORT=8811
-      - RUN_TESTS_ON_START=1
+      - HTTP_HOST=0.0.0.0
+      - HTTP_PORT=8812
+      - HTTP_PATH=/mcp
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-s", "-f", "-X", "POST", "http://localhost:8811/health", "-H", "Content-Type: application/json", "-d", "{}"]
+      test: ["CMD", "curl", "-s", "-f", "http://localhost:8812/"]
       interval: 30s
       timeout: 10s
       retries: 3

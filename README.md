@@ -9,12 +9,35 @@ This project is built upon the excellent open-source project [ProxmoxMCP](https:
 
 ## Fork Lineage
 
-- Original project: [canvrno/ProxmoxMCP](https://github.com/canvrno/ProxmoxMCP)
-- First fork: [RekklesNA/ProxmoxMCP-Plus](https://github.com/RekklesNA/ProxmoxMCP-Plus)
-- This fork (you are here): Adds further enhancements on top of the Plus fork, including:
-  - Optional ISO mount during VM creation (new `iso_name`/`iso_storage` parameters)
-  - Test suite modernization and fixes (legacy tests updated to current formatted outputs and agent exec/status flow)
-  - Documentation extended in both English and Turkish
+- **Original project**: [canvrno/ProxmoxMCP](https://github.com/canvrno/ProxmoxMCP)
+- **First fork**: [RekklesNA/ProxmoxMCP-Plus](https://github.com/RekklesNA/ProxmoxMCP-Plus)  
+- **This fork**: [alpadalar/ProxmoxMCP-Extended](https://github.com/alpadalar/ProxmoxMCP-Extended) (you are here)
+
+### 🚀 **Major Enhancements in ProxmoxMCP-Extended:**
+
+- **🎯 Advanced VM Management**
+  - Optional ISO mount during VM creation (`iso_name`/`iso_storage` parameters)
+  - Comprehensive VM snapshot management (`create_snapshot`, `rollback_snapshot`)
+  - VM resource usage monitoring (`get_vm_usage`)
+  - Enhanced container support (`get_containers`)
+
+- **⚡ HTTP MCP Server Integration**
+  - FastMCP-based HTTP transport for modern MCP clients
+  - Docker Compose deployment on port 8812
+  - Real-time Server-Sent Events (SSE) support
+  - MCP Inspector compatibility
+
+- **🔧 Infrastructure Improvements**  
+  - Test suite modernization and comprehensive coverage
+  - Lazy loading for ProxmoxMCPServer to avoid import side-effects
+  - Health check endpoints and startup validation
+  - Enhanced error handling and configuration management
+
+- **📚 Documentation & Localization**
+  - Comprehensive English and Turkish documentation
+  - Docker Compose quick-start guides
+  - Cursor/VS Code integration examples
+  - API endpoint documentation (expanded from 11 to 14 tools)
 
 ## 🆕 New Features and Improvements
 
@@ -40,10 +63,31 @@ This project is built upon the excellent open-source project [ProxmoxMCP](https:
   - Rich output formatting and themes
 
 - 🌐 **Complete OpenAPI Integration**
-  - 11 complete REST API endpoints
+  - 14 complete REST API endpoints (expanded from 11)
   - Production-ready Docker deployment
   - Perfect Open WebUI integration
   - Natural language VM creation support
+
+- 🚀 **HTTP MCP Server (NEW!)**
+  - FastMCP-based HTTP transport for Cursor/VS Code integration
+  - Real-time Server-Sent Events (SSE) support
+  - Docker Compose deployment on port 8812
+  - MCP Inspector compatible endpoint
+
+- 📸 **Advanced VM Snapshot Management (NEW!)**
+  - `create_snapshot` - Create VM snapshots with optional memory state
+  - `rollback_snapshot` - Rollback VMs to previous snapshots
+  - Full snapshot lifecycle management
+
+- 📊 **Enhanced VM Monitoring (NEW!)**
+  - `get_vm_usage` - Real-time VM resource usage tracking
+  - CPU, memory, disk, and network utilization metrics
+  - Performance monitoring capabilities
+
+- 🏥 **Health Check and Diagnostics**
+  - Built-in health check endpoints for monitoring
+  - Startup validation and optional testing
+  - Enhanced error diagnostics and logging
 
 - 🛡️ **Production-grade Security and Stability**
   - Enhanced error handling mechanisms
@@ -171,8 +215,35 @@ Before starting, ensure you have:
 
 ## Running the Server
 
-### Development Mode
-For testing and development:
+### 🐳 Docker Compose (Recommended)
+
+The easiest way to run ProxmoxMCP-Extended is using Docker Compose:
+
+```bash
+# Quick start
+docker compose up -d
+
+# Check status
+docker compose ps
+
+# View logs
+docker compose logs -f
+
+# Stop server
+docker compose down
+```
+
+**🌐 HTTP MCP Server URL:** `http://localhost:8812/mcp`
+
+**Features:**
+- ✅ HTTP/SSE transport for Cursor/VS Code integration
+- ✅ MCP Inspector compatibility
+- ✅ Production-ready container deployment
+- ✅ Automatic health checks
+- ✅ Container name: `ProxmoxMCP-Extended`
+
+### Development Mode (Stdio)
+For testing and development with stdio transport:
 ```bash
 # Activate virtual environment first
 source .venv/bin/activate  # Linux/macOS
@@ -182,6 +253,22 @@ source .venv/bin/activate  # Linux/macOS
 # Run the server
 python -m proxmox_mcp.server
 ```
+
+### HTTP Mode (Local Development)
+For local HTTP transport development:
+```bash
+# Start HTTP server
+./start_http_server.sh
+
+# Or with custom settings
+python -m proxmox_mcp.server_http --host 0.0.0.0 --port 8812 --path /mcp
+```
+
+**Features:**
+- ✅ FastMCP HTTP transport
+- ✅ Server-Sent Events (SSE) support
+- ✅ MCP Inspector integration
+- ✅ Real-time tool interaction
 
 ### OpenAPI Deployment (Production Ready)
 
@@ -213,9 +300,44 @@ Once deployed, access your service at:
 - **🔧 OpenAPI Specification**: http://your-server:8811/openapi.json
 - **❤️ Health Check**: POST http://your-server:8811/health (body: `{}`)
 
-### Cline Desktop Integration
+### Cursor/VS Code Integration
 
-For Cline users, add this configuration to your MCP settings file (typically at `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`):
+#### Option 1: Docker Compose (Recommended)
+For production deployment with Docker:
+
+```json
+{
+    "mcpServers": {
+        "ProxmoxMCP-Extended": {
+            "transport": {
+                "type": "http",
+                "url": "http://localhost:8812/mcp"
+            },
+            "description": "ProxmoxMCP-Extended with HTTP Transport"
+        }
+    }
+}
+```
+
+#### Option 2: Local HTTP Server
+For local development server:
+
+```json
+{
+    "mcpServers": {
+        "ProxmoxMCP-Local": {
+            "transport": {
+                "type": "http",
+                "url": "http://localhost:8812/mcp"
+            },
+            "description": "ProxmoxMCP Local Development"
+        }
+    }
+}
+```
+
+#### Option 3: Traditional Stdio (Legacy)
+For Cline users, add this configuration to your MCP settings file:
 
 ```json
 {
@@ -226,15 +348,7 @@ For Cline users, add this configuration to your MCP settings file (typically at 
             "cwd": "/absolute/path/to/ProxmoxMCP-Extended",
             "env": {
                 "PYTHONPATH": "/absolute/path/to/ProxmoxMCP-Extended/src",
-                "PROXMOX_MCP_CONFIG": "/absolute/path/to/ProxmoxMCP-Extended/proxmox-config/config.json",
-                "PROXMOX_HOST": "your-proxmox-host",
-                "PROXMOX_USER": "username@pve",
-                "PROXMOX_TOKEN_NAME": "token-name",
-                "PROXMOX_TOKEN_VALUE": "token-value",
-                "PROXMOX_PORT": "8006",
-                "PROXMOX_VERIFY_SSL": "false",
-                "PROXMOX_SERVICE": "PVE",
-                "LOG_LEVEL": "DEBUG"
+                "PROXMOX_MCP_CONFIG": "/absolute/path/to/ProxmoxMCP-Extended/proxmox-config/config.json"
             },
             "disabled": false,
             "autoApprove": []
@@ -242,6 +356,8 @@ For Cline users, add this configuration to your MCP settings file (typically at 
     }
 }
 ```
+
+See [HTTP_MCP_GUIDE.md](HTTP_MCP_GUIDE.md) for detailed HTTP setup instructions.
 
 ## Available Tools & API Endpoints
 
