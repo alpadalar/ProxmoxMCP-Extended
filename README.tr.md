@@ -204,7 +204,7 @@ docker run -d --name proxmox-mcp-api -p 8811:8811 \
   -v $(pwd)/proxmox-config:/app/proxmox-config proxmox-mcp-api
 
 # Ya da Docker Compose kullanın
-docker-compose up -d
+docker compose up -d
 ```
 
 #### OpenAPI Servisine Erişim
