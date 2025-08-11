@@ -233,7 +233,7 @@ docker compose logs -f
 docker compose down
 ```
 
-**🌐 HTTP MCP Server URL:** `http://localhost:8812/mcp`
+**🌐 HTTP MCP Server URL:** `http://localhost:8812/proxmox-mcp`
 
 **Features:**
 - ✅ HTTP/SSE transport for Cursor/VS Code integration
@@ -261,7 +261,7 @@ For local HTTP transport development:
 ./start_http_server.sh
 
 # Or with custom settings
-python -m proxmox_mcp.server_http --host 0.0.0.0 --port 8812 --path /mcp
+python -m proxmox_mcp.server_http --host 0.0.0.0 --port 8812 --path /proxmox-mcp
 ```
 
 **Features:**
@@ -311,7 +311,7 @@ For production deployment with Docker:
         "ProxmoxMCP-Extended": {
             "transport": {
                 "type": "http",
-                "url": "http://localhost:8812/mcp"
+                "url": "http://localhost:8812/proxmox-mcp"
             },
             "description": "ProxmoxMCP-Extended with HTTP Transport"
         }
@@ -328,7 +328,7 @@ For local development server:
         "ProxmoxMCP-Local": {
             "transport": {
                 "type": "http",
-                "url": "http://localhost:8812/mcp"
+                "url": "http://localhost:8812/proxmox-mcp"
             },
             "description": "ProxmoxMCP Local Development"
         }

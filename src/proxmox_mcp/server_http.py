@@ -61,7 +61,7 @@ class ProxmoxMCPHTTPServer:
                  use_django_auth: bool = True,
                  host: str = "0.0.0.0",
                  port: int = 8812,
-                 path: str = "/mcp"):
+                 path: str = "/proxmox-mcp"):
         """
         Initialize the HTTP MCP server.
         
@@ -262,9 +262,25 @@ class ProxmoxMCPHTTPServer:
                 # Fallback to deprecated method if needed
                 app = self.mcp.streamable_http_app
             
+            # Mount the app on the specified path
+            from fastapi import FastAPI
+            from fastapi.middleware.cors import CORSMiddleware
+            
+            root_app = FastAPI()
+            root_app.add_middleware(
+                CORSMiddleware,
+                allow_origins=["*"],
+                allow_credentials=True,
+                allow_methods=["*"],
+                allow_headers=["*"],
+            )
+            
+            # Mount the MCP app on the specified path
+            root_app.mount(self.path, app)
+            
             # Run with uvicorn
             uvicorn.run(
-                app,
+                root_app,
                 host=self.host,
                 port=self.port,
                 log_level="info"
@@ -304,8 +320,8 @@ class ProxmoxMCPCommand:
         parser.add_argument(
             '--path',
             type=str,
-            default='/mcp',
-            help='HTTP path (default: /mcp)'
+            default='/proxmox-mcp',
+            help='HTTP path (default: /proxmox-mcp)'
         )
         parser.add_argument(
             '--config',
@@ -330,7 +346,7 @@ class ProxmoxMCPCommand:
             use_django_auth=not options.get('no_auth', False),
             host=options.get('host', '0.0.0.0'),
             port=options.get('port', 8812),
-            path=options.get('path', '/mcp')
+            path=options.get('path', '/proxmox-mcp')
         )
         
         self.server.run()

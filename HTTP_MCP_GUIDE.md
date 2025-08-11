@@ -105,7 +105,7 @@ Mevcut `proxmox-config/config.json` dosyanızı kullanabilirsiniz:
 cp -r src/proxmox_mcp/management your_django_project/
 
 # Server'ı başlatın
-python manage.py run_mcp_server --host 0.0.0.0 --port 8812 --path /mcp-x798631
+python manage.py run_mcp_server --host 0.0.0.0 --port 8812 --path /proxmox-mcp
 ```
 
 #### Seçenek 2: Standalone HTTP Server
@@ -115,7 +115,7 @@ python manage.py run_mcp_server --host 0.0.0.0 --port 8812 --path /mcp-x798631
 ./start_http_server.sh
 
 # Ya da direkt Python ile
-python -m proxmox_mcp.server_http --host 0.0.0.0 --port 8812 --path /mcp
+python -m proxmox_mcp.server_http --host 0.0.0.0 --port 8812 --path /proxmox-mcp
 ```
 
 ## 🔒 Authentication ve Authorization
@@ -147,7 +147,7 @@ ProxmoxMCP üç scope seviyesi kullanır:
 HTTP isteklerinde Authorization header kullanın:
 
 ```bash
-curl -X POST http://localhost:8812/mcp \
+curl -X POST http://localhost:8812/proxmox-mcp \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Content-Type: application/json" \
   -d '{"method": "tools/list"}'
@@ -165,7 +165,7 @@ Cursor/VS Code'da MCP ayarlarınıza şunu ekleyin:
     "ProxmoxMCP-HTTP": {
       "transport": {
         "type": "http",
-        "url": "http://localhost:8812/mcp",
+        "url": "http://localhost:8812/proxmox-mcp",
         "headers": {
           "Authorization": "Bearer YOUR_TOKEN_HERE"
         }
@@ -186,7 +186,7 @@ Daha iyi performans için SSE kullanabilirsiniz:
     "ProxmoxMCP-SSE": {
       "transport": {
         "type": "sse",
-        "url": "http://localhost:8812/mcp/sse",
+        "url": "http://localhost:8812/proxmox-mcp/sse",
         "headers": {
           "Authorization": "Bearer YOUR_TOKEN_HERE"
         }
@@ -210,13 +210,13 @@ python manage.py run_mcp_server --debug --log-file debug.log
 
 ```bash
 # Tool listesini test et
-curl -X POST http://localhost:8812/mcp \
+curl -X POST http://localhost:8812/proxmox-mcp \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"method": "tools/list"}'
 
 # VM listesini test et
-curl -X POST http://localhost:8812/mcp \
+curl -X POST http://localhost:8812/proxmox-mcp \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -231,7 +231,7 @@ curl -X POST http://localhost:8812/mcp \
 ### Health Check
 
 ```bash
-curl -X POST http://localhost:8812/mcp \
+curl -X POST http://localhost:8812/proxmox-mcp \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -250,7 +250,7 @@ curl -X POST http://localhost:8812/mcp \
 ```bash
 export MCP_HTTP_HOST="0.0.0.0"
 export MCP_HTTP_PORT="8812"
-export MCP_HTTP_PATH="/mcp"
+export MCP_HTTP_PATH="/proxmox-mcp"
 export PROXMOX_MCP_CONFIG="proxmox-config/config.json"
 ```
 
@@ -260,7 +260,7 @@ export PROXMOX_MCP_CONFIG="proxmox-config/config.json"
 python -m proxmox_mcp.server_http \
   --host 0.0.0.0 \
   --port 8812 \
-  --path /mcp \
+  --path /proxmox-mcp \
   --config proxmox-config/config.json \
   --no-auth  # Auth'u devre dışı bırak (test için)
 ```

@@ -16,7 +16,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 # Test configuration
-HTTP_SERVER_URL = "http://localhost:8812/mcp"
+HTTP_SERVER_URL = "http://localhost:8812/proxmox-mcp"
 TEST_TOKEN = "test-token-12345"  # Replace with your actual token
 
 def test_health():
@@ -227,7 +227,7 @@ def check_server_availability():
     print("🔍 Checking server availability...")
     
     try:
-        response = requests.get(f"{HTTP_SERVER_URL.replace('/mcp', '')}/", timeout=5)
+        response = requests.get(f"{HTTP_SERVER_URL.replace('/proxmox-mcp', '')}/", timeout=5)
         print(f"✅ Server is running (status: {response.status_code})")
         return True
     except requests.exceptions.RequestException as e:

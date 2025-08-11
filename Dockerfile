@@ -29,7 +29,7 @@ EXPOSE 8812
 ENV PROXMOX_MCP_CONFIG="/app/proxmox-config/config.json"
 ENV HTTP_HOST="0.0.0.0"
 ENV HTTP_PORT="8812"
-ENV HTTP_PATH="/mcp"
+ENV HTTP_PATH="/proxmox-mcp"
 
 # Startup command - HTTP MCP Server
 CMD ["/bin/bash", "-c", "cd /app && source .venv/bin/activate && python -m proxmox_mcp.server_http --host ${HTTP_HOST} --port ${HTTP_PORT} --path ${HTTP_PATH}"]

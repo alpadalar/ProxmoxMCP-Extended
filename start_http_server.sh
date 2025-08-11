@@ -5,7 +5,7 @@
 # Get host and port from environment variables or use defaults
 HOST=${MCP_HTTP_HOST:-"0.0.0.0"}
 PORT=${MCP_HTTP_PORT:-"8812"}
-PATH_PREFIX=${MCP_HTTP_PATH:-"/mcp"}
+PATH_PREFIX=${MCP_HTTP_PATH:-"/proxmox-mcp"}
 CONFIG_FILE=${PROXMOX_MCP_CONFIG:-"proxmox-config/config.json"}
 
 echo "🛰️ Starting ProxmoxMCP HTTP Server..."

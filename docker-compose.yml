@@ -10,7 +10,7 @@ services:
       - PROXMOX_MCP_CONFIG=/app/proxmox-config/config.json
       - HTTP_HOST=0.0.0.0
       - HTTP_PORT=8812
-      - HTTP_PATH=/mcp
+      - HTTP_PATH=/proxmox-mcp
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-s", "-f", "http://localhost:8812/"]

@@ -6,10 +6,10 @@
         "-X", "POST",
         "-H", "Content-Type: application/json",
         "-H", "Authorization: Bearer YOUR_TOKEN_HERE",
-        "http://localhost:8812/mcp"
+        "http://localhost:8812/proxmox-mcp"
       ],
       "env": {
-        "MCP_SERVER_URL": "http://localhost:8812/mcp",
+        "MCP_SERVER_URL": "http://localhost:8812/proxmox-mcp",
         "MCP_TOKEN": "YOUR_TOKEN_HERE"
       },
       "disabled": false,
@@ -18,7 +18,7 @@
     "ProxmoxMCP-HTTP-SSE": {
       "transport": {
         "type": "sse",
-        "url": "http://localhost:8812/mcp",
+        "url": "http://localhost:8812/proxmox-mcp",
         "headers": {
           "Authorization": "Bearer YOUR_TOKEN_HERE",
           "Content-Type": "application/json"

@@ -2,7 +2,7 @@
 Django management command to run ProxmoxMCP HTTP server.
 
 Usage:
-    python manage.py run_mcp_server --host 0.0.0.0 --port 8812 --path /mcp-x798631
+    python manage.py run_mcp_server --host 0.0.0.0 --port 8812 --path /proxmox-mcp
 """
 
 import os
@@ -48,8 +48,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--path',
             type=str,
-            default='/mcp-x798631',
-            help='HTTP endpoint path (default: /mcp-x798631)'
+            default='/proxmox-mcp',
+            help='HTTP endpoint path (default: /proxmox-mcp)'
         )
         parser.add_argument(
             '--config',
