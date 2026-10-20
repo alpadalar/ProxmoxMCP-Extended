@@ -24,7 +24,7 @@ from typing import Any, Callable, Dict, List, Optional
 from mcp.types import TextContent as Content
 
 from ..utils.redaction import redact
-from ..validators import upid_node, validate_upid, validate_wait_timeout
+from ..validators import upid_node, validate_wait_timeout
 from .base import ProxmoxTool
 from .pve_compat import TaskFailedError, describe_task_result, is_upid
 
@@ -81,8 +81,7 @@ def _log_tail(api: Any, node: str, upid: str) -> List[str]:
 
 def fetch_task_outcome(api: Any, upid: str) -> TaskOutcome:
     """Read the task status once (plus its log tail when it failed or has warnings)."""
-    validate_upid(upid)
-    node = upid_node(upid)
+    node = upid_node(upid)  # validates the UPID (single entry point) before any API call
     status = api.nodes(node).tasks(upid).status.get()
     if not isinstance(status, dict):
         raise RuntimeError("unexpected task status response")
@@ -119,7 +118,6 @@ def poll_task(
     and never past the remaining time. At the deadline the last outcome is returned with
     ``timed_out=True`` (state ``running``); this function does not raise for a timeout.
     """
-    validate_upid(upid)
     validate_wait_timeout(timeout)
     deadline = clock() + timeout
     attempt = 0
@@ -220,7 +218,6 @@ class TaskTools(ProxmoxTool):
         """Return the current status of a task; success only when exitstatus is OK."""
         node: Optional[str] = None
         try:
-            validate_upid(upid)
             node = upid_node(upid)
             outcome = fetch_task_outcome(self.proxmox, upid)
             return [Content(type="text", text=json.dumps(_payload(outcome), indent=2))]
@@ -232,7 +229,6 @@ class TaskTools(ProxmoxTool):
         """Wait (bounded, 1..300 s) for a task; a timeout reports state running."""
         node: Optional[str] = None
         try:
-            validate_upid(upid)
             node = upid_node(upid)
             validate_wait_timeout(timeout)
             outcome = poll_task(self.proxmox, upid, timeout, sleep=self._sleep, clock=self._clock)
