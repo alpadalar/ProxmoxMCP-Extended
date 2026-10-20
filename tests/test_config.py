@@ -155,12 +155,14 @@ def test_proxmox_manager_passes_secret_and_verify(tmp_path, caplog):
     f = tmp_path / "ca.pem"
     f.write_text("x")
     with patch("proxmox_mcp.core.proxmox.ProxmoxAPI") as m:
-        ProxmoxManager(ProxmoxConfig(host="h"), AuthConfig(**_auth())).get_api().nodes
+        _ = ProxmoxManager(ProxmoxConfig(host="h"), AuthConfig(**_auth())).get_api().nodes
         kw = m.call_args.kwargs
         assert kw["token_value"] == SENTINEL and kw["verify_ssl"] is True
-        ProxmoxManager(
-            ProxmoxConfig(host="h", ca_bundle=str(f)), AuthConfig(**_auth())
-        ).get_api().nodes
+        _ = (
+            ProxmoxManager(ProxmoxConfig(host="h", ca_bundle=str(f)), AuthConfig(**_auth()))
+            .get_api()
+            .nodes
+        )
         assert m.call_args.kwargs["verify_ssl"] == str(f)
         with caplog.at_level(logging.WARNING, logger="proxmox-mcp.proxmox"):
             ProxmoxManager(ProxmoxConfig(host="h", verify_ssl=False), AuthConfig(**_auth()))

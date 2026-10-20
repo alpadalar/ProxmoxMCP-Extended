@@ -168,8 +168,8 @@ async def test_positive_controls_reach_proxmoxer(server, api):
     api.nodes.reset_mock()
     try:
         await server.mcp.call_tool("get_node_status", {"node": "node1"})
-    except Exception:
-        pass  # mock payload may not format; reaching proxmoxer is what matters
+    except Exception:  # noqa: S110  # mock payload may not format; reaching proxmoxer is what matters
+        pass
     assert api.nodes.called is True
 
     api.nodes.reset_mock()

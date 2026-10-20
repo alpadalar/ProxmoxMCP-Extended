@@ -307,9 +307,11 @@ async def test_exec_concurrency_is_capped():
 
 
 def test_exec_max_concurrent_policy_range_and_env(monkeypatch):
+    from pydantic import ValidationError
+
     from proxmox_mcp.config.models import PolicyConfig
 
     assert PolicyConfig().exec_max_concurrent == 2
     for bad in (0, 17):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             PolicyConfig(exec_max_concurrent=bad)

@@ -145,7 +145,7 @@ def test_failed_connect_is_negative_cached_and_single_flight():
 
     def worker():
         try:
-            lazy.version
+            _ = lazy.version
         except RuntimeError as e:
             errors.append(str(e))
 
@@ -163,5 +163,5 @@ def test_failed_connect_is_negative_cached_and_single_flight():
     # Retry allowed once the negative cache expires.
     lazy._retry_at = 0.0
     with pytest.raises(RuntimeError):
-        lazy.version
+        _ = lazy.version
     assert len(calls) == 2

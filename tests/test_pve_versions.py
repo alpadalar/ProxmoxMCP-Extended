@@ -190,13 +190,13 @@ async def test_create_vm_existence_uses_listing(app, fake_pve):
 # --------------------------------------------------------------------------
 # Version capture, health reporting, version-aware guest-agent hints
 # --------------------------------------------------------------------------
-import json  # noqa: E402
-import logging  # noqa: E402
-from unittest.mock import AsyncMock, patch  # noqa: E402
+import json  # noqa: E402  # appended test section keeps its own imports
+import logging  # noqa: E402  # appended test section keeps its own imports
+from unittest.mock import AsyncMock, patch  # noqa: E402  # appended test section keeps its own imports
 
-from starlette.testclient import TestClient  # noqa: E402
+from starlette.testclient import TestClient  # noqa: E402  # appended test section keeps its own imports
 
-from tests.test_harness import SMOKE_ARGS_CONFIRMED  # noqa: E402
+from tests.test_harness import SMOKE_ARGS_CONFIRMED  # noqa: E402  # appended test section keeps its own imports
 
 EXPECTED_VERSION = {"pve8": ("8.4.1", "8"), "pve9": ("9.0.3", "9")}
 

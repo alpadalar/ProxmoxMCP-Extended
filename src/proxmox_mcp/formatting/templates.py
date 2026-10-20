@@ -183,7 +183,10 @@ class ProxmoxTemplates:
             result.extend(
                 [
                     "",  # Empty line between containers
-                    f"{ProxmoxTheme.RESOURCES['container']} {container['name']} (ID: {container['vmid']})",
+                    (
+                        f"{ProxmoxTheme.RESOURCES['container']} {container['name']} "
+                        f"(ID: {container['vmid']})"
+                    ),
                     f"  • Status: {container['status'].upper()}",
                     f"  • Node: {container['node']}",
                     f"  • CPU Cores: {container.get('cpus', 'N/A')}",

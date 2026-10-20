@@ -144,7 +144,8 @@ async def test_get_storage(server, mock_proxmox):
 @pytest.mark.asyncio
 async def test_get_vm_usage(server, mock_proxmox):
     """Test get_vm_usage tool output formatting."""
-    mock_proxmox.return_value.nodes.return_value.qemu.return_value.status.current.get.return_value = {
+    qemu = mock_proxmox.return_value.nodes.return_value.qemu.return_value
+    qemu.status.current.get.return_value = {
         "cpu": 0.235,
         "mem": 1200 * 1024 * 1024,
         "maxmem": 4 * 1024 * 1024 * 1024,
@@ -161,7 +162,8 @@ async def test_get_vm_usage(server, mock_proxmox):
 @pytest.mark.asyncio
 async def test_create_snapshot(server, mock_proxmox):
     """Test create_snapshot tool."""
-    mock_proxmox.return_value.nodes.return_value.qemu.return_value.status.current.get.return_value = {}
+    qemu = mock_proxmox.return_value.nodes.return_value.qemu.return_value
+    qemu.status.current.get.return_value = {}
     mock_proxmox.return_value.nodes.return_value.qemu.return_value.snapshot.post.return_value = (
         "UPID:taskid"
     )
@@ -183,7 +185,8 @@ async def test_create_snapshot(server, mock_proxmox):
 @pytest.mark.asyncio
 async def test_rollback_snapshot(server, mock_proxmox):
     """Test rollback_snapshot tool."""
-    mock_proxmox.return_value.nodes.return_value.qemu.return_value.status.current.get.return_value = {}
+    qemu = mock_proxmox.return_value.nodes.return_value.qemu.return_value
+    qemu.status.current.get.return_value = {}
     snap_resource = MagicMock()
     snap_resource.rollback.post.return_value = "UPID:taskid"
     mock_proxmox.return_value.nodes.return_value.qemu.return_value.snapshot.return_value = (
@@ -219,9 +222,8 @@ async def test_get_cluster_status(server, mock_proxmox):
 async def test_execute_vm_command_success(server, mock_proxmox):
     """Test successful VM command execution."""
     # Mock VM status check
-    mock_proxmox.return_value.nodes.return_value.qemu.return_value.status.current.get.return_value = {
-        "status": "running"
-    }
+    qemu = mock_proxmox.return_value.nodes.return_value.qemu.return_value
+    qemu.status.current.get.return_value = {"status": "running"}
     # Mock command execution
     mock_proxmox.return_value.nodes.return_value.qemu.return_value.agent.exec.post.return_value = {
         "out": "command output",
@@ -264,9 +266,8 @@ async def test_execute_vm_command_missing_parameters(server):
 @pytest.mark.asyncio
 async def test_execute_vm_command_vm_not_running(server, mock_proxmox):
     """Test VM command execution when VM is not running."""
-    mock_proxmox.return_value.nodes.return_value.qemu.return_value.status.current.get.return_value = {
-        "status": "stopped"
-    }
+    qemu = mock_proxmox.return_value.nodes.return_value.qemu.return_value
+    qemu.status.current.get.return_value = {"status": "stopped"}
 
     with pytest.raises(ToolError, match="not running"):
         await server.mcp.call_tool(
@@ -278,9 +279,8 @@ async def test_execute_vm_command_vm_not_running(server, mock_proxmox):
 async def test_execute_vm_command_with_error(server, mock_proxmox):
     """Test VM command execution with command error."""
     # Mock VM status check
-    mock_proxmox.return_value.nodes.return_value.qemu.return_value.status.current.get.return_value = {
-        "status": "running"
-    }
+    qemu = mock_proxmox.return_value.nodes.return_value.qemu.return_value
+    qemu.status.current.get.return_value = {"status": "running"}
     # Mock command execution with error via two-step flow
     agent_mock = MagicMock()
     exec_endpoint = MagicMock()
@@ -310,10 +310,10 @@ async def test_execute_vm_command_with_error(server, mock_proxmox):
 @pytest.mark.asyncio
 async def test_start_vm(server, mock_proxmox):
     """Test start_vm tool."""
-    mock_proxmox.return_value.nodes.return_value.qemu.return_value.status.current.get.return_value = {
-        "status": "stopped"
-    }
-    mock_proxmox.return_value.nodes.return_value.qemu.return_value.status.start.post.return_value = "UPID:taskid"
+    qemu = mock_proxmox.return_value.nodes.return_value.qemu.return_value
+    qemu.status.current.get.return_value = {"status": "stopped"}
+    qemu = mock_proxmox.return_value.nodes.return_value.qemu.return_value
+    qemu.status.start.post.return_value = "UPID:taskid"
 
     response = await server.mcp.call_tool("start_vm", {"node": "node1", "vmid": "100"})
     assert "start initiated successfully" in tool_text(response)

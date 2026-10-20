@@ -61,7 +61,9 @@ class ProxmoxComponents:
             "|"
             + "|".join(
                 f" {ProxmoxColors.colorize(h, ProxmoxColors.CYAN):<{w}} "
-                for w, h in zip(widths, headers)
+                for w, h in zip(
+                    widths, headers, strict=False
+                )  # lengths may differ; keep legacy truncation
             )
             + "|"
         )
@@ -129,7 +131,6 @@ class ProxmoxComponents:
         """
         from .formatters import ProxmoxFormatters
 
-        percentage = (used / total * 100) if total > 0 else 0
         progress = ProxmoxComponents.create_progress_bar(used, total)
 
         return (

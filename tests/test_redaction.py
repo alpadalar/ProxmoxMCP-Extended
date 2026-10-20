@@ -109,7 +109,7 @@ def _manager(failure=None):
         if failure:
             api.return_value.version.get.side_effect = failure
         manager = ProxmoxManager(cfg, auth)
-        manager.get_api().nodes  # lazy: the connection happens on first use
+        _ = manager.get_api().nodes  # lazy: the connection happens on first use
         return manager
 
 

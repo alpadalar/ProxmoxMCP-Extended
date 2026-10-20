@@ -126,7 +126,7 @@ def _blocking_flag(risk, read_only, allow_destructive, allow_exec):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("combo", COMBOS, ids=lambda c: "ro%d-d%d-x%d" % tuple(map(int, c)))
+@pytest.mark.parametrize("combo", COMBOS, ids=lambda c: "ro{}-d{}-x{}".format(*map(int, c)))
 @pytest.mark.parametrize("name", sorted(SMOKE_ARGS))
 async def test_policy_matrix(policy_app, fake_pve, name, combo):
     read_only, allow_destructive, allow_exec = combo

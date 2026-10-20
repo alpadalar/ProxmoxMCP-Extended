@@ -238,7 +238,7 @@ def test_wait_for_task_bad_timeout_zero_calls(fake_pve, timeout):
 
 # -- MCP level (registered tools through the full app, policy wrap included) ------------------
 
-from fastmcp.exceptions import ToolError, ValidationError  # noqa: E402
+from fastmcp.exceptions import ToolError, ValidationError  # noqa: E402  # appended test section keeps its own imports
 
 
 @pytest.mark.asyncio

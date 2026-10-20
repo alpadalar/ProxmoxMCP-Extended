@@ -153,7 +153,7 @@ async def test_get_containers_node_listing_failure_is_an_error_on_both_transport
     http = ProxmoxMCPHTTPServer(api_key_digests=[hash_api_key("k" * 16)])
     api.nodes.get.side_effect = Exception("connection refused")
     for srv in (server, http):
-        with pytest.raises(Exception):
+        with pytest.raises(ToolError):
             await srv.mcp.call_tool("get_containers", {})
 
 

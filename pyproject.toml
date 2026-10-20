@@ -90,8 +90,9 @@ select = ["E", "F", "B", "I", "UP", "S"]
 ignore = []
 
 [tool.ruff.lint.per-file-ignores]
-# asserts, fake credentials and tmp paths are intentional in tests
-"tests/**" = ["S101", "S105", "S106", "S108", "S311"]
+# asserts, fake credentials, tmp paths, bind-all literals under test (auth policy) and the
+# fixed-argv subprocess that launches our own server are intentional in tests
+"tests/**" = ["S101", "S104", "S105", "S106", "S108", "S311", "S603"]
 
 [tool.ruff.format]
 quote-style = "double"

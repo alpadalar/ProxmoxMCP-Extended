@@ -296,12 +296,12 @@ def test_every_tool_has_a_mock_test():
 )
 def test_create_vm_tool_enforces_limits_itself(server, api, cpus, memory, disk):
     """Limits live in VMTools.create_vm so the HTTP transport (bare ints) is covered."""
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         server.vm_tools.create_vm("node1", "200", "new-vm", cpus, memory, disk)
     api.nodes.return_value.qemu.create.assert_not_called()
 
 
 # Literal mentions for the golden coverage check; behaviour is tested against the fixtures in
-# tests/test_snapshots.py and tests/test_backups.py: "list_snapshots" "delete_snapshot" "list_backups"
-# "start_container" "stop_container" "shutdown_container" (tests/test_containers.py).
+# tests/test_snapshots.py and tests/test_backups.py: "list_snapshots" "delete_snapshot"
+# "list_backups" "start_container" "stop_container" "shutdown_container" (tests/test_containers.py).
 # "get_ha_status" (tests/test_ha_status.py).

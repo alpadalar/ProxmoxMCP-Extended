@@ -409,7 +409,10 @@ class VMTools(ProxmoxTool):
             else:
                 # Start the VM
                 task_result = self.proxmox.nodes(node).qemu(vmid).status.start.post()
-                result_text = f"🚀 VM {vmid} start initiated successfully\n{self._task_text(task_result, wait, timeout)}"
+                result_text = (
+                    f"🚀 VM {vmid} start initiated successfully\n"
+                    f"{self._task_text(task_result, wait, timeout)}"
+                )
 
             return [Content(type="text", text=result_text)]
 
@@ -445,7 +448,10 @@ class VMTools(ProxmoxTool):
             else:
                 # Stop the VM
                 task_result = self.proxmox.nodes(node).qemu(vmid).status.stop.post()
-                result_text = f"🛑 VM {vmid} stop initiated successfully\n{self._task_text(task_result, wait, timeout)}"
+                result_text = (
+                    f"🛑 VM {vmid} stop initiated successfully\n"
+                    f"{self._task_text(task_result, wait, timeout)}"
+                )
 
             return [Content(type="text", text=result_text)]
 
@@ -481,7 +487,10 @@ class VMTools(ProxmoxTool):
             else:
                 # Shutdown the VM gracefully
                 task_result = self.proxmox.nodes(node).qemu(vmid).status.shutdown.post()
-                result_text = f"💤 VM {vmid} graceful shutdown initiated\n{self._task_text(task_result, wait, timeout)}"
+                result_text = (
+                    f"💤 VM {vmid} graceful shutdown initiated\n"
+                    f"{self._task_text(task_result, wait, timeout)}"
+                )
 
             return [Content(type="text", text=result_text)]
 
@@ -515,11 +524,17 @@ class VMTools(ProxmoxTool):
             current_status = vm_status.get("status")
 
             if current_status == "stopped":
-                result_text = f"⚠️ Cannot reset VM {vmid}: VM is currently stopped\nUse start_vm to start it first"
+                result_text = (
+                    f"⚠️ Cannot reset VM {vmid}: VM is currently stopped\n"
+                    "Use start_vm to start it first"
+                )
             else:
                 # Reset the VM
                 task_result = self.proxmox.nodes(node).qemu(vmid).status.reset.post()
-                result_text = f"🔄 VM {vmid} reset initiated successfully\n{self._task_text(task_result, wait, timeout)}"
+                result_text = (
+                    f"🔄 VM {vmid} reset initiated successfully\n"
+                    f"{self._task_text(task_result, wait, timeout)}"
+                )
 
             return [Content(type="text", text=result_text)]
 

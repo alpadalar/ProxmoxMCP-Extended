@@ -93,7 +93,7 @@ def test_call_bookkeeping(fake):
 
 def test_private_attribute_not_a_route(fake):
     with pytest.raises(AttributeError):
-        fake.nodes._private  # noqa: B018
+        fake.nodes._private  # noqa: B018  # attribute access is the behavior under test
 
 
 def test_fixtures_valid_and_differ():

@@ -4,23 +4,37 @@ Each row maps one CONCERNS item to exactly one test in this module.
 Every row is FIXED: its test is green and guards the defect. (No strict-xfail pins remain
 since Phase 4 / TECH-02.)
 
-| CONCERNS item                                   | Test                                               | Status        | Phase / requirement |
-|-------------------------------------------------|----------------------------------------------------|---------------|---------------------|
-| Packaging: console script entry point           | test_console_script_main_exists                    | FIXED         | Phase 1 / STAB-02   |
-| fastmcp 4 import path (stdio server)           | test_stdio_server_imports_on_fastmcp4              | FIXED         | Phase 1 / STAB-02   |
-| Dependencies at Risk: FastMCP import fallbacks  | test_middleware_has_no_silent_fallback             | FIXED         | Phase 1 / TECH-01   |
-| Packaging/config drift                          | test_packaging_single_source                       | FIXED         | Phase 1 / STAB-01   |
-| HTTP server runs without authentication         | test_http_auth_not_hardcoded_off                   | FIXED         | Interim (SRV-02/03) |
-| /health auth status and --no-auth meaningless   | test_health_reports_real_auth_state                | FIXED         | Interim (SRV-03)    |
-| TLS verification can be silently weakened       | test_verify_ssl_typo_rejected                      | FIXED         | Phase 2 / CONF-01   |
-| Secrets handling and logging (token in repr)    | test_token_value_not_in_repr                       | FIXED         | Phase 2 / CONF-01/03 |
-| Input validation / injection (node path)        | test_path_traversal_node_rejected                  | FIXED         | Phase 2 / CONF-02   |
-| Arbitrary command execution logged              | test_exec_command_not_logged                       | FIXED         | Phase 2 / CONF-03   |
-| TLS/logging defaults in example config          | test_example_config_safe_defaults                  | FIXED         | Phase 2 / CONF-04   |
-| Duplicated tool registration                    | test_stdio_http_tool_sets_identical                | FIXED         | Phase 3 / SRV-01    |
-| Connection setup at construction time           | test_proxmox_connect_is_lazy                       | FIXED         | Phase 3 / SRV-04    |
-| Known Bugs: blocking calls inside async path    | test_execute_command_does_not_block_loop           | FIXED         | Phase 3 / SRV-04    |
-| Inconsistent error semantics (delete_vm)        | test_delete_vm_not_found_not_substring_matched     | FIXED         | Phase 4 / TECH-02   |
+CONCERNS item -> test (all FIXED; phase / requirement):
+- Packaging: console script entry point
+  -> ``test_console_script_main_exists`` (Phase 1 / STAB-02)
+- fastmcp 4 import path (stdio server)
+  -> ``test_stdio_server_imports_on_fastmcp4`` (Phase 1 / STAB-02)
+- Dependencies at Risk: FastMCP import fallbacks
+  -> ``test_middleware_has_no_silent_fallback`` (Phase 1 / TECH-01)
+- Packaging/config drift
+  -> ``test_packaging_single_source`` (Phase 1 / STAB-01)
+- HTTP server runs without authentication
+  -> ``test_http_auth_not_hardcoded_off`` (Interim (SRV-02/03))
+- /health auth status and --no-auth meaningless
+  -> ``test_health_reports_real_auth_state`` (Interim (SRV-03))
+- TLS verification can be silently weakened
+  -> ``test_verify_ssl_typo_rejected`` (Phase 2 / CONF-01)
+- Secrets handling and logging (token in repr)
+  -> ``test_token_value_not_in_repr`` (Phase 2 / CONF-01/03)
+- Input validation / injection (node path)
+  -> ``test_path_traversal_node_rejected`` (Phase 2 / CONF-02)
+- Arbitrary command execution logged
+  -> ``test_exec_command_not_logged`` (Phase 2 / CONF-03)
+- TLS/logging defaults in example config
+  -> ``test_example_config_safe_defaults`` (Phase 2 / CONF-04)
+- Duplicated tool registration
+  -> ``test_stdio_http_tool_sets_identical`` (Phase 3 / SRV-01)
+- Connection setup at construction time
+  -> ``test_proxmox_connect_is_lazy`` (Phase 3 / SRV-04)
+- Known Bugs: blocking calls inside async path
+  -> ``test_execute_command_does_not_block_loop`` (Phase 3 / SRV-04)
+- Inconsistent error semantics (delete_vm)
+  -> ``test_delete_vm_not_found_not_substring_matched`` (Phase 4 / TECH-02)
 """
 
 import ast
@@ -99,7 +113,7 @@ def test_health_reports_real_auth_state():
     payload_values = []
     for node in ast.walk(ast.parse(text)):
         if isinstance(node, ast.Dict):
-            for key, value in zip(node.keys, node.values):
+            for key, value in zip(node.keys, node.values, strict=True):
                 if isinstance(key, ast.Constant) and key.value == "auth":
                     payload_values.append(ast.get_source_segment(text, value) or "")
     assert payload_values, "health payload has no 'auth' key"
@@ -141,7 +155,7 @@ async def test_path_traversal_node_rejected(server, api):
     api.nodes.reset_mock()
     try:
         await server.mcp.call_tool("get_node_status", {"node": "../x"})
-    except Exception:
+    except Exception:  # noqa: S110  # rejection is asserted below via the mock, not the error
         pass
     assert not api.nodes.called, "unvalidated node reached proxmoxer"
 

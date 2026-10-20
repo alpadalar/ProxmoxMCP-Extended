@@ -212,7 +212,7 @@ def create_app(
     register_tools(app.mcp, app.specs, wrap=compose_wraps(make_policy_wrap(tool_policy), wrap))
 
     if transport == "http":
-        assert policy is not None
+        assert policy is not None  # noqa: S101  # type narrowing; set for http transport
 
         @app.mcp.custom_route("/health", methods=["GET"])
         async def health_route(request: Request) -> JSONResponse:

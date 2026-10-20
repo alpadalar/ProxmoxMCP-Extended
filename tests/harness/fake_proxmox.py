@@ -92,7 +92,7 @@ class FakeProxmox:
         raise AttributeError(name)
 
     # -- configuration -------------------------------------------------
-    def set(self, method: str, path: str, value: Any) -> None:  # noqa: A003
+    def set(self, method: str, path: str, value: Any) -> None:  # noqa: A003  # mirrors proxmoxer verb name
         """Override (or add) the response for a route; may be a callable(params, segments)."""
         self._routes[f"{method.upper()} {path}"] = value
         self._errors.pop(f"{method.upper()} {path}", None)
