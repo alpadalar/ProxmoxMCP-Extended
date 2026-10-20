@@ -35,6 +35,7 @@ _ENV_MAP = {
     "PROXMOX_MCP_ALLOW_EXEC": ("policy", "allow_exec"),
     "PROXMOX_MCP_EXEC_TIMEOUT": ("policy", "exec_timeout_seconds"),
     "PROXMOX_MCP_EXEC_MAX_OUTPUT": ("policy", "exec_max_output_bytes"),
+    "PROXMOX_MCP_EXEC_MAX_CONCURRENT": ("policy", "exec_max_concurrent"),
 }
 
 

@@ -61,6 +61,7 @@ class VMConsoleManager:
         proxmox_api,
         exec_timeout: float = 30.0,
         exec_max_output: int = 65536,
+        exec_max_concurrent: int = 2,
         pve_major: Callable[[], Optional[int]] = lambda: None,
     ):
         """Initialize the VM console manager.
@@ -69,11 +70,15 @@ class VMConsoleManager:
             proxmox_api: Initialized ProxmoxAPI instance
             exec_timeout: Maximum seconds to wait for a command to exit
             exec_max_output: Maximum bytes kept per output stream (stdout / stderr)
+            exec_max_concurrent: Maximum commands started and polled concurrently (the
+                rest wait for a slot); keeps polling from filling the worker thread pool
             pve_major: Returns the PVE major version (or None) for privilege hints
         """
         self.proxmox = proxmox_api
         self.exec_timeout = exec_timeout
         self.exec_max_output = exec_max_output
+        self.exec_max_concurrent = max(1, int(exec_max_concurrent))
+        self._exec_slots = asyncio.Semaphore(self.exec_max_concurrent)
         self._pve_major = pve_major
         self.logger = logging.getLogger("proxmox-mcp.vm-console")
 
@@ -161,6 +166,32 @@ class VMConsoleManager:
         return f"{kept}\n[output truncated at {self.exec_max_output} bytes]", True
 
     async def execute_command(
+        self,
+        node: str,
+        vmid: str,
+        command: str,
+        args: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Execute a command in a VM via the guest agent, at most N at a time.
+
+        At most ``exec_max_concurrent`` commands run through the start/poll cycle at once;
+        further calls wait for a slot (input is validated first, before waiting).
+
+        Best effort only: the guest agent has no kill endpoint. When the MCP wait limit
+        passes, or the call is cancelled, the process is abandoned and keeps running in the
+        guest; its exec-status entry stays in the agent until polled.
+        """
+        self._build_argv(command, args)  # reject bad input without taking a slot
+        async with self._exec_slots:
+            try:
+                return await self._execute_command(node, vmid, command, args)
+            except asyncio.CancelledError:
+                self.logger.warning(
+                    f"Command call on VM {vmid} cancelled; a started process is left running"
+                )
+                raise
+
+    async def _execute_command(
         self,
         node: str,
         vmid: str,

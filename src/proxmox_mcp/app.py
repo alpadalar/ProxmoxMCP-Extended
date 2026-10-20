@@ -156,6 +156,7 @@ def create_app(
         api,
         exec_timeout=config.policy.exec_timeout_seconds,
         exec_max_output=config.policy.exec_max_output_bytes,
+        exec_max_concurrent=config.policy.exec_max_concurrent,
         pve_major=manager.pve_major,
     )
     storage_tools = StorageTools(api)

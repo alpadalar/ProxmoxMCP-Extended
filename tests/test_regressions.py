@@ -210,7 +210,7 @@ def test_proxmox_connect_is_lazy():
 
 def test_execute_command_does_not_block_loop():
     """CONCERNS Known Bugs: async execute_command must offload sync proxmoxer calls."""
-    src = _function_source(SRC / "tools" / "console" / "manager.py", "execute_command")
+    src = _function_source(SRC / "tools" / "console" / "manager.py", "_execute_command")
     assert "to_thread" in src or "run_in_executor" in src
     assert "time.sleep" not in src
     assert src.count("to_thread") >= 3

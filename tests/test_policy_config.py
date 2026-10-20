@@ -11,7 +11,7 @@ from proxmox_mcp.config.models import Config, PolicyConfig
 
 POLICY_ENV = [
     "PROXMOX_MCP_READ_ONLY", "PROXMOX_MCP_ALLOW_DESTRUCTIVE", "PROXMOX_MCP_ALLOW_EXEC",
-    "PROXMOX_MCP_EXEC_TIMEOUT", "PROXMOX_MCP_EXEC_MAX_OUTPUT",
+    "PROXMOX_MCP_EXEC_TIMEOUT", "PROXMOX_MCP_EXEC_MAX_OUTPUT", "PROXMOX_MCP_EXEC_MAX_CONCURRENT",
 ]
 BASE_ENV = {
     "PROXMOX_HOST": "h.example",
@@ -109,8 +109,10 @@ def test_env_typo_is_explicit_error(env):
 def test_env_numeric_mapping(env):
     env.setenv("PROXMOX_MCP_EXEC_TIMEOUT", "12.5")
     env.setenv("PROXMOX_MCP_EXEC_MAX_OUTPUT", "2048")
+    env.setenv("PROXMOX_MCP_EXEC_MAX_CONCURRENT", "4")
     p = load_config(None).policy
     assert (p.exec_timeout_seconds, p.exec_max_output_bytes) == (12.5, 2048)
+    assert p.exec_max_concurrent == 4
 
 
 # ---- CLI flags / entry points / example config (Task 2) ----

@@ -185,6 +185,7 @@ class PolicyConfig(BaseModel):
     allow_exec: bool = False
     exec_timeout_seconds: float = Field(default=30.0, gt=0, le=300)
     exec_max_output_bytes: int = Field(default=65536, ge=1024, le=1_048_576)
+    exec_max_concurrent: int = Field(default=2, ge=1, le=16)
 
     @field_validator("read_only", "allow_destructive", "allow_exec", mode="before")
     @classmethod

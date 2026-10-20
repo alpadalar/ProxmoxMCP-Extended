@@ -70,6 +70,7 @@ class VMTools(ProxmoxTool):
         proxmox_api,
         exec_timeout: float = 30.0,
         exec_max_output: int = 65536,
+        exec_max_concurrent: int = 2,
         pve_major: Callable[[], Optional[int]] = lambda: None,
     ):
         """Initialize VM tools.
@@ -78,6 +79,7 @@ class VMTools(ProxmoxTool):
             proxmox_api: Initialized ProxmoxAPI instance
             exec_timeout: Seconds to wait for a guest command to exit
             exec_max_output: Maximum bytes kept per output stream of a guest command
+            exec_max_concurrent: Maximum guest commands polled at the same time
             pve_major: Returns the PVE major version (or None) for version-aware hints
         """
         super().__init__(proxmox_api)
@@ -85,7 +87,7 @@ class VMTools(ProxmoxTool):
         self._pve_major = pve_major
         self.console_manager = VMConsoleManager(
             proxmox_api, exec_timeout=exec_timeout, exec_max_output=exec_max_output,
-            pve_major=pve_major,
+            exec_max_concurrent=exec_max_concurrent, pve_major=pve_major,
         )
 
     STOP_WAIT_SECONDS = 30.0

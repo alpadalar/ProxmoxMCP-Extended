@@ -19,7 +19,8 @@
         "allow_destructive": false,
         "allow_exec": false,
         "exec_timeout_seconds": 30,
-        "exec_max_output_bytes": 65536
+        "exec_max_output_bytes": 65536,
+        "exec_max_concurrent": 2
     },
     "logging": {
         "level": "INFO",

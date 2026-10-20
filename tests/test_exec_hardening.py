@@ -262,3 +262,35 @@ async def test_exec_null_post_result_gives_clear_error():
     with patch("asyncio.sleep", new=AsyncMock()):
         with pytest.raises(RuntimeError, match="No PID returned"):
             await _mgr(api).execute_command("n", "100", "ls")
+
+
+@pytest.mark.asyncio
+async def test_exec_concurrency_is_capped():
+    import asyncio
+
+    running = {"now": 0, "max": 0}
+    api, _, st = _api(_status())
+
+    mgr = _mgr(api, exec_max_concurrent=2)
+    real = mgr._execute_command
+
+    async def tracked(*a, **k):
+        running["now"] += 1
+        running["max"] = max(running["max"], running["now"])
+        try:
+            await asyncio.sleep(0.01)
+            return await real(*a, **k)
+        finally:
+            running["now"] -= 1
+
+    mgr._execute_command = tracked
+    results = await asyncio.gather(*[mgr.execute_command("n", "100", "ls") for _ in range(6)])
+    assert len(results) == 6 and running["max"] == 2
+
+
+def test_exec_max_concurrent_policy_range_and_env(monkeypatch):
+    from proxmox_mcp.config.models import PolicyConfig
+    assert PolicyConfig().exec_max_concurrent == 2
+    for bad in (0, 17):
+        with pytest.raises(Exception):
+            PolicyConfig(exec_max_concurrent=bad)
