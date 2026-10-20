@@ -15,7 +15,7 @@ SENTINEL = "SENTINEL-token-value-xyz"
 ENV_KEYS = [
     "PROXMOX_HOST", "PROXMOX_PORT", "PROXMOX_USER", "PROXMOX_TOKEN_NAME",
     "PROXMOX_TOKEN_VALUE", "PROXMOX_VERIFY_SSL", "PROXMOX_CA_BUNDLE",
-    "PROXMOX_SERVICE", "LOG_LEVEL", "LOG_FILE",
+    "PROXMOX_SERVICE", "PROXMOX_TIMEOUT", "LOG_LEVEL", "LOG_FILE",
 ]
 
 
@@ -248,3 +248,58 @@ def test_example_config_loads_safely(clean_env):
     assert cfg.logging.level != "DEBUG"
     assert not cfg.auth.user.startswith("root@pam")
     assert cfg.proxmox.ca_bundle is None
+    assert cfg.proxmox.timeout == 30
+    assert cfg.http.api_key_digests == []
+
+
+# ---- Phase 3: timeout and http.api_key_digests ----
+
+HEX = "ab" * 32
+
+
+def test_timeout_default_and_bounds():
+    assert ProxmoxConfig(host="h").timeout == 30.0
+    assert ProxmoxConfig(host="h", timeout=300).timeout == 300
+    for bad in (0, -1, 301):
+        with pytest.raises(ValidationError):
+            ProxmoxConfig(host="h", timeout=bad)
+
+
+def test_timeout_env(tmp_path, clean_env):
+    from proxmox_mcp.config.loader import load_config
+
+    path = _write(tmp_path, _data())
+    clean_env.setenv("PROXMOX_TIMEOUT", "12.5")
+    assert load_config(path).proxmox.timeout == 12.5
+    clean_env.setenv("PROXMOX_TIMEOUT", "abc")
+    with pytest.raises(ValueError):
+        load_config(path)
+
+
+def test_http_digests_default_and_valid():
+    assert Config(**_data()).http.api_key_digests == []
+    cfg = Config(**{**_data(), "http": {"api_key_digests": [HEX.upper(), "sha256:" + HEX]}})
+    assert cfg.http.api_key_digests == [HEX, HEX]
+
+
+@pytest.mark.parametrize("bad", ["xyz-secret-looking", "a" * 63])
+def test_http_digests_invalid_secret_free(bad):
+    with pytest.raises(ValidationError) as ei:
+        Config(**{**_data(), "http": {"api_key_digests": [bad]}})
+    assert "digest" in str(ei.value)
+    assert bad not in str(ei.value)
+
+
+def test_http_unknown_key_forbidden():
+    with pytest.raises(ValidationError):
+        Config(**{**_data(), "http": {"bogus": 1}})
+
+
+def test_http_invalid_digest_loader_message_secret_free(tmp_path, clean_env):
+    from proxmox_mcp.config.loader import load_config
+
+    bad = "not-a-digest-SECRET"
+    path = _write(tmp_path, {**_data(), "http": {"api_key_digests": [bad]}})
+    with pytest.raises(ValueError) as ei:
+        load_config(path)
+    assert "digest" in str(ei.value) and bad not in str(ei.value)

@@ -15,7 +15,7 @@ The models provide:
 """
 import os
 import re
-from typing import Any, Optional, Annotated
+from typing import Any, List, Optional, Annotated
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -61,6 +61,7 @@ class ProxmoxConfig(BaseModel):
     verify_ssl: bool = True  # SSL verification (default: True)
     ca_bundle: Optional[str] = None  # Optional CA bundle file for private CAs
     service: str = Field(default="PVE", pattern=r"^(PVE|PMG|PBS)$")
+    timeout: float = Field(default=30.0, gt=0, le=300)  # request timeout in seconds
 
     @field_validator("host")
     @classmethod
@@ -133,6 +134,31 @@ class LoggingConfig(BaseModel):
             raise ValueError("level must be one of " + ", ".join(sorted(_LOG_LEVELS)))
         return norm
 
+class HttpConfig(BaseModel):
+    """HTTP transport settings.
+
+    ``api_key_digests`` holds SHA-256 hex digests of accepted API keys (never
+    the keys themselves). Env ``PROXMOX_MCP_API_KEY_HASHES`` replaces this list.
+    """
+    model_config = _STRICT
+
+    api_key_digests: List[str] = Field(default_factory=list)
+
+    @field_validator("api_key_digests", mode="before")
+    @classmethod
+    def _check_digests(cls, v: Any) -> Any:
+        from ..auth.apikey import normalize_digests  # lazy: avoid import cycle
+
+        if not isinstance(v, (list, tuple)) or not all(isinstance(i, str) for i in v):
+            raise ValueError("api_key_digests must be a list of digest strings")
+        try:
+            return normalize_digests(v)
+        except ValueError:
+            raise ValueError(
+                "api_key_digests must be sha256 hex digests "
+                "(64 hex chars, optional 'sha256:' prefix)"
+            ) from None
+
 class Config(BaseModel):
     """Root configuration model (proxmox and auth required, logging defaulted)."""
     model_config = _STRICT
@@ -140,3 +166,4 @@ class Config(BaseModel):
     proxmox: ProxmoxConfig  # Required: Proxmox connection settings
     auth: AuthConfig  # Required: Authentication credentials
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    http: HttpConfig = Field(default_factory=HttpConfig)

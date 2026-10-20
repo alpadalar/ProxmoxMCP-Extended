@@ -24,6 +24,7 @@ _ENV_MAP = {
     "PROXMOX_VERIFY_SSL": ("proxmox", "verify_ssl"),
     "PROXMOX_CA_BUNDLE": ("proxmox", "ca_bundle"),
     "PROXMOX_SERVICE": ("proxmox", "service"),
+    "PROXMOX_TIMEOUT": ("proxmox", "timeout"),
     "PROXMOX_USER": ("auth", "user"),
     "PROXMOX_TOKEN_NAME": ("auth", "token_name"),
     "PROXMOX_TOKEN_VALUE": ("auth", "token_value"),
@@ -88,7 +89,7 @@ def load_config(
 
     Environment variables: PROXMOX_HOST, PROXMOX_PORT, PROXMOX_USER,
     PROXMOX_TOKEN_NAME, PROXMOX_TOKEN_VALUE, PROXMOX_VERIFY_SSL,
-    PROXMOX_CA_BUNDLE, PROXMOX_SERVICE, LOG_LEVEL, LOG_FILE. An empty
+    PROXMOX_CA_BUNDLE, PROXMOX_SERVICE, PROXMOX_TIMEOUT, LOG_LEVEL, LOG_FILE. An empty
     string is treated as unset.
 
     Args:

@@ -7,7 +7,7 @@ import sys
 import pytest
 from starlette.testclient import TestClient
 
-from proxmox_mcp.auth.apikey import ENV_HASHES, hash_api_key
+from proxmox_mcp.auth.apikey import ENV_HASHES, hash_api_key, resolve_digests
 from proxmox_mcp.server_http import AuthConfigError, ProxmoxMCPHTTPServer
 
 KEY = "test-secret-key-123"
@@ -198,3 +198,12 @@ def test_noauth_rejects_foreign_origin(noauth_app, origin):
 def test_noauth_allows_loopback_origin(noauth_app):
     with TestClient(noauth_app, base_url="http://localhost") as c:
         assert _post(c, Origin="http://localhost:3000").status_code == 200
+
+
+def test_resolve_digests_precedence():
+    a, b, c = "a" * 64, "b" * 64, "c" * 64
+    assert resolve_digests(None, [a], {}) == [a]
+    assert resolve_digests(None, [a], {ENV_HASHES: b}) == [b]
+    assert resolve_digests([c], [a], {ENV_HASHES: b}) == [c]
+    assert resolve_digests([], [a], {ENV_HASHES: b}) == []
+    assert resolve_digests(None, [], {}) == []

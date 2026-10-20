@@ -5,6 +5,11 @@ SHA-256 hex digests of the keys are configured (env ``PROXMOX_MCP_API_KEY_HASHES
 comma-separated; an optional ``sha256:`` prefix is accepted) and compared with
 :func:`hmac.compare_digest`.  Keys are never logged.
 
+Digests may also come from the config file (``http.api_key_digests``) or an
+explicit argument. Precedence: explicit > env > config. Sources replace each
+other (never merged), so a rotated env key cannot leave a stale config digest
+alive; see :func:`resolve_digests`.
+
 Generate a digest::
 
     echo -n 'my-secret-key' | python -m proxmox_mcp.auth.apikey
@@ -53,6 +58,24 @@ def digests_from_env(environ: Optional[dict] = None) -> List[str]:
     """Read digests from ``PROXMOX_MCP_API_KEY_HASHES`` (comma-separated)."""
     env = os.environ if environ is None else environ
     return normalize_digests(env.get(ENV_HASHES, "").split(","))
+
+
+def resolve_digests(
+    explicit: Optional[Iterable[str]],
+    config_digests: Iterable[str] = (),
+    environ: Optional[dict] = None,
+) -> List[str]:
+    """Resolve API key digests: explicit > env > config (replacement, not union).
+
+    An explicit value (even an empty list) wins outright; the caller then fails
+    closed on an empty result. A non-empty env list replaces the config list.
+    """
+    if explicit is not None:
+        return normalize_digests(explicit)
+    env_digests = digests_from_env(environ)
+    if env_digests:
+        return env_digests
+    return normalize_digests(config_digests)
 
 
 class APIKeyAuthMiddleware:
