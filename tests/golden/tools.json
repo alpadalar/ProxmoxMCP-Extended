@@ -161,6 +161,16 @@
     "params": []
   },
   {
+    "name": "get_task_status",
+    "params": [
+      {
+        "name": "upid",
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
     "name": "get_vm_usage",
     "params": [
       {
@@ -303,6 +313,21 @@
       },
       {
         "name": "vmid",
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "wait_for_task",
+    "params": [
+      {
+        "name": "timeout",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "upid",
         "required": true,
         "type": "string"
       }

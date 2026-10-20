@@ -24,6 +24,7 @@ from .tools.cluster import ClusterTools
 from .tools.node import NodeTools
 from .tools.registry import ToolContext, ToolSpec, build_registry, register_tools
 from .tools.storage import StorageTools
+from .tools.tasks import TaskTools
 from .tools.vm import VMTools
 
 logger = logging.getLogger("proxmox-mcp.app")
@@ -61,6 +62,7 @@ class ProxmoxApp:
     vm_tools: Any = None
     storage_tools: Any = None
     cluster_tools: Any = None
+    task_tools: Any = None
 
     def _policy_summary(self) -> Dict[str, bool]:
         return self.policy.summary() if self.policy else {}
@@ -161,6 +163,8 @@ def create_app(
     )
     storage_tools = StorageTools(api)
     cluster_tools = ClusterTools(api)
+    task_tools = TaskTools(api)
+    task_tools._pve_major = manager.pve_major
 
     app = ProxmoxApp(
         config=config,
@@ -175,6 +179,7 @@ def create_app(
         vm_tools=vm_tools,
         storage_tools=storage_tools,
         cluster_tools=cluster_tools,
+        task_tools=task_tools,
     )
     ctx = ToolContext(
         node_tools=node_tools,
@@ -182,6 +187,7 @@ def create_app(
         storage_tools=storage_tools,
         cluster_tools=cluster_tools,
         health_payload=app.health_payload,
+        task_tools=task_tools,
     )
     app.specs = build_registry(ctx)
     tool_policy = ToolPolicy(config.policy)

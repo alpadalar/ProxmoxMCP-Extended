@@ -1,8 +1,8 @@
 # ruff: noqa: E501  (Annotated parameter descriptions are kept verbatim from the original servers)
 """Single tool registry shared by the stdio and HTTP transports.
 
-``build_registry(ctx)`` returns the ordered list of :class:`ToolSpec` (the frozen
-18-tool MCP surface); ``register_tools(mcp, specs, wrap=None)`` registers them on a
+``build_registry(ctx)`` returns the ordered list of :class:`ToolSpec` (the MCP
+tool surface, see tests/golden/tools.json); ``register_tools(mcp, specs, wrap=None)`` registers them on a
 FastMCP instance.  Phase 4 attaches policy gates through ``wrap`` (called as
 ``wrap(spec, handler) -> handler`` and required to preserve the signature, e.g. with
 ``functools.wraps``, so ``tests/golden/tools.json`` stays valid) and MCP annotations
@@ -27,6 +27,7 @@ from .definitions import (
     GET_NODE_STATUS_DESC,
     GET_NODES_DESC,
     GET_STORAGE_DESC,
+    GET_TASK_STATUS_DESC,
     GET_VM_USAGE_DESC,
     GET_VMS_DESC,
     HEALTH_DESC,
@@ -36,12 +37,13 @@ from .definitions import (
     START_VM_DESC,
     STOP_VM_DESC,
     UPDATE_VM_DESC,
+    WAIT_FOR_TASK_DESC,
 )
 
 RISK_CLASSES = {
     "read": (
         "get_nodes", "get_node_status", "get_vms", "get_containers", "get_storage",
-        "get_cluster_status", "get_vm_usage", "health",
+        "get_cluster_status", "get_vm_usage", "health", "get_task_status", "wait_for_task",
     ),
     "write": ("create_vm", "start_vm", "shutdown_vm", "create_snapshot"),
     # update_vm overwrites existing configuration (memory, cores, name), so it is gated by
@@ -114,10 +116,11 @@ class ToolContext:
     storage_tools: Any
     cluster_tools: Any
     health_payload: Callable[[], dict]
+    task_tools: Any = None
 
 
 def build_registry(ctx: ToolContext) -> List[ToolSpec]:
-    """Build the 18 tool specs bound to ``ctx``."""
+    """Build the tool specs bound to ``ctx``."""
     specs: List[ToolSpec] = []
 
     def _tool(description: str):
@@ -275,6 +278,20 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
     @_tool(GET_CLUSTER_STATUS_DESC)
     def get_cluster_status():
         return ctx.cluster_tools.get_cluster_status()
+
+    # Task tools
+    @_tool(GET_TASK_STATUS_DESC)
+    def get_task_status(
+        upid: Annotated[str, Field(description="Task id (UPID) returned by a mutating tool")],
+    ):
+        return ctx.task_tools.get_task_status(upid)
+
+    @_tool(WAIT_FOR_TASK_DESC)
+    def wait_for_task(
+        upid: Annotated[str, Field(description="Task id (UPID) returned by a mutating tool")],
+        timeout: Annotated[int, Field(description="Maximum seconds to wait (1-300, default 30); a still-running task is reported as running, not as an error", ge=1, le=300, default=30)] = 30,
+    ):
+        return ctx.task_tools.wait_for_task(upid, timeout)
 
     # System tools
     @_tool(HEALTH_DESC)

@@ -195,3 +195,32 @@ status will be 'ok'; otherwise returns 'degraded' or 'unknown'.
 
 Example:
 {"status": "ok", "tests_passed": true, "details": "Startup tests passed"}"""
+
+
+# Task tracking tool descriptions
+GET_TASK_STATUS_DESC = """Get the current status of an asynchronous Proxmox task (read-only).
+
+Parameters:
+upid* - Task id (UPID) returned by a mutating tool, e.g. 'UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:user@pve!token:'
+
+A task counts as successful ONLY when it has stopped with exitstatus 'OK'
+(success=true). A stopped task with 'WARNINGS...' is reported as state 'warnings'
+(not success); any other exit status is state 'failed' and includes the last log
+lines. A task that has not stopped is state 'running'.
+
+Example:
+Check the task returned by start_vm: upid='UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:user@pve!token:'"""
+
+WAIT_FOR_TASK_DESC = """Wait for an asynchronous Proxmox task to finish, with a bounded timeout (read-only).
+
+Parameters:
+upid* - Task id (UPID) returned by a mutating tool
+timeout - Maximum seconds to wait (default 30, maximum 300) (optional)
+
+Polls the task until it stops. Success means exitstatus 'OK' only; 'WARNINGS...' is
+reported separately and is not success. If the task is still running when the timeout
+expires the call does NOT fail: it returns state 'running' with timed_out=true, and you
+can call wait_for_task again. The wait never exceeds 300 seconds.
+
+Example:
+Wait up to 60 seconds: upid='UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:user@pve!token:', timeout=60"""

@@ -88,3 +88,12 @@ async def test_table_consistency(ann):
             assert ann[name].read_only_hint is False
     for name in RISK_CLASSES["destructive"] + RISK_CLASSES["exec"]:
         assert ann[name].destructive_hint is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", ["get_task_status", "wait_for_task"])
+async def test_task_tools_are_literally_read_only(ann, name):
+    a = ann[name]
+    assert (a.read_only_hint, a.destructive_hint, a.idempotent_hint, a.open_world_hint) == (
+        True, False, True, False,
+    )

@@ -151,3 +151,26 @@ async def test_get_containers_node_listing_failure_is_an_error_on_both_transport
     for srv in (server, http):
         with pytest.raises(Exception):
             await srv.mcp.call_tool("get_containers", {})
+
+
+TASK_UPID = "UPID:node1:0000ABCD:00123456:65A1B2C3:qmstart:100:monitor@pve!mcp:"
+
+
+@pytest.mark.asyncio
+async def test_get_task_status_reads_task_on_upid_node(server, api):
+    """get_task_status queries the node named in the UPID and reports success for OK only."""
+    status = api.nodes.return_value.tasks.return_value.status
+    status.get.return_value = {"status": "stopped", "exitstatus": "OK"}
+    data = json.loads(tool_text(await server.mcp.call_tool("get_task_status", {"upid": TASK_UPID})))
+    api.nodes.assert_called_with("node1")
+    api.nodes.return_value.tasks.assert_called_with(TASK_UPID)
+    assert data["success"] is True and data["state"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_wait_for_task_rejects_out_of_range_timeout(server, api):
+    """wait_for_task bounds the timeout to 1..300 before any Proxmox call."""
+    api.nodes.reset_mock()
+    with pytest.raises((ToolError, ValidationError)):
+        await server.mcp.call_tool("wait_for_task", {"upid": TASK_UPID, "timeout": 301})
+    assert api.nodes.called is False

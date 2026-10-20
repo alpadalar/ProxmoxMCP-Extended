@@ -35,7 +35,10 @@ DOCUMENTED_ADDITIONS = {
 }
 # Phase 4 -> Phase 5 delta. New tools: tool -> param -> (simple type, required).
 PHASE4_BASELINE_PATH = Path(__file__).parent / "golden" / "tools_phase4.json"
-PHASE5_NEW_TOOLS: dict[str, dict[str, tuple[str, bool]]] = {}
+PHASE5_NEW_TOOLS: dict[str, dict[str, tuple[str, bool]]] = {
+    "get_task_status": {"upid": ("string", True)},
+    "wait_for_task": {"upid": ("string", True), "timeout": ("integer", False)},
+}
 # Existing tools gaining new OPTIONAL parameters: tool -> param -> simple type.
 PHASE5_PARAM_ADDITIONS: dict[str, dict[str, str]] = {}
 PHASE4_TOOL_COUNT = 18

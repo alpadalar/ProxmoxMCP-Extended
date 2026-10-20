@@ -112,6 +112,7 @@ def test_fixtures_have_no_real_config_reference():
 
 # ---- Task 2: pytest fixtures + smoke ----------------------------------------------------
 
+TASK_UPID = "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:monitor@pve!mcp:"
 SMOKE_ARGS = {
     "create_snapshot": {"node": "pve1", "vmid": "100", "name": "snap2"},
     "create_vm": {
@@ -126,6 +127,7 @@ SMOKE_ARGS = {
     "get_nodes": {},
     "get_storage": {},
     "get_vm_usage": {"node": "pve1", "vmid": "100"},
+    "get_task_status": {"upid": TASK_UPID},
     "get_vms": {},
     "health": {},
     "reset_vm": {"node": "pve1", "vmid": "100"},
@@ -134,6 +136,7 @@ SMOKE_ARGS = {
     "start_vm": {"node": "pve1", "vmid": "101"},
     "stop_vm": {"node": "pve1", "vmid": "100"},
     "update_vm": {"node": "pve1", "vmid": "101", "memory": 2048},
+    "wait_for_task": {"upid": TASK_UPID, "timeout": 5},
 }
 
 

@@ -126,3 +126,10 @@ def test_destructive_annotation_matches_gate():
     for spec in build_registry(_ctx()):
         if spec.annotations.get("destructiveHint"):
             assert spec.risk in ("destructive", "exec"), spec.name
+
+
+@pytest.mark.parametrize("name", ["get_task_status", "wait_for_task"])
+def test_task_tools_are_literally_read_risk(name):
+    spec = next(s for s in build_registry(_ctx()) if s.name == name)
+    assert spec.risk == "read"
+    assert spec.annotations["readOnlyHint"] is True

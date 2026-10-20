@@ -226,3 +226,50 @@ def test_wait_for_task_bad_timeout_zero_calls(fake_pve, timeout):
     with pytest.raises(ValueError):
         TaskTools(fake_pve).wait_for_task(UPID, timeout)
     assert fake_pve.calls == []
+
+
+# -- MCP level (registered tools through the full app, policy wrap included) ------------------
+
+from fastmcp.exceptions import ToolError, ValidationError  # noqa: E402
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("transport", ["stdio", "http"])
+async def test_task_tools_listed_and_work_on_both_transports(policy_app, fake_pve, transport):
+    app = policy_app(transport, read_only=True)  # read risk: allowed even when read-only
+    tools = {t.name: t for t in await app.mcp.list_tools()}
+    assert {"get_task_status", "wait_for_task"} <= set(tools)
+    props = tools["wait_for_task"].parameters["properties"]
+    assert props["timeout"]["minimum"] == 1 and props["timeout"]["maximum"] == 300
+    assert props["timeout"]["default"] == 30
+    result = await app.mcp.call_tool("get_task_status", {"upid": UPID})
+    assert json.loads(result.content[0].text)["success"] is True
+    result = await app.mcp.call_tool("wait_for_task", {"upid": UPID, "timeout": 5})
+    assert json.loads(result.content[0].text)["state"] == "ok"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("args", [
+    {"upid": "../x"}, {"upid": UPID + "/y"}, {"upid": UPID, "timeout": 0},
+    {"upid": UPID, "timeout": 301}, {"upid": UPID, "timeout": -1},
+])
+async def test_task_tools_reject_bad_input_with_zero_calls(policy_app, fake_pve, args):
+    app = policy_app()
+    for name in ("get_task_status", "wait_for_task"):
+        if name == "get_task_status" and "timeout" in args:
+            continue
+        with pytest.raises((ToolError, ValidationError)):
+            await app.mcp.call_tool(name, args)
+    assert fake_pve.calls == []
+
+
+@pytest.mark.asyncio
+async def test_wait_for_task_running_timeout_via_mcp(policy_app, fake_pve):
+    app = policy_app()
+    clock = Clock()
+    app.task_tools._sleep, app.task_tools._clock = clock.sleep, clock
+    fake_pve.set("GET", STATUS, {"status": "running"})
+    result = await app.mcp.call_tool("wait_for_task", {"upid": UPID, "timeout": 7})
+    data = json.loads(result.content[0].text)
+    assert data["state"] == "running" and data["timed_out"] is True
+    assert "still running" in data["message"] and sum(clock.sleeps) == 7
