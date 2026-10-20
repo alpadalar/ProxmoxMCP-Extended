@@ -19,8 +19,7 @@ COPY . .
 # Create virtual environment and install dependencies
 RUN uv venv && \
     . .venv/bin/activate && \
-    uv pip install -e ".[dev]" && \
-    uv pip install fastmcp asgiref fastapi
+    uv pip install -e .
 
 # Expose port
 EXPOSE 8812
