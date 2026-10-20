@@ -35,7 +35,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src" / "proxmox_mcp"
 
 
-SCAN_FILES = ["tools/vm.py"]
+SCAN_FILES = ["tools/vm.py", "tools/console/manager.py"]
 
 
 def _function_source(path: Path, name: str) -> str:
@@ -223,7 +223,11 @@ def _text_membership_tests(path: Path):
 
     def stringy(node: ast.AST) -> bool:
         for sub in ast.walk(node):
-            if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name) and sub.func.id == "str":
+            if (
+                isinstance(sub, ast.Call)
+                and isinstance(sub.func, ast.Name)
+                and sub.func.id == "str"
+            ):
                 return True
             if isinstance(sub, ast.Name) and sub.id in bound:
                 return True

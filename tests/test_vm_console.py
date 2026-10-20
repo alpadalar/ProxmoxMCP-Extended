@@ -5,6 +5,8 @@ Tests for VM console operations.
 import pytest
 from unittest.mock import MagicMock
 
+from proxmoxer.core import ResourceException
+
 from proxmox_mcp.tools.console import VMConsoleManager
 
 @pytest.fixture
@@ -67,7 +69,11 @@ async def test_execute_command_vm_not_running(vm_console, mock_proxmox):
 async def test_execute_command_vm_not_found(vm_console, mock_proxmox):
     """Test command execution on non-existent VM."""
     mock_proxmox.nodes.return_value.qemu.return_value.status.current.get.side_effect = \
-        Exception("VM not found")
+        ResourceException(
+            500, "Internal Server Error",
+            "Configuration file 'nodes/node1/qemu-server/100.conf' does not exist",
+        )
+    mock_proxmox.nodes.return_value.qemu.get.return_value = []
 
     with pytest.raises(ValueError, match="not found"):
         await vm_console.execute_command("node1", "100", "ls -l")

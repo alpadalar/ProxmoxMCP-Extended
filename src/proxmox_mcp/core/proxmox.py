@@ -20,6 +20,7 @@ from typing import Any, Callable, Dict, Optional
 from proxmoxer import ProxmoxAPI
 
 from ..config.models import AuthConfig, ProxmoxConfig
+from ..tools.pve_compat import PveVersion, parse_pve_version
 from ..utils.redaction import redact, register_secret
 
 NOT_CONNECTED = "not_connected"
@@ -104,6 +105,7 @@ class ProxmoxManager:
         self.logger = logging.getLogger("proxmox-mcp.proxmox")
         register_secret(auth_config.token_value.get_secret_value())
         self.config = self._create_config(proxmox_config, auth_config)
+        self._pve_version: Optional[PveVersion] = None
         self.api = LazyProxmoxAPI(self._connect)
 
     def _create_config(
@@ -143,7 +145,8 @@ class ProxmoxManager:
         try:
             self.logger.info(f"Connecting to Proxmox host: {self.config['host']}")
             api = ProxmoxAPI(**self.config)
-            api.version.get()
+            # The connectivity check already fetches /version: remember it (no extra I/O).
+            self._pve_version = parse_pve_version(api.version.get())
             self.logger.info("Successfully connected to Proxmox API")
             return api
         except Exception as e:
@@ -154,6 +157,15 @@ class ProxmoxManager:
     def get_api(self) -> LazyProxmoxAPI:
         """Get the lazy Proxmox API proxy (connects on first attribute access)."""
         return self.api
+
+    def version_info(self) -> Optional[PveVersion]:
+        """PVE version seen by the first successful connect, else None; never performs I/O."""
+        return self._pve_version
+
+    def pve_major(self) -> Optional[int]:
+        """Major PVE version (8, 9, ...) or None before the first successful connect."""
+        info = self._pve_version
+        return info.major if info else None
 
     def connection_state(self) -> str:
         """Return not_connected / connected / unreachable without any I/O."""

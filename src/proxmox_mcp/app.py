@@ -65,6 +65,12 @@ class ProxmoxApp:
     def _policy_summary(self) -> Dict[str, bool]:
         return self.policy.summary() if self.policy else {}
 
+    def _pve_summary(self) -> Optional[Dict[str, Any]]:
+        info = self.manager.version_info()
+        if info is None:
+            return None
+        return {"version": info.version, "release": info.release, "major": info.major}
+
     def health_payload(self) -> Dict[str, Any]:
         """Health information; performs no network I/O."""
         if self.transport == "http":
@@ -75,6 +81,7 @@ class ProxmoxApp:
                 "auth": self.auth_state,
                 "policy": self._policy_summary(),
                 "proxmox": self.manager.connection_state(),
+                "pve": self._pve_summary(),
                 "timestamp": datetime.now().isoformat(),
             }
         if self.tests_passed is True:
@@ -87,6 +94,7 @@ class ProxmoxApp:
             "status": status,
             "tests_passed": self.tests_passed,
             "policy": self._policy_summary(),
+            "pve": self._pve_summary(),
             "details": (
                 "Startup tests passed"
                 if self.tests_passed
@@ -148,6 +156,7 @@ def create_app(
         api,
         exec_timeout=config.policy.exec_timeout_seconds,
         exec_max_output=config.policy.exec_max_output_bytes,
+        pve_major=manager.pve_major,
     )
     storage_tools = StorageTools(api)
     cluster_tools = ClusterTools(api)

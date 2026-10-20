@@ -19,9 +19,15 @@ import logging
 import shlex
 import time
 from functools import partial
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from ...utils.redaction import redact_local
+from ..pve_compat import (
+    guest_agent_privilege_message,
+    is_agent_not_running,
+    is_permission_failure,
+    require_vm_status,
+)
 
 
 class VMConsoleManager:
@@ -51,6 +57,7 @@ class VMConsoleManager:
         proxmox_api,
         exec_timeout: float = 30.0,
         exec_max_output: int = 65536,
+        pve_major: Callable[[], Optional[int]] = lambda: None,
     ):
         """Initialize the VM console manager.
 
@@ -58,11 +65,26 @@ class VMConsoleManager:
             proxmox_api: Initialized ProxmoxAPI instance
             exec_timeout: Maximum seconds to wait for a command to exit
             exec_max_output: Maximum bytes kept per output stream (stdout / stderr)
+            pve_major: Returns the PVE major version (or None) for privilege hints
         """
         self.proxmox = proxmox_api
         self.exec_timeout = exec_timeout
         self.exec_max_output = exec_max_output
+        self._pve_major = pve_major
         self.logger = logging.getLogger("proxmox-mcp.vm-console")
+
+    def _raise_agent_hint(self, exc: BaseException, vmid: str) -> None:
+        """Raise a precise ValueError for guest-agent permission / availability failures.
+
+        The messages are built from vmid and the PVE version only (never the command).
+        """
+        if is_permission_failure(exc):
+            raise ValueError(guest_agent_privilege_message(vmid, self._pve_major())) from None
+        if is_agent_not_running(exc):
+            raise ValueError(
+                f"The QEMU guest agent is not running in VM {vmid}. Set `agent: 1` on the VM "
+                "and install and start qemu-guest-agent inside the guest."
+            ) from None
 
     @classmethod
     def _build_argv(cls, command: str, args: Optional[List[str]] = None) -> List[str]:
@@ -175,10 +197,9 @@ class VMConsoleManager:
             # event loop (and /health) stays responsive.
             # The lazy connection resolves on attribute access, so the whole chain
             # (including the first connect) must be evaluated inside the worker thread.
-            def _get_status():
-                return self.proxmox.nodes(node).qemu(vmid).status.current.get()
-
-            vm_status = await asyncio.to_thread(_get_status)
+            vm_status = await asyncio.to_thread(
+                require_vm_status, self.proxmox, node, vmid, "execute_vm_command"
+            )
             if vm_status["status"] != "running":
                 self.logger.error(f"Failed to execute command on VM {vmid}: VM is not running")
                 raise ValueError(f"VM {vmid} on node {node} is not running")
@@ -201,6 +222,7 @@ class VMConsoleManager:
                     self.logger.error(
                         f"Failed to start command on VM {vmid} (node: {node}): {type(e).__name__}"
                     )
+                    self._raise_agent_hint(e, vmid)
                     raise RuntimeError(f"Failed to start command: {type(e).__name__}") from None
 
                 if 'pid' not in exec_result:
@@ -226,6 +248,7 @@ class VMConsoleManager:
                         self.logger.error(
                             f"Failed to get command status for PID {pid}: {type(e).__name__}"
                         )
+                        self._raise_agent_hint(e, vmid)
                         raise RuntimeError(
                             f"Failed to get command status: {type(e).__name__}"
                         ) from None
@@ -234,6 +257,8 @@ class VMConsoleManager:
                     if time.monotonic() >= deadline:
                         timed_out = True
                         break
+            except ValueError:
+                raise
             except Exception as e:
                 self.logger.error(f"API call failed on VM {vmid}: {type(e).__name__}")
                 detail = redact_local(str(e), command, *argv)
@@ -283,7 +308,5 @@ class VMConsoleManager:
             raise
         except Exception as e:
             self.logger.error(f"Failed to execute command on VM {vmid}: {type(e).__name__}")
-            if "not found" in str(e).lower():
-                raise ValueError(f"VM {vmid} not found on node {node}") from None
             detail = redact_local(str(e), command, *argv)
             raise RuntimeError(f"Failed to execute command: {detail}") from None

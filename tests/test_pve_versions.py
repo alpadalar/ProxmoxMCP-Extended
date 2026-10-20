@@ -162,3 +162,150 @@ async def test_create_vm_existence_uses_listing(app, fake_pve):
     text = tool_text(await app.mcp.call_tool("create_vm", {**base, "vmid": "200"}))
     assert "created successfully" in text
     assert [c.path for c in fake_pve.mutating_calls()] == ["nodes/pve1/qemu"]
+
+
+# --------------------------------------------------------------------------
+# Version capture, health reporting, version-aware guest-agent hints
+# --------------------------------------------------------------------------
+import json  # noqa: E402
+import logging  # noqa: E402
+from unittest.mock import AsyncMock, patch  # noqa: E402
+
+from starlette.testclient import TestClient  # noqa: E402
+
+from tests.test_harness import SMOKE_ARGS_CONFIRMED  # noqa: E402
+
+EXPECTED_VERSION = {"pve8": ("8.4.1", "8"), "pve9": ("9.0.3", "9")}
+
+
+def _expected(fake_pve):
+    """(version, major) the fixture reports."""
+    version = fake_pve.version.get()["version"]
+    fake_pve.reset_calls()
+    return version, int(version.split(".")[0])
+
+
+def test_version_info_none_before_connect_and_set_after(app, fake_pve):
+    version, major = _expected(fake_pve)
+    assert app.manager.version_info() is None and app.manager.pve_major() is None
+    assert fake_pve.calls == []
+    app.manager.get_api().nodes.get()
+    info = app.manager.version_info()
+    assert info.version == version and info.major == major == app.manager.pve_major()
+    n = len(fake_pve.calls)
+    app.manager.version_info(), app.manager.pve_major()
+    assert len(fake_pve.calls) == n  # no network I/O
+
+
+def test_failed_connect_leaves_version_none(app, fake_pve):
+    fake_pve.fail("GET", "version", ResourceException(401, "Unauthorized", "no ticket"))
+    with pytest.raises(RuntimeError):
+        app.manager.get_api().nodes.get()
+    assert app.manager.version_info() is None and app.manager.pve_major() is None
+
+
+@pytest.mark.asyncio
+async def test_health_tool_reports_pve(app, fake_pve):
+    release = fake_pve.version.get()["release"]
+    version, major = _expected(fake_pve)
+    before = json.loads(tool_text(await app.mcp.call_tool("health", {})))
+    assert before["pve"] is None
+    await app.mcp.call_tool("get_nodes", {})
+    after = json.loads(tool_text(await app.mcp.call_tool("health", {})))
+    assert after["pve"] == {"version": version, "release": release, "major": major}
+
+
+def test_http_health_reports_pve(policy_app, fake_pve):
+    version, major = _expected(fake_pve)
+    app = policy_app("http")
+    headers = {"X-API-Key": "test-api-key"}
+    with TestClient(app.asgi) as client:
+        body = client.get("/health", headers=headers).json()
+        assert "pve" in body and body["pve"] is None
+        assert body["proxmox"] == "not_connected"
+        app.manager.get_api().nodes.get()
+        body = client.get("/health", headers=headers).json()
+    assert body["pve"]["version"] == version and body["pve"]["major"] == major
+    assert body["proxmox"] == "connected"
+
+
+# -- guest agent hints ------------------------------------------------------
+
+SENTINEL = "SENTINEL_CMD_91ab"
+EXEC = {"node": "pve1", "vmid": "100", "command": SENTINEL}
+
+
+async def _exec(app):
+    with patch("asyncio.sleep", new=AsyncMock()):
+        return await app.mcp.call_tool("execute_vm_command", EXEC)
+
+
+@pytest.mark.asyncio
+async def test_exec_403_is_version_aware(app, fake_pve):
+    _, major = _expected(fake_pve)
+    fake_pve.fail("POST", "nodes/*/qemu/*/agent/exec",
+                  ResourceException(403, "Forbidden", "Permission check failed"))
+    with pytest.raises(ToolError) as ei:
+        await _exec(app)
+    text = str(ei.value)
+    assert "/vms/100" in text
+    if major == 8:
+        assert "VM.Monitor" in text and "VM.GuestAgent" not in text
+    else:
+        assert "VM.Monitor was removed" in text
+        assert "VM.GuestAgent.Unrestricted" in text and "unverified" in text
+    assert SENTINEL not in text
+
+
+@pytest.mark.asyncio
+async def test_exec_403_unknown_version_names_both(policy_app, fake_pve):
+    app = policy_app(allow_exec=True)
+    app.vm_tools.console_manager._pve_major = lambda: None
+    fake_pve.fail("POST", "nodes/*/qemu/*/agent/exec", ResourceException(403, "Forbidden", "x"))
+    with pytest.raises(ToolError) as ei:
+        await _exec(app)
+    assert "VM.Monitor" in str(ei.value) and "VM.GuestAgent.Unrestricted" in str(ei.value)
+
+
+@pytest.mark.asyncio
+async def test_exec_agent_not_running_and_stopped_vm(app, fake_pve):
+    fake_pve.fail("POST", "nodes/*/qemu/*/agent/exec", ResourceException(
+        500, "Internal Server Error", "QEMU guest agent is not running"))
+    with pytest.raises(ToolError) as ei:
+        await _exec(app)
+    assert "agent: 1" in str(ei.value) and "qemu-guest-agent" in str(ei.value)
+    assert SENTINEL not in str(ei.value)
+    with pytest.raises(ToolError, match="is not running"):
+        await app.mcp.call_tool("execute_vm_command", {**EXEC, "vmid": "101"})
+
+
+@pytest.mark.asyncio
+async def test_exec_hint_messages_and_logs_have_no_command(app, fake_pve, caplog):
+    for name in ("proxmox-mcp", "proxmox-mcp.vm-console"):
+        logging.getLogger(name).propagate = True
+    fake_pve.fail("POST", "nodes/*/qemu/*/agent/exec", ResourceException(403, "Forbidden", "x"))
+    with caplog.at_level(logging.DEBUG):
+        with pytest.raises(ToolError) as ei:
+            await _exec(app)
+    assert SENTINEL not in str(ei.value) and SENTINEL not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_exec_missing_vm_uses_listing(app, fake_pve):
+    fake_pve.fail("GET", "nodes/*/qemu/999/status/current", MISSING)
+    with pytest.raises(ToolError, match="VM 999 not found on node pve1"):
+        await _exec_vm(app, "999")
+
+
+async def _exec_vm(app, vmid):
+    with patch("asyncio.sleep", new=AsyncMock()):
+        return await app.mcp.call_tool("execute_vm_command", {**EXEC, "vmid": vmid})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", sorted(SMOKE_ARGS_CONFIRMED))
+async def test_full_smoke_same_outcome_on_both_versions(app, fake_pve, name):
+    """Every tool succeeds on the permissive app against either fixture."""
+    with patch("asyncio.sleep", new=AsyncMock()):
+        result = await app.mcp.call_tool(name, SMOKE_ARGS_CONFIRMED[name])
+    assert tool_text(result).strip()
