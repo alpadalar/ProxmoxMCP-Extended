@@ -96,9 +96,12 @@ class VMConsoleManager:
             # Verify VM exists and is running
             # proxmoxer is synchronous; run every call in a worker thread so the
             # event loop (and /health) stays responsive.
-            vm_status = await asyncio.to_thread(
-                self.proxmox.nodes(node).qemu(vmid).status.current.get
-            )
+            # The lazy connection resolves on attribute access, so the whole chain
+            # (including the first connect) must be evaluated inside the worker thread.
+            def _get_status():
+                return self.proxmox.nodes(node).qemu(vmid).status.current.get()
+
+            vm_status = await asyncio.to_thread(_get_status)
             if vm_status["status"] != "running":
                 self.logger.error(f"Failed to execute command on VM {vmid}: VM is not running")
                 raise ValueError(f"VM {vmid} on node {node} is not running")
@@ -106,7 +109,9 @@ class VMConsoleManager:
             self.logger.info(f"Executing command on VM {vmid} (node: {node})")
 
             # Use the guest agent exec endpoint
-            endpoint = self.proxmox.nodes(node).qemu(vmid).agent
+            endpoint = await asyncio.to_thread(
+                lambda: self.proxmox.nodes(node).qemu(vmid).agent
+            )
 
             # Execute the command using two-step process
             try:
