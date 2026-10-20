@@ -70,6 +70,8 @@ class ProxmoxConfig(BaseModel):
             raise ValueError("Proxmox host cannot be empty")
         if re.search(r"\s", v) or "/" in v or "://" in v:
             raise ValueError("host must be a bare hostname or IP (no scheme, path or spaces)")
+        if any(ch in v for ch in "@?#\\"):
+            raise ValueError("host must not contain URL-significant characters (@ ? # \\)")
         return v
 
     @field_validator("verify_ssl", mode="before")

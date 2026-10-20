@@ -104,7 +104,7 @@ def test_validation_error_hides_token():
 
 @pytest.mark.parametrize("kw", [
     {"port": 0}, {"port": 70000}, {"host": ""}, {"host": "a b"},
-    {"host": "a/b"}, {"host": "https://h"}, {"service": "XYZ"},
+    {"host": "a/b"}, {"host": "https://h"}, {"host": "evil.com#@pve"}, {"host": "u@h"}, {"host": "h?x"}, {"service": "XYZ"},
 ])
 def test_proxmox_field_validation(kw):
     with pytest.raises(ValidationError):
