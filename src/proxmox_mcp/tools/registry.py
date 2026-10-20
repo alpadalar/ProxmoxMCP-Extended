@@ -43,8 +43,10 @@ RISK_CLASSES = {
         "get_nodes", "get_node_status", "get_vms", "get_containers", "get_storage",
         "get_cluster_status", "get_vm_usage", "health",
     ),
-    "write": ("create_vm", "start_vm", "shutdown_vm", "create_snapshot", "update_vm"),
-    "destructive": ("stop_vm", "reset_vm", "delete_vm", "rollback_snapshot"),
+    "write": ("create_vm", "start_vm", "shutdown_vm", "create_snapshot"),
+    # update_vm overwrites existing configuration (memory, cores, name), so it is gated by
+    # allow_destructive, matching its destructiveHint annotation.
+    "destructive": ("stop_vm", "reset_vm", "delete_vm", "rollback_snapshot", "update_vm"),
     "exec": ("execute_vm_command",),
 }
 _RISK_BY_NAME = {n: r for r, names in RISK_CLASSES.items() for n in names}
@@ -69,7 +71,6 @@ _ANNOTATION_DEFAULTS: Dict[str, Dict[str, bool]] = {
     },
 }
 ANNOTATION_OVERRIDES: Dict[str, Dict[str, bool]] = {
-    "update_vm": {"destructiveHint": True},  # overwrites existing configuration
     "start_vm": {"idempotentHint": True},
     "shutdown_vm": {"idempotentHint": True},
     "execute_vm_command": {"openWorldHint": True},  # runs arbitrary code in a guest

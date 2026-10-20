@@ -51,7 +51,7 @@ def test_risk_classes_cover_every_tool_once():
     assert len(assigned) == len(set(assigned))
     risks = {s.name: s.risk for s in build_registry(_ctx())}
     assert risks["delete_vm"] == "destructive" and risks["execute_vm_command"] == "exec"
-    assert risks["update_vm"] == "write" and risks["health"] == "read"
+    assert risks["update_vm"] == "destructive" and risks["health"] == "read"
 
 
 @pytest.mark.asyncio
@@ -119,3 +119,10 @@ def test_toolspec_requires_known_risk(risk):
         ToolSpec("x", lambda: None, "d", None, risk)
     with pytest.raises(ValueError, match="explicit risk class"):
         ToolSpec("x", lambda: None, "d")
+
+
+def test_destructive_annotation_matches_gate():
+    """A tool annotated destructive is also gated as destructive (or exec)."""
+    for spec in build_registry(_ctx()):
+        if spec.annotations.get("destructiveHint"):
+            assert spec.risk in ("destructive", "exec"), spec.name
