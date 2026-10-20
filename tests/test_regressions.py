@@ -87,10 +87,8 @@ def test_stdio_server_imports_on_fastmcp4():
 
 
 def test_middleware_has_no_silent_fallback():
-    """CONCERNS Dependencies at Risk: no FASTMCP_AVAILABLE guard or legacy mcp.server.fastmcp."""
-    text = (SRC / "auth" / "middleware.py").read_text()
-    assert "FASTMCP_AVAILABLE" not in text
-    assert "mcp.server.fastmcp" not in text
+    """CONCERNS Dependencies at Risk: auth/middleware.py removed (Django/Yartu gone)."""
+    assert not (SRC / "auth" / "middleware.py").exists()
 
 
 def test_packaging_single_source():

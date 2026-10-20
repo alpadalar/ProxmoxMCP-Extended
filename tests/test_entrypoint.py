@@ -59,8 +59,3 @@ def test_no_legacy_fastmcp_imports():
                 if module == LEGACY or module.startswith(LEGACY + "."):
                     offenders.append(f"{path.relative_to(ROOT)}: {module}")
     assert not offenders, offenders
-
-
-def test_middleware_imports_without_guard():
-    middleware = importlib.import_module("proxmox_mcp.auth.middleware")
-    assert not hasattr(middleware, "FASTMCP_AVAILABLE")

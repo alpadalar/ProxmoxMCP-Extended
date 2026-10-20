@@ -119,12 +119,6 @@ def test_no_auth_on_loopback_warns_and_reports_disabled(mock_env_vars, mock_prox
         assert _post(c).status_code == 200
 
 
-def test_deprecated_django_flag_is_noop(mock_env_vars, mock_proxmox):
-    with pytest.warns(DeprecationWarning):
-        with pytest.raises(AuthConfigError):
-            ProxmoxMCPHTTPServer(use_django_auth=False)
-
-
 def test_key_never_logged(mock_env_vars, mock_proxmox, caplog):
     server = ProxmoxMCPHTTPServer(api_key_digests=[hash_api_key(KEY)])
     with caplog.at_level(logging.DEBUG):
@@ -207,3 +201,30 @@ def test_resolve_digests_precedence():
     assert resolve_digests([c], [a], {ENV_HASHES: b}) == [c]
     assert resolve_digests([], [a], {ENV_HASHES: b}) == []
     assert resolve_digests(None, [], {}) == []
+
+
+def test_config_digest_authenticates(mock_env_vars, mock_proxmox, tmp_path):
+    import json
+    import os
+
+    cfg = {
+        "proxmox": {"host": os.environ["PROXMOX_HOST"]},
+        "auth": {
+            "user": os.environ["PROXMOX_USER"],
+            "token_name": os.environ["PROXMOX_TOKEN_NAME"],
+            "token_value": os.environ["PROXMOX_TOKEN_VALUE"],
+        },
+        "http": {"api_key_digests": [hash_api_key(KEY)]},
+    }
+    path = tmp_path / "c.json"
+    path.write_text(json.dumps(cfg))
+    server = ProxmoxMCPHTTPServer(config_path=str(path))
+    with TestClient(server.build_app()) as c:
+        assert _post(c, Authorization=f"Bearer {KEY}").status_code == 200
+        assert _post(c, Authorization="Bearer wrong").status_code == 401
+
+
+def test_missing_key_error_names_both_sources(mock_env_vars, mock_proxmox):
+    with pytest.raises(AuthConfigError) as ei:
+        ProxmoxMCPHTTPServer()
+    assert ENV_HASHES in str(ei.value) and "http.api_key_digests" in str(ei.value)

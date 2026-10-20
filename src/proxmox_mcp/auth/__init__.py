@@ -1,12 +1,5 @@
-"""
-Django-based authentication system for ProxmoxMCP.
+"""API-key authentication and loopback host guard for the HTTP transport."""
 
-This module provides integration with Django authentication system,
-including custom auth providers and RBAC middleware.
-"""
+from .apikey import APIKeyAuthMiddleware, hash_api_key, resolve_digests
 
-from .providers import YartuMCPAuthProvider
-from .middleware import ScopeRBAC
-from .models import ProxmoxMCPToken
-
-__all__ = ["YartuMCPAuthProvider", "ScopeRBAC", "ProxmoxMCPToken"]
+__all__ = ["APIKeyAuthMiddleware", "hash_api_key", "resolve_digests"]

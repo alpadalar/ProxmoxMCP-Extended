@@ -11,7 +11,6 @@ import json
 import logging
 import os
 import sys
-import warnings
 from datetime import datetime
 from typing import List, Optional
 
@@ -20,7 +19,7 @@ from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from .auth.apikey import APIKeyAuthMiddleware, ENV_HASHES, digests_from_env, normalize_digests
+from .auth.apikey import APIKeyAuthMiddleware, ENV_HASHES, resolve_digests
 from .auth.hostguard import LoopbackHostGuardMiddleware
 from .config.loader import load_config
 from .core.logging import setup_logging
@@ -50,7 +49,6 @@ class ProxmoxMCPHTTPServer:
 
     def __init__(self,
                  config_path: Optional[str] = None,
-                 use_django_auth: Optional[bool] = None,
                  host: str = "127.0.0.1",
                  port: int = 8812,
                  path: str = "/proxmox-mcp",
@@ -61,29 +59,23 @@ class ProxmoxMCPHTTPServer:
 
         Args:
             config_path: Path to configuration file
-            use_django_auth: Deprecated no-op alias, ignored
             host: Server host address (default loopback)
             port: Server port
             path: HTTP path for MCP endpoint
             api_key_digests: sha256 hex digests of accepted API keys; defaults
-                to the PROXMOX_MCP_API_KEY_HASHES environment variable
+                to the PROXMOX_MCP_API_KEY_HASHES environment variable, then
+                the config file (http.api_key_digests)
             insecure_no_auth: Disable authentication (loopback hosts only)
         """
-        if use_django_auth is not None:
-            warnings.warn(
-                "use_django_auth is deprecated and ignored; API-key auth is used",
-                DeprecationWarning,
-                stacklevel=2,
-            )
         self.host = host
         self.port = port
         self.path = path
         self.insecure_no_auth = insecure_no_auth
+        self.config = load_config(config_path)
         self.api_key_digests = self._resolve_digests(api_key_digests)
         self.auth_enabled = bool(self.api_key_digests)
         self._check_auth_policy()
 
-        self.config = load_config(config_path)
         self.logger = setup_logging(self.config.logging)
         if not self.auth_enabled:
             self.logger.warning(
@@ -106,12 +98,9 @@ class ProxmoxMCPHTTPServer:
         self._setup_tools()
         self._setup_health_route()
 
-    @staticmethod
-    def _resolve_digests(explicit: Optional[List[str]]) -> List[str]:
+    def _resolve_digests(self, explicit: Optional[List[str]]) -> List[str]:
         try:
-            if explicit is not None:
-                return normalize_digests(explicit)
-            return digests_from_env()
+            return resolve_digests(explicit, self.config.http.api_key_digests)
         except ValueError as e:
             raise AuthConfigError(str(e)) from e
 
@@ -121,8 +110,8 @@ class ProxmoxMCPHTTPServer:
             return
         if not self.insecure_no_auth:
             raise AuthConfigError(
-                f"No API key digests configured. Set {ENV_HASHES} (comma-separated "
-                "sha256 hex digests; generate with `python -m proxmox_mcp.auth.apikey`) "
+                f"No API key digests configured. Set {ENV_HASHES} or http.api_key_digests "
+                "in the config file (comma-separated / list of sha256 hex digests; generate with `python -m proxmox_mcp.auth.apikey`) "
                 "or, for local development only, pass --no-auth on a loopback host."
             )
         if self.host not in LOOPBACK_HOSTS:
