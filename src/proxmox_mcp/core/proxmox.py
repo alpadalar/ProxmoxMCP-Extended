@@ -15,6 +15,7 @@ import logging
 from typing import Dict, Any
 from proxmoxer import ProxmoxAPI
 from ..config.models import ProxmoxConfig, AuthConfig
+from ..utils.redaction import redact, register_secret
 
 class ProxmoxManager:
     """Manager class for Proxmox API operations.
@@ -37,6 +38,7 @@ class ProxmoxManager:
             auth_config: Authentication configuration
         """
         self.logger = logging.getLogger("proxmox-mcp.proxmox")
+        register_secret(auth_config.token_value.get_secret_value())
         self.config = self._create_config(proxmox_config, auth_config)
         self.api = self._setup_api()
 
@@ -101,8 +103,9 @@ class ProxmoxManager:
             
             return api
         except Exception as e:
-            self.logger.error(f"Failed to connect to Proxmox: {e}")
-            raise RuntimeError(f"Failed to connect to Proxmox: {e}")
+            safe = redact(str(e))
+            self.logger.error(f"Failed to connect to Proxmox: {safe}")
+            raise RuntimeError(f"Failed to connect to Proxmox: {safe}") from None
 
     def get_api(self) -> ProxmoxAPI:
         """Get the initialized Proxmox API instance.

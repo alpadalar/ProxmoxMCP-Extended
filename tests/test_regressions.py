@@ -17,7 +17,7 @@ test XPASSes, the strict marker fails the suite, and the marker must be removed.
 | TLS verification can be silently weakened       | test_verify_ssl_typo_rejected                      | FIXED         | Phase 2 / CONF-01   |
 | Secrets handling and logging (token in repr)    | test_token_value_not_in_repr                       | FIXED         | Phase 2 / CONF-01/03 |
 | Input validation / injection (node path)        | test_path_traversal_node_rejected                  | FIXED         | Phase 2 / CONF-02   |
-| Arbitrary command execution logged              | test_exec_command_not_logged                       | PINNED xfail  | Phase 4 / SEC-03    |
+| Arbitrary command execution logged              | test_exec_command_not_logged                       | FIXED         | Phase 2 / CONF-03   |
 | TLS/logging defaults in example config          | test_example_config_safe_defaults                  | FIXED         | Phase 2 / CONF-04   |
 | Duplicated tool registration                    | test_stdio_http_tool_sets_identical                | PINNED xfail  | Phase 3 / SRV-01    |
 | Connection setup at construction time           | test_proxmox_connect_is_lazy                       | PINNED xfail  | Phase 3 / SRV-04    |
@@ -163,7 +163,6 @@ async def test_path_traversal_node_rejected(server, api):
     assert not api.nodes.called, "unvalidated node reached proxmoxer"
 
 
-@_pin("CONCERNS: command execution/logging; fixed in Phase 4 (SEC-03) and Phase 2 (CONF-03)")
 @pytest.mark.asyncio
 async def test_exec_command_not_logged(server, api, caplog):
     """CONCERNS Security: guest command text must not be written to logs."""

@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Union
 from mcp.types import TextContent as Content
 from proxmoxer import ProxmoxAPI
 from ..formatting import ProxmoxTemplates
+from ..utils.redaction import redact
 
 class ProxmoxTool:
     """Base class for Proxmox MCP tools.
@@ -93,8 +94,8 @@ class ProxmoxTool:
             ValueError: For invalid input, missing resources, or permission issues
             RuntimeError: For unexpected errors or API failures
         """
-        error_msg = str(error)
-        self.logger.error(f"Failed to {operation}: {error_msg}")
+        error_msg = redact(str(error))
+        self.logger.error(f"Failed to {redact(operation)}: {error_msg}")
 
         if "not found" in error_msg.lower():
             raise ValueError(f"Resource not found: {error_msg}")
@@ -103,4 +104,4 @@ class ProxmoxTool:
         if "invalid" in error_msg.lower():
             raise ValueError(f"Invalid input: {error_msg}")
         
-        raise RuntimeError(f"Failed to {operation}: {error_msg}")
+        raise RuntimeError(f"Failed to {redact(operation)}: {error_msg}")
