@@ -16,7 +16,7 @@ The module implements a robust command execution system with:
 
 import logging
 from typing import Dict, Any
-from ...utils.redaction import redact, register_sensitive
+from ...utils.redaction import redact_local
 
 class VMConsoleManager:
     """Manager class for VM console operations.
@@ -86,8 +86,8 @@ class VMConsoleManager:
                        - Unable to get command status
                        - API communication errors occur
         """
-        # The command may embed secrets: make sure no log sink or error text can echo it.
-        register_sensitive(command)
+        # The command may embed secrets and is never logged; it is scrubbed from error text
+        # per call only (never stored in the global redaction registry).
         try:
             # Verify VM exists and is running
             vm_status = self.proxmox.nodes(node).qemu(vmid).status.current.get()
@@ -135,7 +135,7 @@ class VMConsoleManager:
                     ) from None
             except Exception as e:
                 self.logger.error(f"API call failed on VM {vmid}: {type(e).__name__}")
-                raise RuntimeError(f"API call failed: {redact(str(e))}") from None
+                raise RuntimeError(f"API call failed: {redact_local(str(e), command)}") from None
 
             # Handle different response structures
             if isinstance(console, dict):
@@ -173,4 +173,5 @@ class VMConsoleManager:
             self.logger.error(f"Failed to execute command on VM {vmid}: {type(e).__name__}")
             if "not found" in str(e).lower():
                 raise ValueError(f"VM {vmid} not found on node {node}") from None
-            raise RuntimeError(f"Failed to execute command: {redact(str(e))}") from None
+            detail = redact_local(str(e), command)
+            raise RuntimeError(f"Failed to execute command: {detail}") from None

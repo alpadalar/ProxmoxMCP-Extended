@@ -1,22 +1,19 @@
 """Secret redaction for logs and error messages (stdlib only).
 
-Secrets (the API token, guest commands) are registered once and scrubbed from
-every log record by :class:`RedactingFilter` and from error text by :func:`redact`.
+Only the configured API token is registered (bounded, process-wide). Caller-supplied
+values must never be registered globally; use :func:`redact_local` for per-call scrubbing.
 """
 import logging
 import threading
-from collections import OrderedDict
 
-__all__ = ["register_secret", "register_sensitive", "redact", "RedactingFilter"]
+__all__ = ["register_secret", "redact_local", "redact", "RedactingFilter"]
 
 REDACTED = "[REDACTED]"
 MIN_SECRET_LEN = 4
-MAX_SENSITIVE = 256
+MIN_LOCAL_LEN = 8
 
 _lock = threading.Lock()
 _secrets: "set[str]" = set()
-# Transient sensitive values (e.g. guest commands); bounded so memory cannot grow forever.
-_sensitive: "OrderedDict[str, None]" = OrderedDict()
 
 
 def register_secret(value: str) -> None:
@@ -26,14 +23,18 @@ def register_secret(value: str) -> None:
             _secrets.add(value)
 
 
-def register_sensitive(value: str) -> None:
-    """Register a bounded-lifetime sensitive value (oldest are evicted)."""
-    if isinstance(value, str) and len(value) >= MIN_SECRET_LEN:
-        with _lock:
-            _sensitive[value] = None
-            _sensitive.move_to_end(value)
-            while len(_sensitive) > MAX_SENSITIVE:
-                _sensitive.popitem(last=False)
+def redact_local(text: str, *values: str) -> str:
+    """Redact registered secrets plus ``values`` for this call only (nothing is stored).
+
+    Values shorter than ``MIN_LOCAL_LEN`` are ignored so short caller input cannot
+    mangle unrelated text.
+    """
+    if not isinstance(text, str) or not text:
+        return text
+    for value in sorted((v for v in values if isinstance(v, str)), key=len, reverse=True):
+        if len(value) >= MIN_LOCAL_LEN:
+            text = text.replace(value, REDACTED)
+    return redact(text)
 
 
 def redact(text: str) -> str:
@@ -41,7 +42,7 @@ def redact(text: str) -> str:
     if not isinstance(text, str) or not text:
         return text
     with _lock:
-        values = sorted(_secrets.union(_sensitive), key=len, reverse=True)
+        values = sorted(_secrets, key=len, reverse=True)
     for value in values:
         if value in text:
             text = text.replace(value, REDACTED)

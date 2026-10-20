@@ -10,7 +10,7 @@ from fastmcp.exceptions import ToolError, ValidationError
 from proxmox_mcp.config.models import AuthConfig, LoggingConfig, ProxmoxConfig
 from proxmox_mcp.core.logging import setup_logging
 from proxmox_mcp.utils import redaction
-from proxmox_mcp.utils.redaction import RedactingFilter, redact, register_secret
+from proxmox_mcp.utils.redaction import RedactingFilter, redact, redact_local, register_secret
 from tests.helpers import tool_text
 
 
@@ -170,3 +170,40 @@ async def test_exec_failure_logs_only_type(server, api, caplog):
                 "execute_vm_command",
                 {"node": "n1", "vmid": "100", "command": "echo SENTINEL_CMD"})
     assert "SENTINEL_CMD" not in caplog.text
+
+
+# --- Caller-supplied values never enter the global registry (review WR-04) ---
+
+@pytest.mark.parametrize("short", ["a", "error", "root", "date", "ping"])
+@pytest.mark.asyncio
+async def test_short_command_does_not_alter_other_logs(server, api, caplog, short):
+    _exec_mocks(api)
+    for name in ("proxmox-mcp", "proxmox-mcp.vm-console"):
+        logging.getLogger(name).propagate = True
+    with patch("asyncio.sleep", return_value=None):
+        await server.mcp.call_tool(
+            "execute_vm_command", {"node": "n1", "vmid": "100", "command": short})
+    assert redact("an error occurred for root at date: ping") == (
+        "an error occurred for root at date: ping")
+    assert redact("a" * 10 + short) == "a" * 10 + short
+
+
+@pytest.mark.asyncio
+async def test_registry_stays_bounded_after_many_calls(server, api):
+    _exec_mocks(api)
+    with redaction._lock:
+        before = (len(redaction._secrets), len(vars(redaction)))
+    with patch("asyncio.sleep", return_value=None):
+        for i in range(300):
+            await server.mcp.call_tool(
+                "execute_vm_command",
+                {"node": "n1", "vmid": "100", "command": f"echo unique-command-{i}"})
+    with redaction._lock:
+        assert (len(redaction._secrets), len(vars(redaction))) == before
+    assert not hasattr(redaction, "register_sensitive")
+
+
+def test_redact_local_is_call_scoped_and_min_length():
+    assert redact_local("x failed: long-secret-cmd", "long-secret-cmd") == "x failed: [REDACTED]"
+    assert redact_local("root error a", "root", "error", "a") == "root error a"
+    assert redact("long-secret-cmd") == "long-secret-cmd"
