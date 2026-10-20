@@ -1,0 +1,194 @@
+{
+  "GET version": {
+    "version": "9.0.3",
+    "release": "9.0",
+    "repoid": "ba9876543210"
+  },
+  "GET nodes": [
+    {
+      "node": "pve1",
+      "status": "online",
+      "cpu": 0.05,
+      "maxcpu": 8,
+      "mem": 4294967296,
+      "maxmem": 17179869184,
+      "uptime": 86400
+    },
+    {
+      "node": "pve2",
+      "status": "online",
+      "cpu": 0.02,
+      "maxcpu": 8,
+      "mem": 2147483648,
+      "maxmem": 17179869184,
+      "uptime": 43200
+    }
+  ],
+  "GET nodes/*/status": {
+    "uptime": 86400,
+    "cpuinfo": {
+      "cpus": 8
+    },
+    "memory": {
+      "used": 4294967296,
+      "total": 17179869184
+    },
+    "pveversion": "pve-manager/9.0.3"
+  },
+  "GET nodes/*/qemu": [
+    {
+      "vmid": 100,
+      "name": "web-01",
+      "status": "running",
+      "mem": 1073741824,
+      "maxmem": 2147483648,
+      "cpus": 2
+    },
+    {
+      "vmid": 101,
+      "name": "db-01",
+      "status": "stopped",
+      "mem": 0,
+      "maxmem": 4294967296,
+      "cpus": 4
+    }
+  ],
+  "GET nodes/*/lxc": [
+    {
+      "vmid": 200,
+      "name": "ct-01",
+      "status": "running",
+      "mem": 134217728,
+      "maxmem": 536870912
+    }
+  ],
+  "GET nodes/*/qemu/100/status/current": {
+    "vmid": 100,
+    "name": "web-01",
+    "status": "running",
+    "cpu": 0.03,
+    "mem": 1073741824,
+    "maxmem": 2147483648,
+    "disk": 0,
+    "maxdisk": 34359738368,
+    "uptime": 3600
+  },
+  "GET nodes/*/qemu/101/status/current": {
+    "vmid": 101,
+    "name": "db-01",
+    "status": "stopped",
+    "cpu": 0,
+    "mem": 0,
+    "maxmem": 4294967296,
+    "disk": 0,
+    "maxdisk": 68719476736,
+    "uptime": 0
+  },
+  "GET nodes/*/qemu/100/config": {
+    "name": "web-01",
+    "cores": 2,
+    "memory": 2048,
+    "ostype": "l26"
+  },
+  "GET nodes/*/qemu/101/config": {
+    "name": "db-01",
+    "cores": 4,
+    "memory": 4096,
+    "ostype": "l26"
+  },
+  "GET nodes/*/qemu/*/snapshot": [
+    {
+      "name": "current",
+      "description": "You are here!"
+    },
+    {
+      "name": "snap1",
+      "description": "before upgrade",
+      "snaptime": 1700000000
+    }
+  ],
+  "GET nodes/*/storage": [
+    {
+      "storage": "local",
+      "type": "dir",
+      "content": "iso,backup,vztmpl",
+      "enabled": 1,
+      "active": 1
+    },
+    {
+      "storage": "local-lvm",
+      "type": "lvmthin",
+      "content": "images,rootdir",
+      "enabled": 1,
+      "active": 1
+    }
+  ],
+  "GET storage": [
+    {
+      "storage": "local",
+      "type": "dir",
+      "content": "iso,backup,vztmpl",
+      "node": "pve1",
+      "enabled": 1
+    },
+    {
+      "storage": "local-lvm",
+      "type": "lvmthin",
+      "content": "images,rootdir",
+      "node": "pve1",
+      "enabled": 1
+    }
+  ],
+  "GET nodes/*/storage/*/status": {
+    "used": 10737418240,
+    "total": 107374182400,
+    "avail": 96636764160,
+    "active": 1
+  },
+  "GET cluster/status": [
+    {
+      "type": "cluster",
+      "name": "example-cluster",
+      "nodes": 2,
+      "quorate": 1,
+      "version": 3,
+      "id": "cluster"
+    },
+    {
+      "type": "node",
+      "name": "pve1",
+      "online": 1,
+      "local": 1,
+      "ip": "192.0.2.10",
+      "nodeid": 1,
+      "id": "node/pve1"
+    },
+    {
+      "type": "node",
+      "name": "pve2",
+      "online": 1,
+      "local": 0,
+      "ip": "192.0.2.11",
+      "nodeid": 2,
+      "id": "node/pve2"
+    }
+  ],
+  "GET nodes/*/qemu/*/agent/exec-status": {
+    "exited": 1,
+    "exitcode": 0,
+    "out-data": "hello\n",
+    "err-data": ""
+  },
+  "POST nodes/*/qemu/*/agent/exec": {
+    "pid": 4242
+  },
+  "POST nodes/*/qemu": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmcreate:100:monitor@pve!mcp:",
+  "POST nodes/*/qemu/*/status/start": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:monitor@pve!mcp:",
+  "POST nodes/*/qemu/*/status/stop": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstop:100:monitor@pve!mcp:",
+  "POST nodes/*/qemu/*/status/shutdown": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmshutdown:100:monitor@pve!mcp:",
+  "POST nodes/*/qemu/*/status/reset": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmreset:100:monitor@pve!mcp:",
+  "POST nodes/*/qemu/*/snapshot": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmsnapshot:100:monitor@pve!mcp:",
+  "POST nodes/*/qemu/*/snapshot/*/rollback": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmrollback:100:monitor@pve!mcp:",
+  "PUT nodes/*/qemu/*/config": null,
+  "DELETE nodes/*/qemu/*": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmdestroy:100:monitor@pve!mcp:"
+}
