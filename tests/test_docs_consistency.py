@@ -220,3 +220,32 @@ def test_no_secret_shapes_in_tracked_docs() -> None:
 def test_no_stale_claims_in_readmes(stale: str) -> None:
     assert stale not in README
     assert stale not in README_TR
+
+
+PLANNING = ROOT / ".planning"
+SUMMARY_FILES = {
+    "04-04": "phases/04-tool-layer-security-pve-api-uyumu/04-04-SUMMARY.md",
+    "05-02": "phases/05-new-features/05-02-SUMMARY.md",
+    "05-03": "phases/05-new-features/05-03-SUMMARY.md",
+    "05-04": "phases/05-new-features/05-04-SUMMARY.md",
+}
+
+
+def _human_test_items(text: str) -> list[int]:
+    match = re.search(r"^## For HUMAN-TESTS[^\n]*\n(.*?)(?=^## |\Z)", text, re.S | re.M)
+    assert match, "no '## For HUMAN-TESTS' section"
+    return [int(n) for n in re.findall(r"^(\d+)\. ", match.group(1), re.M)]
+
+
+@pytest.mark.parametrize("plan", sorted(SUMMARY_FILES))
+def test_human_tests_cover_every_summary_item(plan: str) -> None:
+    human = PLANNING / "HUMAN-TESTS.md"
+    summary = PLANNING / SUMMARY_FILES[plan]
+    if not human.is_file() or not summary.is_file():
+        pytest.skip(".planning is not part of this checkout")
+    items = _human_test_items(summary.read_text(encoding="utf-8"))
+    assert items == list(range(1, len(items) + 1))
+    text = human.read_text(encoding="utf-8")
+    for n in items:
+        assert f"Kaynak: {plan}#{n}" in text, f"HUMAN-TESTS.md misses {plan}#{n}"
+    assert "Kaynak: " in text
