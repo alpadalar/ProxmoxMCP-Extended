@@ -325,7 +325,7 @@ class VMTools(ProxmoxTool):
             if storage_type in ["lvm", "lvmthin"]:
                 cloudinit_note = "\n  ⚠️  Note: LVM storage doesn't support cloud-init image"
             
-            result_text = f"""🎉 VM {vmid} created successfully!
+            result_text = f"""🎉 VM {vmid} creation queued!
 
 📋 VM Configuration:
   • Name: {name}

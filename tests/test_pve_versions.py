@@ -164,7 +164,7 @@ async def test_create_vm_existence_uses_listing(app, fake_pve):
     assert fake_pve.mutating_calls() == []
     # a config probe error whose text says "does not exist" must not matter any more
     text = tool_text(await app.mcp.call_tool("create_vm", {**base, "vmid": "200"}))
-    assert "created successfully" in text
+    assert "creation queued" in text
     assert [c.path for c in fake_pve.mutating_calls()] == ["nodes/pve1/qemu"]
 
 
