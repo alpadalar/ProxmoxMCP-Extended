@@ -19,11 +19,9 @@ Example: `uv run python scripts/live/test_vm_power.py`
   - Test complete workflow of creating new virtual machines
   - Verify 1 CPU core + 2GB RAM + 10GB storage configuration
 
-### 🌐 API Tests
-- **`test_openapi.py`** - OpenAPI service comprehensive test
-  - Test all API endpoints
-  - Include VM creation, power management and other functionalities
-  - Verify integration with Open WebUI
+### HTTP server test
+- **`test_http_server.py`** - exercises a running HTTP MCP server (needs `PROXMOX_MCP_TEST_KEY`,
+  the plain API key whose sha256 digest the server was started with)
 
 ## 🚀 Usage
 
@@ -48,9 +46,9 @@ uv run python scripts/live/test_vm_power.py
 uv run python scripts/live/test_create_vm.py
 ```
 
-#### 3. Test OpenAPI Service
+#### 3. Test the HTTP server
 ```bash
-uv run python scripts/live/test_openapi.py
+PROXMOX_MCP_TEST_KEY=<your key> uv run python scripts/live/test_http_server.py
 ```
 
 #### 4. Test VM Startup
@@ -67,22 +65,19 @@ uv run python scripts/live/test_vm_start.py
 - [x] VM creation (support custom CPU/memory/storage)
 - [x] Storage type auto-detection
 - [x] Disk format intelligent selection
-- [x] OpenAPI service integration
 - [x] Error handling verification
 
 ### 🎯 Test Scenarios
 - **Basic functionality**: Connection, authentication, basic operations
 - **VM lifecycle**: Create, start, stop, delete
 - **Storage compatibility**: LVM, filesystem storage
-- **API integration**: REST API calls and responses
+- **HTTP integration**: MCP over HTTP with API-key auth
 - **Error recovery**: Exception handling
 
 ## 🔗 Related Documentation
 
 - **Main project documentation**: [../README.md](../../README.md)
-- **VM creation guide**: [../VM_CREATION_GUIDE.md](../../VM_CREATION_GUIDE.md)
-- **OpenAPI deployment**: [../OPENAPI_DEPLOYMENT.md](../../OPENAPI_DEPLOYMENT.md)
-- **Quick deployment**: [../QUICK_DEPLOY_8811.md](../../QUICK_DEPLOY_8811.md)
+- **Changelog**: [../CHANGELOG.md](../../CHANGELOG.md)
 
 ## 📊 Test Results Examples
 
@@ -94,14 +89,6 @@ uv run python scripts/live/test_vm_start.py
 ✅ VM 999: Created successfully (local-lvm, raw)
 ```
 
-### API Endpoint Verification
-```
-✅ get_nodes: 200 - 134 chars
-✅ get_vms: 200 - 1843 chars
-✅ create_vm: 200 - VM created successfully
-✅ start_vm: 200 - VM started successfully
-```
-
 ## 🛠️ Troubleshooting
 
 If tests fail, please check:
@@ -109,7 +96,7 @@ If tests fail, please check:
 1. **Configuration file**: Whether `proxmox-config/config.json` is correct
 2. **Network connection**: Whether Proxmox server is reachable
 3. **Authentication info**: Whether API token is valid
-4. **Service status**: Whether OpenAPI service is running on port 8811
+4. **Service status**: Whether the HTTP server is running (`/health`)
 
 ## 📝 Contributing Guidelines
 
