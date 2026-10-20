@@ -221,18 +221,7 @@ class ProxmoxMCPHTTPServer:
         # Container tools
         @self.mcp.tool(description="List all containers")
         def get_containers():
-            try:
-                result = []
-                nodes = self.proxmox.nodes.get()
-                for node in nodes:
-                    node_name = node.get("node")
-                    try:
-                        containers = self.proxmox.nodes(node_name).lxc.get()
-                        result.extend(containers)
-                    except Exception:
-                        continue
-            except Exception:
-                result = []
+            result = self.cluster_tools.list_containers()
             return self._format_response(result, "containers")
 
         # Storage tools

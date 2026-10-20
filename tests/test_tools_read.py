@@ -136,3 +136,18 @@ async def test_health_unknown_without_startup_tests(server):
     data = json.loads(tool_text(await server.mcp.call_tool("health", {})))
     assert data["status"] == "unknown"
     assert data["tests_passed"] is None
+
+
+@pytest.mark.asyncio
+async def test_get_containers_node_listing_failure_is_an_error_on_both_transports(
+    server, api, mock_env_vars, mock_proxmox
+):
+    """A failing nodes listing must raise, never look like 'no containers'."""
+    from proxmox_mcp.auth.apikey import hash_api_key
+    from proxmox_mcp.server_http import ProxmoxMCPHTTPServer
+
+    http = ProxmoxMCPHTTPServer(api_key_digests=[hash_api_key("k" * 16)])
+    api.nodes.get.side_effect = Exception("connection refused")
+    for srv in (server, http):
+        with pytest.raises(Exception):
+            await srv.mcp.call_tool("get_containers", {})

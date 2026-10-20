@@ -10,8 +10,9 @@ This module provides tools for monitoring and managing Proxmox clusters:
 The tools provide essential information for maintaining
 cluster health and ensuring proper operation.
 """
-from typing import List
+from typing import Any, Dict, List
 from mcp.types import TextContent as Content
+from ..utils.redaction import redact
 from .base import ProxmoxTool
 from .definitions import GET_CLUSTER_STATUS_DESC
 
@@ -27,6 +28,27 @@ class ClusterTools(ProxmoxTool):
     Essential for maintaining cluster health and ensuring
     proper operation of the Proxmox environment.
     """
+
+    def list_containers(self) -> List[Dict[str, Any]]:
+        """Aggregate LXC containers across nodes.
+
+        A node whose listing fails is skipped with a redacted warning; failure to list
+        the nodes themselves is raised (never reported as "no containers").
+        """
+        try:
+            nodes = self.proxmox.nodes.get()
+        except Exception as e:
+            self._handle_error("list nodes for containers", e)
+        result: List[Dict[str, Any]] = []
+        for node in nodes:
+            node_name = node.get("node")
+            try:
+                result.extend(self.proxmox.nodes(node_name).lxc.get())
+            except Exception as e:
+                self.logger.warning(
+                    f"Skipping containers of node {redact(str(node_name))}: {redact(str(e))}"
+                )
+        return result
 
     def get_cluster_status(self) -> List[Content]:
         """Get overall Proxmox cluster health and configuration status.

@@ -117,21 +117,7 @@ class ProxmoxMCPServer:
 
         @self.mcp.tool(description=GET_CONTAINERS_DESC)
         def get_containers():
-            # Aggregate LXC containers across nodes
-            result = []
-            try:
-                nodes = self.proxmox.nodes.get()
-                for node in nodes:
-                    node_name = node.get("node")
-                    try:
-                        containers = self.proxmox.nodes(node_name).lxc.get()
-                        result.extend(containers)
-                    except Exception:
-                        # Skip node on failure
-                        continue
-            except Exception:
-                # If even nodes cannot be listed, return empty list
-                result = []
+            result = self.cluster_tools.list_containers()
             return [Content(type="text", text=json.dumps(result))]
 
         @self.mcp.tool(description=CREATE_VM_DESC)
