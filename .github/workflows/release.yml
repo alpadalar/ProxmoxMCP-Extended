@@ -1,0 +1,130 @@
+# DRY RUN: nothing is pushed or released, and this workflow has not been run on GitHub yet.
+# It builds the image, smoke tests it locally on the runner and prints the tags it would use.
+# To publish later: add a registry login step pinned by SHA, grant a write-scoped package
+# permission on this one job only, flip push to true behind a protected tag rule, and never
+# enable publishing for workflow_dispatch.
+name: Release (dry run)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Informational only (not used to tag anything)"
+        required: false
+        type: string
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+permissions:
+  contents: read
+
+jobs:
+  docker-dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SMOKE_PORT: "8812"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      # Only used to compute names; nothing is pushed.
+      - id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch
+            type=sha,prefix=sha-
+          flavor: |
+            latest=${{ github.event_name == 'push' && 'auto' || 'false' }}
+
+      - id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Start the image with a throw-away key and a fake config
+        env:
+          IMAGE_ID: ${{ steps.build.outputs.imageid }}
+        run: |
+          set -euo pipefail
+          key="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+          digest="$(KEY="$key" python3 -c 'import hashlib, os; print(hashlib.sha256(os.environ["KEY"].encode()).hexdigest())')"
+          echo "::add-mask::$key"
+          cfg="${RUNNER_TEMP}/smoke-config"
+          mkdir -p "$cfg"
+          cat > "$cfg/config.json" <<'JSON'
+          {
+            "proxmox": {"host": "192.0.2.1", "port": 8006, "verify_ssl": true, "service": "PVE", "timeout": 5},
+            "auth": {"user": "fake@pve", "token_name": "fake", "token_value": "fake-not-a-real-secret"},
+            "http": {"api_key_digests": []},
+            "logging": {"level": "INFO"}
+          }
+          JSON
+          chmod 755 "$cfg"
+          chmod 644 "$cfg/config.json"
+          echo "$key" > "${RUNNER_TEMP}/smoke-key"
+          docker run -d --name smoke \
+            --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
+            -e "PROXMOX_MCP_API_KEY_HASHES=$digest" \
+            -e LOG_FILE=/tmp/proxmox_mcp.log \
+            -v "$cfg:/config:ro" \
+            -p "127.0.0.1:${SMOKE_PORT}:8812" \
+            "$IMAGE_ID"
+
+      - name: Wait for /health and assert 200
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 30); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${SMOKE_PORT}/health" || true)"
+            if [ "$code" = "200" ]; then
+              echo "health: 200"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs smoke | tail -40
+          echo "health did not return 200 (last: ${code:-none})" >&2
+          exit 1
+
+      - name: MCP endpoint without a key returns 401
+        run: |
+          set -euo pipefail
+          code="$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json, text/event-stream' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"ping"}' \
+            "http://127.0.0.1:${SMOKE_PORT}/proxmox-mcp")"
+          echo "unauthenticated MCP POST: $code"
+          test "$code" = "401"
+
+      - name: Remove the smoke container
+        if: always()
+        run: docker rm -f smoke || true
+
+      - name: Show the tags this run would publish
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          {
+            echo "## Release dry run (nothing pushed)"
+            echo
+            echo "Event: \`${EVENT_NAME}\`, ref: \`${REF_NAME}\`"
+            echo
+            echo "Would-be tags:"
+            echo '```'
+            echo "$TAGS"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
