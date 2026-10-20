@@ -68,6 +68,11 @@ def test_failure_is_redacted_and_retried():
         assert ei.value.__cause__ is None
         assert m.connection_state() == "unreachable"
         api.side_effect = None
+        # Within the negative-cache window the failure is replayed without a new connect.
+        with pytest.raises(RuntimeError):
+            _ = m.get_api().nodes
+        assert api.call_count == 1
+        m.get_api()._retry_at = 0.0
         _ = m.get_api().nodes
         assert m.connection_state() == "connected"
         assert api.call_count == 2
@@ -121,3 +126,41 @@ def test_fake_pve_end_to_end_records_timeout(fake_pve):
         proxy = _manager().get_api()
         assert proxy.nodes.get() is not None
         assert api.call_args.kwargs["timeout"] == 30.0
+
+
+def test_failed_connect_is_negative_cached_and_single_flight():
+    import threading
+    import time as _time
+
+    calls = []
+
+    def connect():
+        calls.append(1)
+        _time.sleep(0.2)
+        raise RuntimeError("down")
+
+    lazy = LazyProxmoxAPI(connect)
+    errors = []
+
+    def worker():
+        try:
+            lazy.version
+        except RuntimeError as e:
+            errors.append(str(e))
+
+    threads = [threading.Thread(target=worker) for _ in range(8)]
+    start = _time.monotonic()
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert _time.monotonic() - start < 1.0  # not 8 x 0.2s serialized
+    assert len(calls) == 1
+    assert errors == ["down"] * 8
+    assert lazy.state == "unreachable"
+
+    # Retry allowed once the negative cache expires.
+    lazy._retry_at = 0.0
+    with pytest.raises(RuntimeError):
+        lazy.version
+    assert len(calls) == 2

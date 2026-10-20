@@ -10,10 +10,11 @@ This module handles the core Proxmox API integration, providing:
 ProxmoxManager is the central point for Proxmox API access. Constructing it
 never touches the network; the connection is established on the first
 attribute access of the proxy returned by get_api(). A failed connection is
-not cached, so the next access retries.
+cached briefly (a few seconds) so bursts fail fast, then the next access retries.
 """
 import logging
 import threading
+import time
 from typing import Any, Callable, Dict, Optional
 
 from proxmoxer import ProxmoxAPI
@@ -29,9 +30,14 @@ UNREACHABLE = "unreachable"
 class LazyProxmoxAPI:
     """Proxy that connects to Proxmox on first attribute access."""
 
+    NEGATIVE_TTL = 5.0  # seconds a failed connect is cached
+
     def __init__(self, connect: Callable[[], Any]):
         self._connect = connect
         self._lock = threading.Lock()
+        self._inflight: Optional[threading.Event] = None
+        self._last_error: Optional[str] = None
+        self._retry_at = 0.0
         self._api: Optional[Any] = None
         self._state = NOT_CONNECTED
 
@@ -41,16 +47,43 @@ class LazyProxmoxAPI:
         return self._state
 
     def _resolve(self) -> Any:
-        with self._lock:
-            if self._api is not None:
-                return self._api
+        """Single-flight connect: the lock is never held across network I/O.
+
+        One caller connects; concurrent callers wait for its outcome. A failure is
+        cached for ``NEGATIVE_TTL`` seconds so a burst of calls against a down host
+        fails fast instead of serializing N timeouts.
+        """
+        while True:
+            with self._lock:
+                if self._api is not None:
+                    return self._api
+                if self._last_error is not None and time.monotonic() < self._retry_at:
+                    raise RuntimeError(self._last_error)
+                inflight = self._inflight
+                leader = inflight is None
+                if leader:
+                    inflight = self._inflight = threading.Event()
+            if not leader:
+                inflight.wait()
+                continue
             try:
-                self._api = self._connect()
-            except Exception:
-                self._state = UNREACHABLE
+                api = self._connect()
+            except Exception as e:
+                with self._lock:
+                    self._state = UNREACHABLE
+                    self._last_error = str(e)
+                    self._retry_at = time.monotonic() + self.NEGATIVE_TTL
                 raise
-            self._state = CONNECTED
-            return self._api
+            else:
+                with self._lock:
+                    self._api = api
+                    self._state = CONNECTED
+                    self._last_error = None
+                return api
+            finally:
+                with self._lock:
+                    self._inflight = None
+                inflight.set()
 
     def __getattr__(self, name: str) -> Any:
         if name.startswith("_"):
