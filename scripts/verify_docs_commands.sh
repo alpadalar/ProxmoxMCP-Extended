@@ -206,7 +206,7 @@ EOF
         done
         [ "$HEALTH" = healthy ] && pass "container healthy" || fail "container health ($HEALTH)"
         [ "$(probe "$DPORT" /proxmox-mcp)" = "401 200" ] && pass "container: 401 without key, 200 with key" || fail "container auth probe"
-        [ "$(docker inspect --format '{{.Config.User}}' ProxmoxMCP-Extended)" = "10001" ] && pass "container runs as uid 10001" || fail "container user"
+        [ "$(docker inspect --format '{{.Config.User}}' ProxmoxMCP-Extended)" = "10001:10001" ] && pass "container runs as uid 10001" || fail "container user"
     fi
 fi
 
