@@ -143,6 +143,15 @@ def test_cli_prints_digest():
     assert out.stdout.strip() == hashlib.sha256(b"abc").hexdigest()
 
 
+def test_rejected_log_cannot_be_forged(client, caplog):
+    with caplog.at_level(logging.WARNING):
+        client.post("/proxmox-mcp/%0aFORGED%0dline", json=INIT, headers=MCP_HEADERS)
+    msgs = [r.getMessage() for r in caplog.records if "Rejected" in r.getMessage()]
+    assert msgs
+    for m in msgs:
+        assert "\n" not in m and "\r" not in m
+
+
 def test_websocket_is_not_let_through(client):
     from starlette.websockets import WebSocketDisconnect
 

@@ -111,8 +111,11 @@ class APIKeyAuthMiddleware:
             await self.app(scope, receive, send)
             return
 
+        # %r escapes control characters so a crafted path/method cannot forge log lines.
         logger.warning(
-            "Rejected unauthenticated request: %s %s", scope.get("method"), scope.get("path")
+            "Rejected unauthenticated request: %r %r",
+            str(scope.get("method"))[:16],
+            str(scope.get("path"))[:200],
         )
         body = json.dumps(
             {"error": "unauthorized", "message": "Valid API key required"}
