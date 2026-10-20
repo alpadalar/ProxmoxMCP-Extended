@@ -122,3 +122,34 @@ def load_config(
         return Config(**data)
     except ValidationError as e:
         raise ValueError(_format_errors(e)) from None
+
+
+def add_policy_flags(parser: Any) -> None:
+    """Add --read-only/--allow-destructive/--allow-exec to an argparse parser.
+
+    Flags can only open a gate or enable read-only; omit them to keep the
+    value from env/JSON/default. Values flow through the strict bool parser.
+    """
+    parser.add_argument(
+        "--read-only", dest="read_only", action="store_const", const="true", default=None,
+        help="Block all write, destructive and exec tools (overrides the allow flags)",
+    )
+    parser.add_argument(
+        "--allow-destructive", dest="allow_destructive", action="store_const",
+        const="true", default=None,
+        help="Enable destructive tools: stop/reset/delete VM, rollback snapshot (default: off)",
+    )
+    parser.add_argument(
+        "--allow-exec", dest="allow_exec", action="store_const", const="true", default=None,
+        help="Enable execute_vm_command (default: off)",
+    )
+
+
+def policy_cli_overrides(args: Any) -> Dict[str, Any]:
+    """Build the ``cli_overrides`` policy section from parsed args (empty if no flags)."""
+    policy = {
+        key: getattr(args, key)
+        for key in ("read_only", "allow_destructive", "allow_exec")
+        if getattr(args, key, None) is not None
+    }
+    return {"policy": policy} if policy else {}

@@ -11,7 +11,7 @@ import sys
 from typing import Any, Dict, List, Mapping, Optional
 
 from .app import create_app
-from .config.loader import load_config
+from .config.loader import add_policy_flags, load_config, policy_cli_overrides
 from .core.logging import setup_logging
 from .utils.redaction import safe_error_message
 
@@ -107,6 +107,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         help="Override TLS verification (true/false, 1/0, yes/no, on/off)",
     )
     parser.add_argument("--ca-bundle", default=None, help="CA bundle file for TLS verification")
+    add_policy_flags(parser)
     args = parser.parse_args(argv)
 
     cli_overrides: Dict[str, Any] = {}
@@ -118,6 +119,7 @@ def main(argv: Optional[List[str]] = None) -> None:
     ):
         if value is not None:
             cli_overrides.setdefault(section, {})[key] = value
+    cli_overrides.update(policy_cli_overrides(args))
 
     config_path = args.config or os.getenv("PROXMOX_MCP_CONFIG")
     if not config_path:

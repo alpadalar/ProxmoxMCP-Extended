@@ -14,6 +14,13 @@
     "http": {
         "api_key_digests": []
     },
+    "policy": {
+        "read_only": false,
+        "allow_destructive": false,
+        "allow_exec": false,
+        "exec_timeout_seconds": 30,
+        "exec_max_output_bytes": 65536
+    },
     "logging": {
         "level": "INFO",
         "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",

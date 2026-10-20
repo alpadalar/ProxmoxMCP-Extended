@@ -15,7 +15,8 @@ The models provide:
 """
 import os
 import re
-from typing import Any, List, Optional, Annotated
+from typing import Annotated, Any, List, Optional
+
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -54,7 +55,9 @@ class NodeStatus(BaseModel):
     Validates and documents the required parameters for
     querying a specific node's status in the cluster.
     """
-    node: Annotated[str, Field(description="Name/ID of node to query (e.g. 'pve1', 'proxmox-node2')")]
+    node: Annotated[
+        str, Field(description="Name/ID of node to query (e.g. 'pve1', 'proxmox-node2')")
+    ]
 
 class VMCommand(BaseModel):
     """Model for VM command execution parameters.
@@ -64,7 +67,10 @@ class VMCommand(BaseModel):
     """
     node: Annotated[str, Field(description="Host node name (e.g. 'pve1', 'proxmox-node2')")]
     vmid: Annotated[str, Field(description="VM ID number (e.g. '100', '101')")]
-    command: Annotated[str, Field(description="Shell command to run (e.g. 'uname -a', 'systemctl status nginx')")]
+    command: Annotated[
+        str,
+        Field(description="Shell command to run (e.g. 'uname -a', 'systemctl status nginx')"),
+    ]
 
 class ProxmoxConfig(BaseModel):
     """Model for Proxmox connection configuration.

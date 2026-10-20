@@ -10,12 +10,12 @@ explicitly run with ``--no-auth`` on a loopback address.
 import logging
 import os
 import sys
-from typing import List, Optional
+from typing import Any, List, Mapping, Optional
 
 from .app import create_app
 from .auth.apikey import ENV_HASHES
 from .auth.policy import LOOPBACK_HOSTS, AuthConfigError
-from .config.loader import load_config
+from .config.loader import add_policy_flags, load_config, policy_cli_overrides
 from .core.logging import setup_logging
 from .utils.redaction import safe_error_message
 
@@ -39,7 +39,8 @@ class ProxmoxMCPHTTPServer:
                  port: int = 8812,
                  path: str = "/proxmox-mcp",
                  api_key_digests: Optional[List[str]] = None,
-                 insecure_no_auth: bool = False):
+                 insecure_no_auth: bool = False,
+                 cli_overrides: Optional[Mapping[str, Any]] = None):
         """
         Initialize the HTTP MCP server.
 
@@ -52,12 +53,13 @@ class ProxmoxMCPHTTPServer:
                 to the PROXMOX_MCP_API_KEY_HASHES environment variable, then
                 the config file (http.api_key_digests)
             insecure_no_auth: Disable authentication (loopback hosts only)
+            cli_overrides: Optional nested config overrides (highest precedence)
         """
         self.host = host
         self.port = port
         self.path = path
         self.insecure_no_auth = insecure_no_auth
-        self.config = load_config(config_path)
+        self.config = load_config(config_path, cli_overrides=cli_overrides)
         self.logger = setup_logging(self.config.logging)
 
         self.app = create_app(
@@ -114,6 +116,7 @@ def build_parser():
     parser.add_argument(
         '--no-auth', action='store_true',
         help=f'Disable authentication (loopback only; otherwise set {ENV_HASHES})')
+    add_policy_flags(parser)
     return parser
 
 
@@ -128,6 +131,7 @@ def main():
             port=args.port,
             path=args.path,
             insecure_no_auth=args.no_auth,
+            cli_overrides=policy_cli_overrides(args),
         )
         server.run()
     except KeyboardInterrupt:

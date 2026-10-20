@@ -1,5 +1,7 @@
 """Policy config tests (SEC-01 config surface). Fake values only."""
+import hashlib
 import json
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -109,3 +111,81 @@ def test_env_numeric_mapping(env):
     env.setenv("PROXMOX_MCP_EXEC_MAX_OUTPUT", "2048")
     p = load_config(None).policy
     assert (p.exec_timeout_seconds, p.exec_max_output_bytes) == (12.5, 2048)
+
+
+# ---- CLI flags / entry points / example config (Task 2) ----
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def _write_cfg(tmp_path):
+    f = tmp_path / "c.json"
+    f.write_text(json.dumps(_minimal()))
+    return str(f)
+
+
+def _capture_stdio(monkeypatch):
+    import proxmox_mcp.server as srv
+
+    seen = {}
+
+    class Fake:
+        def __init__(self, config_path, cli_overrides=None):
+            seen["overrides"] = cli_overrides
+
+        def start(self):
+            pass
+
+    monkeypatch.setattr(srv, "ProxmoxMCPServer", Fake)
+    return srv, seen
+
+
+@pytest.mark.parametrize("flag,key", [
+    ("--allow-destructive", "allow_destructive"),
+    ("--allow-exec", "allow_exec"),
+    ("--read-only", "read_only"),
+])
+def test_stdio_flags_in_overrides(env, tmp_path, monkeypatch, flag, key):
+    srv, seen = _capture_stdio(monkeypatch)
+    srv.main(["--config", _write_cfg(tmp_path), flag])
+    assert seen["overrides"]["policy"] == {key: "true"}
+
+
+def test_stdio_no_flags_no_policy_key(env, tmp_path, monkeypatch):
+    srv, seen = _capture_stdio(monkeypatch)
+    srv.main(["--config", _write_cfg(tmp_path)])
+    assert "policy" not in seen["overrides"]
+
+
+def test_cli_beats_env(env, tmp_path):
+    env.setenv("PROXMOX_MCP_ALLOW_EXEC", "false")
+    cfg = load_config(_write_cfg(tmp_path), cli_overrides={"policy": {"allow_exec": "true"}})
+    assert cfg.policy.allow_exec is True
+
+
+def test_http_parser_flags_and_server(env):
+    from unittest.mock import patch
+
+    from proxmox_mcp.config.loader import policy_cli_overrides
+    from proxmox_mcp.server_http import ProxmoxMCPHTTPServer, build_parser
+
+    args = build_parser().parse_args(["--allow-exec", "--allow-destructive", "--read-only"])
+    assert policy_cli_overrides(args) == {
+        "policy": {"read_only": "true", "allow_destructive": "true", "allow_exec": "true"}
+    }
+    assert policy_cli_overrides(build_parser().parse_args([])) == {}
+
+    digest = hashlib.sha256(b"k" * 16).hexdigest()
+    with patch("proxmox_mcp.core.proxmox.ProxmoxAPI"):
+        server = ProxmoxMCPHTTPServer(
+            api_key_digests=[digest], cli_overrides={"policy": {"allow_exec": "true"}}
+        )
+    assert server.config.policy.allow_exec is True
+    assert server.config.policy.allow_destructive is False
+
+
+def test_example_config_loads_closed(env):
+    cfg = load_config(str(ROOT / "proxmox-config" / "config.example.json"))
+    assert (cfg.policy.read_only, cfg.policy.allow_destructive, cfg.policy.allow_exec) == (
+        False, False, False,
+    )
