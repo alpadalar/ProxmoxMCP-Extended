@@ -7,36 +7,8 @@ import json
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from fastmcp.exceptions import ToolError
-from proxmox_mcp.server import ProxmoxMCPServer
-
-@pytest.fixture
-def mock_env_vars():
-    """Fixture to set up test environment variables."""
-    env_vars = {
-        "PROXMOX_HOST": "test.proxmox.com",
-        "PROXMOX_USER": "test@pve",
-        "PROXMOX_TOKEN_NAME": "test_token",
-        "PROXMOX_TOKEN_VALUE": "test_value",
-        "LOG_LEVEL": "DEBUG"
-    }
-    with patch.dict(os.environ, env_vars):
-        yield env_vars
-
-@pytest.fixture
-def mock_proxmox():
-    """Fixture to mock ProxmoxAPI."""
-    with patch("proxmox_mcp.core.proxmox.ProxmoxAPI") as mock:
-        mock.return_value.nodes.get.return_value = [
-            {"node": "node1", "status": "online"},
-            {"node": "node2", "status": "online"}
-        ]
-        yield mock
-
-@pytest.fixture
-def server(mock_env_vars, mock_proxmox):
-    """Fixture to create a ProxmoxMCPServer instance."""
-    return ProxmoxMCPServer()
+from fastmcp.exceptions import ToolError, ValidationError
+from tests.helpers import tool_text
 
 def test_server_initialization(server, mock_proxmox):
     """Test server initialization with environment variables."""
@@ -76,7 +48,7 @@ async def test_get_nodes(server, mock_proxmox):
         {"uptime": 2000, "cpuinfo": {"cpus": 8}, "memory": {"used": 2*1024*1024*1024, "total": 4*1024*1024*1024}},
     ]
     response = await server.mcp.call_tool("get_nodes", {})
-    text = response[0].text
+    text = tool_text(response)
     # Response is pre-formatted text; ensure it contains our mocked node names
     assert "node1" in text
     assert "node2" in text
@@ -86,7 +58,7 @@ async def test_get_nodes(server, mock_proxmox):
 @pytest.mark.asyncio
 async def test_get_node_status_missing_parameter(server):
     """Test get_node_status tool with missing parameter."""
-    with pytest.raises(ToolError):
+    with pytest.raises(ValidationError):
         await server.mcp.call_tool("get_node_status", {})
 
 @pytest.mark.asyncio
@@ -99,8 +71,8 @@ async def test_get_node_status(server, mock_proxmox):
 
     response = await server.mcp.call_tool("get_node_status", {"node": "node1"})
     # Verify formatted content contains expected fields
-    assert "Status: RUNNING" in response[0].text
-    assert "Uptime:" in response[0].text
+    assert "Status: RUNNING" in tool_text(response)
+    assert "Uptime:" in tool_text(response)
 
 @pytest.mark.asyncio
 async def test_get_vms(server, mock_proxmox):
@@ -112,7 +84,7 @@ async def test_get_vms(server, mock_proxmox):
     ]
 
     response = await server.mcp.call_tool("get_vms", {})
-    text = response[0].text
+    text = tool_text(response)
     assert "vm1" in text and "vm2" in text
 
 @pytest.mark.asyncio
@@ -125,7 +97,7 @@ async def test_get_containers(server, mock_proxmox):
     ]
 
     response = await server.mcp.call_tool("get_containers", {})
-    text = response[0].text
+    text = tool_text(response)
     assert "container1" in text and "container2" in text
 
 @pytest.mark.asyncio
@@ -142,7 +114,7 @@ async def test_get_storage(server, mock_proxmox):
         {"used": 50*1024*1024*1024, "total": 500*1024*1024*1024, "avail": 450*1024*1024*1024},
     ]
     response = await server.mcp.call_tool("get_storage", {})
-    text = response[0].text
+    text = tool_text(response)
     assert "local" in text and "ceph" in text
 
 @pytest.mark.asyncio
@@ -156,7 +128,7 @@ async def test_get_vm_usage(server, mock_proxmox):
         "maxdisk": 50 * 1024 * 1024 * 1024,
     }
     response = await server.mcp.call_tool("get_vm_usage", {"node": "node1", "vmid": "100"})
-    text = response[0].text
+    text = tool_text(response)
     assert "CPU:" in text and "%" in text
     assert "Memory:" in text
     assert "Disk:" in text
@@ -170,7 +142,7 @@ async def test_create_snapshot(server, mock_proxmox):
         "create_snapshot",
         {"node": "node1", "vmid": "100", "name": "pre-upgrade", "description": "test", "vmstate": False},
     )
-    text = response[0].text
+    text = tool_text(response)
     assert "Snapshot 'pre-upgrade'" in text
     assert "Task ID" in text
 
@@ -185,7 +157,7 @@ async def test_rollback_snapshot(server, mock_proxmox):
         "rollback_snapshot",
         {"node": "node1", "vmid": "100", "name": "pre-upgrade"},
     )
-    text = response[0].text
+    text = tool_text(response)
     assert "Rollback to snapshot 'pre-upgrade'" in text
     assert "Task ID" in text
 
@@ -204,7 +176,7 @@ async def test_get_cluster_status(server, mock_proxmox):
         {"type": "node"},
     ]
     response = await server.mcp.call_tool("get_cluster_status", {})
-    text = response[0].text
+    text = tool_text(response)
     assert "Quorum: OK" in text
     assert "Nodes: 2" in text
 
@@ -235,14 +207,14 @@ async def test_execute_vm_command_success(server, mock_proxmox):
         "vmid": "100",
         "command": "ls -l"
     })
-    text = response[0].text
+    text = tool_text(response)
     assert "Status: SUCCESS" in text
     assert "Output:" in text and "command output" in text
 
 @pytest.mark.asyncio
 async def test_execute_vm_command_missing_parameters(server):
     """Test VM command execution with missing parameters."""
-    with pytest.raises(ToolError):
+    with pytest.raises(ValidationError):
         await server.mcp.call_tool("execute_vm_command", {})
 
 @pytest.mark.asyncio
@@ -280,7 +252,7 @@ async def test_execute_vm_command_with_error(server, mock_proxmox):
         "vmid": "100",
         "command": "invalid-command"
     })
-    text = response[0].text
+    text = tool_text(response)
     assert "Status: SUCCESS" in text
     assert "Error:" in text and "command not found" in text
 
@@ -293,4 +265,4 @@ async def test_start_vm(server, mock_proxmox):
     mock_proxmox.return_value.nodes.return_value.qemu.return_value.status.start.post.return_value = "UPID:taskid"
 
     response = await server.mcp.call_tool("start_vm", {"node": "node1", "vmid": "100"})
-    assert "start initiated successfully" in response[0].text
+    assert "start initiated successfully" in tool_text(response)
