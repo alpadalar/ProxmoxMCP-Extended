@@ -17,6 +17,11 @@ upgrading an existing setup.
 
 ### Breaking changes
 
+- **Stricter config and `create_vm` validation**: the config now rejects unknown keys, requires
+  `user@realm` users, a `service` of the allowed values, a restricted token-name charset and a valid
+  port range; `create_vm` limits (cpus, memory, disk) are now also enforced over HTTP. Configs that
+  used to load may be rejected with a clear error.
+- **`/health` `pve` version** is `null` until the first tool call has connected to Proxmox.
 - **Python 3.10 or newer is required** (was 3.9). Supported and tested: 3.10 to 3.14. Migration:
   upgrade the interpreter, then run `uv sync`.
 - **Dependencies moved to `fastmcp>=4.1.2,<5` and `mcp>=2,<3`** (FastMCP is taken from PyPI).

@@ -229,7 +229,7 @@ PROXMOX_MCP_ALLOW_EXEC / --allow-exec).
 - No shell is used. For pipes or redirects pass a shell explicitly, e.g. command='/bin/sh', \
 args=['-c', '...'].
 - Waits at most policy.exec_timeout_seconds (default 30s); a command that is still running is \
-reported as timed out, not failed.
+reported as FAILED with exit code unknown (still running in the guest).
 - Output per stream is capped at policy.exec_max_output_bytes (default 65536) and marked as \
 truncated.
 - The QEMU guest agent must be installed and running in the VM.
