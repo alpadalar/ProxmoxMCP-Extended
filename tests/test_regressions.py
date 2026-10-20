@@ -16,7 +16,7 @@ test XPASSes, the strict marker fails the suite, and the marker must be removed.
 | /health auth status and --no-auth meaningless   | test_health_reports_real_auth_state                | FIXED         | Interim (SRV-03)    |
 | TLS verification can be silently weakened       | test_verify_ssl_typo_rejected                      | FIXED         | Phase 2 / CONF-01   |
 | Secrets handling and logging (token in repr)    | test_token_value_not_in_repr                       | FIXED         | Phase 2 / CONF-01/03 |
-| Input validation / injection (node path)        | test_path_traversal_node_rejected                  | PINNED xfail  | Phase 2 / CONF-02   |
+| Input validation / injection (node path)        | test_path_traversal_node_rejected                  | FIXED         | Phase 2 / CONF-02   |
 | Arbitrary command execution logged              | test_exec_command_not_logged                       | PINNED xfail  | Phase 4 / SEC-03    |
 | TLS/logging defaults in example config          | test_example_config_safe_defaults                  | FIXED         | Phase 2 / CONF-04   |
 | Duplicated tool registration                    | test_stdio_http_tool_sets_identical                | PINNED xfail  | Phase 3 / SRV-01    |
@@ -152,7 +152,6 @@ def test_token_value_not_in_repr():
     assert secret not in str(auth.model_dump())
 
 
-@_pin("CONCERNS: input validation; fixed in Phase 2 (CONF-02)")
 @pytest.mark.asyncio
 async def test_path_traversal_node_rejected(server, api):
     """CONCERNS Security: node '../x' must be rejected before any proxmoxer call."""

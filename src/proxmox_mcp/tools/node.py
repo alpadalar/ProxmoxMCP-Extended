@@ -15,6 +15,7 @@ with fallback mechanisms for partial data availability.
 from typing import List
 from mcp.types import TextContent as Content
 from .base import ProxmoxTool
+from ..validators import validate_node
 from .definitions import GET_NODES_DESC, GET_NODE_STATUS_DESC
 
 class NodeTools(ProxmoxTool):
@@ -133,6 +134,7 @@ class NodeTools(ProxmoxTool):
             ValueError: If the specified node is not found
             RuntimeError: If status retrieval fails (node offline, network issues)
         """
+        node = validate_node(node)
         try:
             result = self.proxmox.nodes(node).status.get()
             return self._format_response((node, result), "node_status")

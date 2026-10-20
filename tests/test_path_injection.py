@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 import pytest
+from fastmcp.exceptions import ToolError, ValidationError
 
 GOLDEN = json.loads((Path(__file__).parent / "golden" / "tools.json").read_text())
 
@@ -97,7 +98,7 @@ async def test_bad_identifier_rejected_before_proxmoxer(server, api, tool, pname
     entry = next(e for e in GOLDEN if e["name"] == tool)
     args = _args(entry, tool, pname, bad)
     api.nodes.reset_mock()
-    with pytest.raises(Exception):
+    with pytest.raises((ToolError, ValidationError)):
         await server.mcp.call_tool(tool, args)
     assert api.nodes.called is False, f"{tool}({pname}={bad!r}) reached proxmoxer"
 
@@ -111,7 +112,7 @@ async def test_bad_identifier_rejected_before_proxmoxer(server, api, tool, pname
 ])
 async def test_update_vm_bad_values_rejected(server, api, kwargs):
     api.nodes.reset_mock()
-    with pytest.raises(Exception):
+    with pytest.raises((ToolError, ValidationError)):
         await server.mcp.call_tool("update_vm", {"node": "node1", "vmid": "100", **kwargs})
     assert api.nodes.called is False
 
@@ -119,7 +120,7 @@ async def test_update_vm_bad_values_rejected(server, api, kwargs):
 @pytest.mark.asyncio
 async def test_create_snapshot_bad_description_rejected(server, api):
     api.nodes.reset_mock()
-    with pytest.raises(Exception):
+    with pytest.raises((ToolError, ValidationError)):
         await server.mcp.call_tool(
             "create_snapshot",
             {"node": "node1", "vmid": "100", "name": "s1", "description": "x\x00y"},

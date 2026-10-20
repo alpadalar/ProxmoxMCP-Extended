@@ -26,6 +26,19 @@ from .definitions import (
     GET_VM_USAGE_DESC,
 )
 from .console.manager import VMConsoleManager
+from ..validators import (
+    validate_node,
+    validate_vmid,
+    validate_storage,
+    validate_snapshot_name,
+    validate_vm_name,
+    validate_iso_name,
+    validate_ostype,
+    validate_description,
+    validate_cpus,
+    validate_memory_mb,
+    validate_optional,
+)
 
 class VMTools(ProxmoxTool):
     """Tools for managing Proxmox VMs.
@@ -145,6 +158,13 @@ class VMTools(ProxmoxTool):
             ValueError: If VM ID already exists or invalid parameters
             RuntimeError: If VM creation fails
         """
+        node = validate_node(node)
+        vmid = validate_vmid(vmid)
+        name = validate_vm_name(name)
+        storage = validate_optional(validate_storage, storage)
+        iso_storage = validate_optional(validate_storage, iso_storage, "iso_storage")
+        iso_name = validate_optional(validate_iso_name, iso_name, "iso_name")
+        ostype = validate_optional(validate_ostype, ostype)
         try:
             # Check if VM ID already exists
             try:
@@ -299,6 +319,8 @@ class VMTools(ProxmoxTool):
             ValueError: If VM is not found
             RuntimeError: If start operation fails
         """
+        node = validate_node(node)
+        vmid = validate_vmid(vmid)
         try:
             # Check if VM exists and get current status
             vm_status = self.proxmox.nodes(node).qemu(vmid).status.current.get()
@@ -332,6 +354,8 @@ class VMTools(ProxmoxTool):
             ValueError: If VM is not found
             RuntimeError: If stop operation fails
         """
+        node = validate_node(node)
+        vmid = validate_vmid(vmid)
         try:
             # Check if VM exists and get current status
             vm_status = self.proxmox.nodes(node).qemu(vmid).status.current.get()
@@ -365,6 +389,8 @@ class VMTools(ProxmoxTool):
             ValueError: If VM is not found
             RuntimeError: If shutdown operation fails
         """
+        node = validate_node(node)
+        vmid = validate_vmid(vmid)
         try:
             # Check if VM exists and get current status
             vm_status = self.proxmox.nodes(node).qemu(vmid).status.current.get()
@@ -398,6 +424,8 @@ class VMTools(ProxmoxTool):
             ValueError: If VM is not found
             RuntimeError: If reset operation fails
         """
+        node = validate_node(node)
+        vmid = validate_vmid(vmid)
         try:
             # Check if VM exists and get current status
             vm_status = self.proxmox.nodes(node).qemu(vmid).status.current.get()
@@ -443,6 +471,8 @@ class VMTools(ProxmoxTool):
             ValueError: If VM is not found, not running, or guest agent is not available
             RuntimeError: If command execution fails due to permissions or other issues
         """
+        node = validate_node(node)
+        vmid = validate_vmid(vmid)
         try:
             result = await self.console_manager.execute_command(node, vmid, command)
             # Use the command output formatter from ProxmoxFormatters
@@ -479,6 +509,8 @@ class VMTools(ProxmoxTool):
             ValueError: If VM is not found or is running and force=False
             RuntimeError: If deletion fails
         """
+        node = validate_node(node)
+        vmid = validate_vmid(vmid)
         try:
             # Check if VM exists and get current status
             try:
@@ -541,6 +573,10 @@ class VMTools(ProxmoxTool):
             description: Optional description
             vmstate: Include VM memory state
         """
+        node = validate_node(node)
+        vmid = validate_vmid(vmid)
+        name = validate_snapshot_name(name)
+        description = validate_optional(validate_description, description)
         try:
             # Ensure VM exists
             self.proxmox.nodes(node).qemu(vmid).status.current.get()
@@ -563,6 +599,9 @@ class VMTools(ProxmoxTool):
         
         WARNING: This discards current VM state.
         """
+        node = validate_node(node)
+        vmid = validate_vmid(vmid)
+        name = validate_snapshot_name(name)
         try:
             # Ensure VM exists
             self.proxmox.nodes(node).qemu(vmid).status.current.get()
@@ -582,6 +621,8 @@ class VMTools(ProxmoxTool):
 
     def get_vm_usage(self, node: str, vmid: str) -> List[Content]:
         """Get real-time resource usage for a VM (CPU, memory, disk)."""
+        node = validate_node(node)
+        vmid = validate_vmid(vmid)
         try:
             status = self.proxmox.nodes(node).qemu(vmid).status.current.get()
             cpu = status.get("cpu", 0.0) * 100.0  # fraction to percent
@@ -632,6 +673,11 @@ class VMTools(ProxmoxTool):
             ValueError: If VM is not found or invalid parameters
             RuntimeError: If update operation fails
         """
+        node = validate_node(node)
+        vmid = validate_vmid(vmid)
+        name = validate_optional(validate_vm_name, name)
+        cpus = validate_optional(validate_cpus, cpus)
+        memory = validate_optional(validate_memory_mb, memory)
         try:
             # Check if VM exists and get current status
             try:
