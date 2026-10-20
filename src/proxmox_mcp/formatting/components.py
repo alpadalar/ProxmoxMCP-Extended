@@ -61,9 +61,7 @@ class ProxmoxComponents:
             "|"
             + "|".join(
                 f" {ProxmoxColors.colorize(h, ProxmoxColors.CYAN):<{w}} "
-                for w, h in zip(
-                    widths, headers, strict=False
-                )  # lengths may differ; keep legacy truncation
+                for w, h in zip(widths, headers, strict=False)
             )
             + "|"
         )
@@ -72,12 +70,12 @@ class ProxmoxComponents:
         # Add rows with multi-line cell support
         for row in rows:
             # Split each cell into lines
-            cell_lines = [str(cell).split("\n") for cell in row]
-            max_lines = max(len(lines) for lines in cell_lines)
+            split_cells = [str(cell).split("\n") for cell in row]
+            max_lines = max(len(lines) for lines in split_cells)
 
             # Pad cells with fewer lines
             padded_cells = []
-            for lines in cell_lines:
+            for lines in split_cells:
                 if len(lines) < max_lines:
                     lines.extend([""] * (max_lines - len(lines)))
                 padded_cells.append(lines)
@@ -85,8 +83,8 @@ class ProxmoxComponents:
             # Create row strings for each line
             for line_idx in range(max_lines):
                 line_parts = []
-                for col_idx, cell_lines in enumerate(padded_cells):
-                    line = cell_lines[line_idx]
+                for col_idx, col_lines in enumerate(padded_cells):
+                    line = col_lines[line_idx]
                     line_parts.append(f" {line:<{widths[col_idx]}} ")
                 result.append("|" + "|".join(line_parts) + "|")
 

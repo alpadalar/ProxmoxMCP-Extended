@@ -5,6 +5,7 @@ id (UPID) and support the optional ``wait`` / ``timeout`` semantics of the VM to
 """
 
 import time
+from typing import Any
 
 from mcp.types import TextContent as Content
 
@@ -17,17 +18,28 @@ from .tasks import task_result_text
 class ContainerTools(ProxmoxTool):
     """Power management for LXC containers."""
 
-    def __init__(self, proxmox_api):
+    def __init__(self, proxmox_api: Any) -> None:
         super().__init__(proxmox_api)
         self._sleep = time.sleep
         self._clock = time.monotonic
 
-    def _task_text(self, task_result, wait: bool, timeout: int) -> str:
+    def _task_text(self, task_result: Any, wait: bool, timeout: int) -> str:
         return task_result_text(
             self.proxmox, task_result, wait, timeout, sleep=self._sleep, clock=self._clock
         )
 
-    def _run(self, op: str, vmid, node, wait, timeout, skip_state, skip_text, action, text):
+    def _run(
+        self,
+        op: str,
+        vmid: Any,
+        node: Any,
+        wait: bool,
+        timeout: int,
+        skip_state: str,
+        skip_text: str,
+        action: str,
+        text: str,
+    ) -> list[Content]:
         """Shared flow: validate, resolve (lxc), read status, issue ``action`` unless skipped."""
         vmid = validate_vmid(vmid)
         node = validate_optional(validate_node, node)

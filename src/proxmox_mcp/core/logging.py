@@ -73,7 +73,7 @@ def setup_logging(config: LoggingConfig) -> logging.Logger:
         log_file = os.path.join(os.getcwd(), log_file)
 
     # Create handlers
-    handlers = []
+    handlers: list[logging.Handler] = []
 
     if log_file:
         # Create with 0600 (umask-independent) and tighten any pre-existing file.

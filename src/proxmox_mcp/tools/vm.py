@@ -19,6 +19,7 @@ detailed VM information might be temporarily unavailable.
 import time
 from collections.abc import Callable
 from datetime import datetime, timezone
+from typing import Any
 
 from mcp.types import TextContent as Content
 
@@ -68,7 +69,7 @@ class VMTools(ProxmoxTool):
 
     def __init__(
         self,
-        proxmox_api,
+        proxmox_api: Any,
         exec_timeout: float = 30.0,
         exec_max_output: int = 65536,
         exec_max_concurrent: int = 2,
@@ -95,7 +96,7 @@ class VMTools(ProxmoxTool):
             pve_major=pve_major,
         )
 
-    def _task_text(self, task_result, wait: bool, timeout: int) -> str:
+    def _task_text(self, task_result: Any, wait: bool, timeout: int) -> str:
         """Task line for a mutation result; polls the task when ``wait`` is true."""
         return task_result_text(
             self.proxmox, task_result, wait, timeout, sleep=self._sleep, clock=self._clock
@@ -104,7 +105,7 @@ class VMTools(ProxmoxTool):
     STOP_WAIT_SECONDS = 30.0
     STOP_POLL_INTERVAL = 1.0
 
-    def _wait_until_stopped(self, node: str, vmid: str, stop_result) -> None:
+    def _wait_until_stopped(self, node: str, vmid: str, stop_result: Any) -> None:
         """Block (bounded) until a just-issued stop has finished; raise otherwise.
 
         A UPID is followed through the task status (exitstatus must be OK, WARNINGS is not).
@@ -721,7 +722,7 @@ class VMTools(ProxmoxTool):
         try:
             # Ensure VM exists
             require_vm_status(self.proxmox, node, vmid, "create_snapshot")
-            params = {"snapname": name}
+            params: dict[str, Any] = {"snapname": name}
             if description:
                 params["description"] = description
             if vmstate:
@@ -803,7 +804,7 @@ class VMTools(ProxmoxTool):
                 "snaptime": snaptime if ok else None,
                 "snaptime_utc": (
                     datetime.fromtimestamp(snaptime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-                    if ok
+                    if ok and isinstance(snaptime, int)
                     else None
                 ),
                 "vmstate": bool(item.get("vmstate")),
@@ -917,7 +918,7 @@ class VMTools(ProxmoxTool):
             current_config = self.proxmox.nodes(node).qemu(vmid).config.get()
 
             # Prepare update parameters
-            update_params = {}
+            update_params: dict[str, Any] = {}
             changes = []
 
             # Memory update
@@ -965,22 +966,19 @@ class VMTools(ProxmoxTool):
                     return [Content(type="text", text=result_text)]
 
             # Apply updates
-            if update_params:
-                task_result = self.proxmox.nodes(node).qemu(vmid).config.put(**update_params)
+            task_result = self.proxmox.nodes(node).qemu(vmid).config.put(**update_params)
 
-                result_text = f"✅ VM {vmid} configuration updated successfully!\n\n"
-                result_text += "📋 Applied Changes:\n"
-                for change in changes:
-                    result_text += f"  • {change}\n"
+            result_text = f"✅ VM {vmid} configuration updated successfully!\n\n"
+            result_text += "📋 Applied Changes:\n"
+            for change in changes:
+                result_text += f"  • {change}\n"
 
-                if current_status == "running":
-                    result_text += (
-                        "\n⚠️ Note: Some changes may require VM restart to take full effect."
-                    )
+            if current_status == "running":
+                result_text += "\n⚠️ Note: Some changes may require VM restart to take full effect."
 
-                result_text += f"\n🔧 {describe_task_result(task_result)}"
+            result_text += f"\n🔧 {describe_task_result(task_result)}"
 
-                return [Content(type="text", text=result_text)]
+            return [Content(type="text", text=result_text)]
 
         except ValueError as e:
             raise e

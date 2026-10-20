@@ -7,6 +7,7 @@ The server fails closed: it refuses to start without configured key digests unle
 explicitly run with ``--no-auth`` on a loopback address.
 """
 
+import argparse
 import logging
 import os
 import sys
@@ -87,7 +88,7 @@ class ProxmoxMCPHTTPServer:
         """Truthful auth state: 'api-key' or 'disabled'."""
         return self.app.auth_state
 
-    def build_app(self):
+    def build_app(self) -> Any:
         """The ASGI app that is actually served (auth middleware included)."""
         return self.app.asgi
 
@@ -104,10 +105,8 @@ class ProxmoxMCPHTTPServer:
             sys.exit(1)
 
 
-def build_parser():
+def build_parser() -> argparse.ArgumentParser:
     """Command line parser for the standalone HTTP server."""
-    import argparse
-
     parser = argparse.ArgumentParser(description="ProxmoxMCP HTTP Server")
     parser.add_argument(
         "--host", type=str, default="127.0.0.1", help="Server host (default: 127.0.0.1)"
@@ -126,7 +125,7 @@ def build_parser():
     return parser
 
 
-def main():
+def main() -> None:
     """Main entry point for standalone execution."""
     args = build_parser().parse_args()
 

@@ -128,7 +128,7 @@ def make_policy_wrap(policy: ToolPolicy) -> Callable[[Any, Callable[..., Any]], 
         else:
 
             @functools.wraps(handler)
-            def inner(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
+            def inner(*args: Any, **kwargs: Any) -> Any:
                 _deny()
                 return handler(*args, **kwargs)
 

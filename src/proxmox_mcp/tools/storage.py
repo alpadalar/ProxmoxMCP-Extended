@@ -134,7 +134,7 @@ class StorageTools(ProxmoxTool):
             "ctime": ctime if ok else None,
             "ctime_utc": (
                 datetime.fromtimestamp(ctime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-                if ok
+                if ok and isinstance(ctime, int)
                 else None
             ),
             "notes": redact(str(item.get("notes") or ""))[:NOTES_MAX],

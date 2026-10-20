@@ -13,7 +13,7 @@ consistent behavior and error handling across the MCP server.
 
 import logging
 from collections.abc import Callable
-from typing import Any
+from typing import Any, NoReturn
 
 import requests
 from mcp.types import TextContent as Content
@@ -95,7 +95,7 @@ class ProxmoxTool:
         privilege_key: str | None = None,
         node: str | None = None,
         vmid: str | None = None,
-    ) -> None:
+    ) -> NoReturn:
         """Handle and log errors from Proxmox operations.
 
         ValueError (including validator errors) and TaskFailedError are re-raised unchanged.

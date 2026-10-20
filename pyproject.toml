@@ -97,3 +97,8 @@ ignore = []
 [tool.ruff.format]
 quote-style = "double"
 docstring-code-format = false
+
+[[tool.mypy.overrides]]
+# proxmoxer ships no type information (no py.typed, no stubs)
+module = ["proxmoxer", "proxmoxer.*"]
+ignore_missing_imports = true

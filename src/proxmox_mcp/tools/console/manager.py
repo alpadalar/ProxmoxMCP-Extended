@@ -59,7 +59,7 @@ class VMConsoleManager:
 
     def __init__(
         self,
-        proxmox_api,
+        proxmox_api: Any,
         exec_timeout: float = 30.0,
         exec_max_output: int = 65536,
         exec_max_concurrent: int = 2,

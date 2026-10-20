@@ -291,7 +291,6 @@ class TaskTools(ProxmoxTool):
             return [Content(type="text", text=json.dumps(_payload(outcome), indent=2))]
         except Exception as e:
             self._handle_error("get task status", e, "get_task_status", node=node)
-            return []
 
     def wait_for_task(self, upid: str, timeout: int = 30) -> list[Content]:
         """Wait (bounded, 1..300 s) for a task; a timeout reports state running."""
@@ -309,4 +308,3 @@ class TaskTools(ProxmoxTool):
             return [Content(type="text", text=json.dumps(data, indent=2))]
         except Exception as e:
             self._handle_error("wait for task", e, "wait_for_task", node=node)
-            return []

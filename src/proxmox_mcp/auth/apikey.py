@@ -22,7 +22,7 @@ import logging
 import os
 import re
 import sys
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -57,7 +57,7 @@ def normalize_digests(values: Iterable[str], source: str = "API key digests") ->
     return result
 
 
-def digests_from_env(environ: dict | None = None) -> list[str]:
+def digests_from_env(environ: Mapping[str, str] | None = None) -> list[str]:
     """Read digests from ``PROXMOX_MCP_API_KEY_HASHES`` (comma-separated)."""
     env = os.environ if environ is None else environ
     return normalize_digests(env.get(ENV_HASHES, "").split(","), ENV_HASHES)
@@ -66,7 +66,7 @@ def digests_from_env(environ: dict | None = None) -> list[str]:
 def resolve_digests(
     explicit: Iterable[str] | None,
     config_digests: Iterable[str] = (),
-    environ: dict | None = None,
+    environ: Mapping[str, str] | None = None,
 ) -> list[str]:
     """Resolve API key digests: explicit > env > config (replacement, not union).
 

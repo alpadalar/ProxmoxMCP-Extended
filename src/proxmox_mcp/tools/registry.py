@@ -12,7 +12,7 @@ FastMCP instance.  Phase 4 attaches policy gates through ``wrap`` (called as
 import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Annotated, Any
+from typing import Annotated, Any, TypeVar
 
 from fastmcp import FastMCP
 from mcp.types import TextContent as Content
@@ -148,6 +148,9 @@ def annotations_for(name: str, risk: str) -> dict[str, bool]:
     return annotations
 
 
+_F = TypeVar("_F", bound=Callable[..., Any])
+
+
 @dataclass(frozen=True)
 class ToolSpec:
     """One MCP tool: name, handler, description and policy metadata."""
@@ -186,8 +189,8 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
     """Build the tool specs bound to ``ctx``."""
     specs: list[ToolSpec] = []
 
-    def _tool(description: str):
-        def deco(fn):
+    def _tool(description: str) -> Callable[[_F], _F]:
+        def deco(fn: _F) -> _F:
             specs.append(
                 ToolSpec(
                     name=fn.__name__,
@@ -203,7 +206,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
 
     # Node tools
     @_tool(GET_NODES_DESC)
-    def get_nodes():
+    def get_nodes() -> Any:
         return ctx.node_tools.get_nodes()
 
     @_tool(GET_NODE_STATUS_DESC)
@@ -211,16 +214,16 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         node: Annotated[
             str, Field(description="Name/ID of node to query (e.g. 'pve1', 'proxmox-node2')")
         ],
-    ):
+    ) -> Any:
         return ctx.node_tools.get_node_status(node)
 
     # VM tools
     @_tool(GET_VMS_DESC)
-    def get_vms():
+    def get_vms() -> Any:
         return ctx.vm_tools.get_vms()
 
     @_tool(GET_CONTAINERS_DESC)
-    def get_containers():
+    def get_containers() -> Any:
         result = ctx.cluster_tools.list_containers()
         return [Content(type="text", text=json.dumps(result))]
 
@@ -249,7 +252,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         iso_storage: Annotated[
             str | None, Field(description="Storage containing the ISO (optional)", default=None)
         ] = None,
-    ):
+    ) -> Any:
         return ctx.vm_tools.create_vm(
             node, vmid, name, cpus, memory, disk_size, storage, ostype, iso_name, iso_storage
         )
@@ -269,7 +272,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
                 default=None,
             ),
         ] = None,
-    ):
+    ) -> Any:
         return await ctx.vm_tools.execute_command(node, vmid, command, args)
 
     # VM Power Management tools
@@ -279,7 +282,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")],
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
-    ):
+    ) -> Any:
         return ctx.vm_tools.start_vm(node, vmid, wait, timeout)
 
     @_tool(STOP_VM_DESC)
@@ -295,7 +298,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
-    ):
+    ) -> Any:
         if not confirm:
             return build_preview("stop_vm", node=node, vmid=vmid)
         return ctx.vm_tools.stop_vm(node, vmid, wait, timeout)
@@ -306,7 +309,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")],
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
-    ):
+    ) -> Any:
         return ctx.vm_tools.shutdown_vm(node, vmid, wait, timeout)
 
     @_tool(RESET_VM_DESC)
@@ -322,7 +325,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
-    ):
+    ) -> Any:
         if not confirm:
             return build_preview("reset_vm", node=node, vmid=vmid)
         return ctx.vm_tools.reset_vm(node, vmid, wait, timeout)
@@ -343,7 +346,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
-    ):
+    ) -> Any:
         if not confirm:
             return build_preview("delete_vm", node=node, vmid=vmid, force=force)
         return ctx.vm_tools.delete_vm(node, vmid, force, wait, timeout)
@@ -362,7 +365,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
             int | None, Field(description="New number of CPU cores (e.g. 1, 2, 4)", default=None)
         ] = None,
         name: Annotated[str | None, Field(description="New VM name", default=None)] = None,
-    ):
+    ) -> Any:
         return ctx.vm_tools.update_vm(node, vmid, memory, cpus, name)
 
     # LXC container power tools (addressed by vmid; node and type resolved per call)
@@ -378,7 +381,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         ] = None,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
-    ):
+    ) -> Any:
         return ctx.container_tools.start_container(vmid, node, wait, timeout)
 
     @_tool(STOP_CONTAINER_DESC)
@@ -400,7 +403,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
-    ):
+    ) -> Any:
         if not confirm:
             return build_preview("stop_container", node=node, vmid=vmid)
         return ctx.container_tools.stop_container(vmid, node, wait, timeout)
@@ -417,7 +420,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         ] = None,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
-    ):
+    ) -> Any:
         return ctx.container_tools.shutdown_container(vmid, node, wait, timeout)
 
     # VM snapshot tools
@@ -434,7 +437,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
-    ):
+    ) -> Any:
         return ctx.vm_tools.create_snapshot(node, vmid, name, description, vmstate, wait, timeout)
 
     @_tool(ROLLBACK_SNAPSHOT_DESC)
@@ -451,7 +454,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
-    ):
+    ) -> Any:
         if not confirm:
             return build_preview("rollback_snapshot", node=node, vmid=vmid, name=name)
         return ctx.vm_tools.rollback_snapshot(node, vmid, name, wait, timeout)
@@ -460,7 +463,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
     def list_snapshots(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
-    ):
+    ) -> Any:
         return ctx.vm_tools.list_snapshots(node, vmid)
 
     @_tool(DELETE_SNAPSHOT_DESC)
@@ -477,7 +480,7 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
-    ):
+    ) -> Any:
         if not confirm:
             return build_preview("delete_snapshot", node=node, vmid=vmid, name=name)
         return ctx.vm_tools.delete_snapshot(node, vmid, name, wait, timeout)
@@ -487,12 +490,12 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
     def get_vm_usage(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
-    ):
+    ) -> Any:
         return ctx.vm_tools.get_vm_usage(node, vmid)
 
     # Storage tools
     @_tool(GET_STORAGE_DESC)
-    def get_storage():
+    def get_storage() -> Any:
         return ctx.storage_tools.get_storage()
 
     @_tool(LIST_BACKUPS_DESC)
@@ -509,23 +512,23 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
             str | None,
             Field(description="Only backups of this VM/CT ID (optional, e.g. '100')", default=None),
         ] = None,
-    ):
+    ) -> Any:
         return ctx.storage_tools.list_backups(node, storage, vmid)
 
     # Cluster tools
     @_tool(GET_CLUSTER_STATUS_DESC)
-    def get_cluster_status():
+    def get_cluster_status() -> Any:
         return ctx.cluster_tools.get_cluster_status()
 
     @_tool(GET_HA_STATUS_DESC)
-    def get_ha_status():
+    def get_ha_status() -> Any:
         return ctx.cluster_tools.get_ha_status()
 
     # Task tools
     @_tool(GET_TASK_STATUS_DESC)
     def get_task_status(
         upid: Annotated[str, Field(description="Task id (UPID) returned by a mutating tool")],
-    ):
+    ) -> Any:
         return ctx.task_tools.get_task_status(upid)
 
     @_tool(WAIT_FOR_TASK_DESC)
@@ -540,12 +543,12 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
                 default=30,
             ),
         ] = 30,
-    ):
+    ) -> Any:
         return ctx.task_tools.wait_for_task(upid, timeout)
 
     # System tools
     @_tool(HEALTH_DESC)
-    def health():
+    def health() -> Any:
         return [Content(type="text", text=json.dumps(ctx.health_payload()))]
 
     return specs

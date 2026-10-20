@@ -184,7 +184,8 @@ def require_vm_status(api: Any, node: str, vmid: Any, operation: str) -> dict[st
     from the qemu listing (never from the error text); anything else is translated.
     """
     try:
-        return api.nodes(node).qemu(vmid).status.current.get()
+        status: dict[str, Any] = api.nodes(node).qemu(vmid).status.current.get()
+        return status
     except ResourceException as exc:
         code = _status_code(exc)
         if code == 404:

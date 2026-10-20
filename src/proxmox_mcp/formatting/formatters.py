@@ -12,7 +12,7 @@ class ProxmoxFormatters:
     """Core formatting functions for Proxmox data."""
 
     @staticmethod
-    def format_bytes(bytes_value: int) -> str:
+    def format_bytes(bytes_value: float) -> str:
         """Format bytes with proper units.
 
         Args:
@@ -133,9 +133,9 @@ class ProxmoxFormatters:
         success: bool,
         command: str,
         output: str,
-        error: str = None,
+        error: str | None = None,
         *,
-        exit_code: int = None,
+        exit_code: int | None = None,
         timed_out: bool = False,
         truncated: bool = False,
         exited: bool = True,

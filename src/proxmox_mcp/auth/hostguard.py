@@ -6,7 +6,8 @@ loopback (or absent) Origin headers are served.
 """
 
 import json
-from collections.abc import Iterable
+from collections.abc import Iterable, MutableMapping
+from typing import Any
 from urllib.parse import urlsplit
 
 LOOPBACK_NAMES = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -26,11 +27,11 @@ def _host_only(value: str) -> str | None:
 class LoopbackHostGuardMiddleware:
     """Pure ASGI middleware rejecting non-loopback Host and cross-site Origin headers."""
 
-    def __init__(self, app, allowed: Iterable[str] = LOOPBACK_NAMES) -> None:
+    def __init__(self, app: Any, allowed: Iterable[str] = LOOPBACK_NAMES) -> None:
         self.app = app
         self.allowed = frozenset(a.lower() for a in allowed)
 
-    def _ok(self, headers) -> bool:
+    def _ok(self, headers: Iterable[tuple[bytes, bytes]]) -> bool:
         host = origin = None
         for k, v in headers:
             if k == b"host":
@@ -48,7 +49,7 @@ class LoopbackHostGuardMiddleware:
                 return False
         return True
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: MutableMapping[str, Any], receive: Any, send: Any) -> None:
         if scope["type"] not in ("http", "websocket") or self._ok(scope.get("headers", [])):
             await self.app(scope, receive, send)
             return

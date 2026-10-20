@@ -62,10 +62,11 @@ class LazyProxmoxAPI:
                     return self._api
                 if self._last_error is not None and time.monotonic() < self._retry_at:
                     raise RuntimeError(self._last_error)
-                inflight = self._inflight
-                leader = inflight is None
+                existing = self._inflight
+                leader = existing is None
+                inflight = threading.Event() if existing is None else existing
                 if leader:
-                    inflight = self._inflight = threading.Event()
+                    self._inflight = inflight
             if not leader:
                 inflight.wait()
                 continue
