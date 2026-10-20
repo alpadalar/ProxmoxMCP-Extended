@@ -599,8 +599,9 @@ def render_report(result: Result, mode: str, repo: str, command: str) -> str:
     lines.append(f"- Repository HEAD: {meta['head']}")
     lines.append(f"- Refs scanned: {meta.get('refs', '?')} ({meta.get('ref_names', '?')})")
     lines.append(f"- Commits reachable from all refs: {meta.get('commits', '?')}")
-    lines.append(f"- Commits scanned (diff stream): {result.commits_scanned}")
-    lines.append(f"- Working tree files scanned: {result.files_scanned}")
+    if mode in {"secrets", "all"}:
+        lines.append(f"- Commits scanned (diff stream): {result.commits_scanned}")
+        lines.append(f"- Working tree files scanned: {result.files_scanned}")
     lines.append(f"- Mode: {mode}")
     lines.append(f"- Reproduce: `{command}`")
     lines.append("")
