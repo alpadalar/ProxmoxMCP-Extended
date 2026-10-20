@@ -117,6 +117,7 @@ async def test_delete_vm_force_stops_then_deletes(server, vm):
         {"status": "running", "name": "web01"},  # lookup
         {"status": "running", "name": "web01"},  # still stopping
         {"status": "stopped", "name": "web01"},
+        {"status": "stopped", "name": "web01"},  # re-check right before delete
     ]
     manager = MagicMock()
     manager.attach_mock(vm.status.stop.post, "stop_post")
@@ -124,6 +125,39 @@ async def test_delete_vm_force_stops_then_deletes(server, vm):
     await server.mcp.call_tool("delete_vm", {**NODE_ARGS, "force": True, "confirm": True})
     names = [c[0] for c in manager.mock_calls if c[0] in ("stop_post", "delete")]
     assert names == ["stop_post", "delete"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("after,match", [
+    ({"status": "running", "name": "web01"}, "not stopped after the stop wait"),
+    ({"status": "stopped", "name": "other"}, "changed identity"),
+])
+async def test_delete_vm_force_rechecks_before_delete(server, vm, after, match):
+    """The delete is aborted if the VM is running again or is a different VM."""
+    server.vm_tools._sleep = lambda s: None
+    vm.status.current.get.side_effect = [
+        {"status": "running", "name": "web01"},  # lookup
+        {"status": "stopped", "name": "web01"},  # stop wait
+        after,                                    # re-check
+    ]
+    with pytest.raises(ToolError, match=match):
+        await server.mcp.call_tool("delete_vm", {**NODE_ARGS, "force": True, "confirm": True})
+    vm.delete.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_delete_vm_force_stop_post_failure_but_already_stopped(server, vm):
+    """A failing stop POST is tolerated when the VM is meanwhile stopped."""
+    server.vm_tools._sleep = lambda s: None
+    vm.status.stop.post.side_effect = ResourceException(500, "err", "VM is not running")
+    vm.status.current.get.side_effect = [
+        {"status": "running", "name": "web01"},  # lookup
+        {"status": "stopped", "name": "web01"},  # recheck after stop failure
+        {"status": "stopped", "name": "web01"},  # stop wait
+        {"status": "stopped", "name": "web01"},  # re-check before delete
+    ]
+    await server.mcp.call_tool("delete_vm", {**NODE_ARGS, "force": True, "confirm": True})
+    vm.delete.assert_called_once()
 
 
 @pytest.mark.asyncio

@@ -587,8 +587,27 @@ class VMTools(ProxmoxTool):
                 else:
                     # Force stop the VM first and wait (bounded) until it is really stopped;
                     # never delete while the stop task is running or after it failed.
-                    stop_result = self.proxmox.nodes(node).qemu(vmid).status.stop.post()
+                    try:
+                        stop_result = self.proxmox.nodes(node).qemu(vmid).status.stop.post()
+                    except Exception as stop_error:
+                        # The VM may have stopped since the status read; if so carry on and
+                        # let the re-check below decide, otherwise report the stop failure.
+                        recheck = self.proxmox.nodes(node).qemu(vmid).status.current.get()
+                        if not (isinstance(recheck, dict) and recheck.get("status") == "stopped"):
+                            raise stop_error
+                        stop_result = None
                     self._wait_until_stopped(node, vmid, stop_result)
+                    # Re-read right before deleting: abort unless the same VM is stopped
+                    # (HA restart / relocation or a recycled vmid during the stop wait).
+                    after = self.proxmox.nodes(node).qemu(vmid).status.current.get()
+                    if not isinstance(after, dict) or after.get("status") != "stopped":
+                        raise RuntimeError(
+                            f"VM {vmid} is not stopped after the stop wait; not deleted"
+                        )
+                    if after.get("name") not in (None, vm_status.get("name")):
+                        raise RuntimeError(
+                            f"VM {vmid} changed identity during the stop wait; not deleted"
+                        )
                     result_text = f"🛑 Stopping VM {vmid} ({vm_name}) before deletion...\n"
             else:
                 result_text = f"🗑️ Deleting VM {vmid} ({vm_name})...\n"

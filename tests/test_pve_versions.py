@@ -91,6 +91,9 @@ def _stop_sequence(fake, final_exit="OK"):
 async def test_force_delete_waits_for_stop_task(app, fake_pve):
     app.vm_tools._sleep = lambda s: None
     _stop_sequence(fake_pve)
+    cur = iter([{"status": "running", "name": "web-01"}])
+    fake_pve.set("GET", "nodes/*/qemu/100/status/current",
+                 lambda p, s: next(cur, {"status": "stopped", "name": "web-01"}))
     fake_pve.reset_calls()
     await app.mcp.call_tool(
         "delete_vm", {"node": "pve1", "vmid": "100", "force": True, "confirm": True})
@@ -119,6 +122,7 @@ async def test_force_delete_null_stop_polls_status_current(app, fake_pve):
         {"status": "running", "name": "web-01"},  # lookup
         {"status": "running"},
         {"status": "stopped"},
+        {"status": "stopped"},  # re-check right before delete
     ])
     fake_pve.set("GET", "nodes/*/qemu/100/status/current", lambda p, s: next(states))
     fake_pve.reset_calls()
