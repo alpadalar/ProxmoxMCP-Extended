@@ -6,6 +6,8 @@ import pytest
 
 from proxmox_mcp.server import ProxmoxMCPServer
 
+pytest_plugins = ["tests.harness.plugin"]
+
 
 @pytest.fixture
 def mock_env_vars():
