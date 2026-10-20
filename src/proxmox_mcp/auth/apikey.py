@@ -92,8 +92,15 @@ class APIKeyAuthMiddleware:
         return ok
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http":
+        if scope["type"] == "lifespan":
             await self.app(scope, receive, send)
+            return
+        if scope["type"] == "websocket":
+            # Fail closed: no websocket route is served, and none may bypass the key check.
+            await receive()
+            await send({"type": "websocket.close", "code": 1008})
+            return
+        if scope["type"] != "http":
             return
         if scope.get("path") in self.exempt_paths:
             await self.app(scope, receive, send)

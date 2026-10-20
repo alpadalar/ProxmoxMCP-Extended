@@ -141,3 +141,11 @@ def test_cli_prints_digest():
         input="abc\n", capture_output=True, text=True, timeout=60,
     )
     assert out.stdout.strip() == hashlib.sha256(b"abc").hexdigest()
+
+
+def test_websocket_is_not_let_through(client):
+    from starlette.websockets import WebSocketDisconnect
+
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect("/proxmox-mcp"):
+            pass
