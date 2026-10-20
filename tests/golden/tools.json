@@ -113,6 +113,11 @@
     "name": "execute_vm_command",
     "params": [
       {
+        "name": "args",
+        "required": false,
+        "type": "array"
+      },
+      {
         "name": "command",
         "required": true,
         "type": "string"

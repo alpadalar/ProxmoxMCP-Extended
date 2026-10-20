@@ -80,7 +80,15 @@ EXECUTE_VM_COMMAND_DESC = """Execute commands in a VM via QEMU guest agent.
 Parameters:
 node* - Host node name (e.g. 'pve1')
 vmid* - VM ID number (e.g. '100')
-command* - Shell command to run (e.g. 'uname -a')
+command* - Program to run, or a command line split into words (e.g. 'uname -a')
+args - Optional list of arguments; when given, command is the program (e.g. command='ls', args=['-l', '/tmp'])
+
+Notes:
+- Disabled unless the server is started with allow_exec (policy.allow_exec / PROXMOX_MCP_ALLOW_EXEC / --allow-exec).
+- No shell is used. For pipes or redirects pass a shell explicitly, e.g. command='/bin/sh', args=['-c', '...'].
+- Waits at most policy.exec_timeout_seconds (default 30s); a command that is still running is reported as timed out, not failed.
+- Output per stream is capped at policy.exec_max_output_bytes (default 65536) and marked as truncated.
+- The QEMU guest agent must be installed and running in the VM.
 
 Example:
 {"success": true, "output": "Linux vm1 5.4.0", "exit_code": 0}"""

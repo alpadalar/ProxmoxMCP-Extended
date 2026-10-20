@@ -51,7 +51,7 @@ async def test_execute_command_success(vm_console, mock_proxmox):
     mock_proxmox.nodes.return_value.qemu.assert_called_with("100")
     # Ensure exec was called (indirect via agent("exec").post)
     exec_endpoint = mock_proxmox.nodes.return_value.qemu.return_value.agent.side_effect("exec")
-    exec_endpoint.post.assert_called_with(command="ls -l")
+    exec_endpoint.post.assert_called_with(command=["ls", "-l"])
 
 @pytest.mark.asyncio
 async def test_execute_command_vm_not_running(vm_console, mock_proxmox):

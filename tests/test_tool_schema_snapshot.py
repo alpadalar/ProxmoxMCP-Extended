@@ -26,6 +26,7 @@ DOCUMENTED_ADDITIONS = {
     "stop_vm": {"confirm": "boolean"},
     "reset_vm": {"confirm": "boolean"},
     "rollback_snapshot": {"confirm": "boolean"},
+    "execute_vm_command": {"args": "array"},
 }
 SIMPLE_TYPES = {"string", "integer", "number", "boolean", "array", "object"}
 

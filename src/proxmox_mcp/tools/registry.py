@@ -165,9 +165,10 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
     async def execute_vm_command(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve1', 'proxmox-node2')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '100', '101')")],
-        command: Annotated[str, Field(description="Shell command to run (e.g. 'uname -a', 'systemctl status nginx')")]
+        command: Annotated[str, Field(description="Shell command to run (e.g. 'uname -a', 'systemctl status nginx')")],
+        args: Annotated[Optional[List[str]], Field(description="Optional argument list. When given, the command is the program and args its arguments (no shell is involved). When omitted, command is split into words with shlex rules (no shell).", default=None)] = None,
     ):
-        return await ctx.vm_tools.execute_command(node, vmid, command)
+        return await ctx.vm_tools.execute_command(node, vmid, command, args)
 
     # VM Power Management tools
     @_tool(START_VM_DESC)

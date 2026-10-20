@@ -144,7 +144,11 @@ def create_app(
     manager = ProxmoxManager(config.proxmox, config.auth)
     api = manager.get_api()
     node_tools = NodeTools(api)
-    vm_tools = VMTools(api)
+    vm_tools = VMTools(
+        api,
+        exec_timeout=config.policy.exec_timeout_seconds,
+        exec_max_output=config.policy.exec_max_output_bytes,
+    )
     storage_tools = StorageTools(api)
     cluster_tools = ClusterTools(api)
 

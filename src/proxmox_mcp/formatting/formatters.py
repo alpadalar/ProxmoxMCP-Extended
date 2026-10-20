@@ -126,7 +126,16 @@ class ProxmoxFormatters:
         return f"{prefix}{key_str}: {value}"
     
     @staticmethod
-    def format_command_output(success: bool, command: str, output: str, error: str = None) -> str:
+    def format_command_output(
+        success: bool,
+        command: str,
+        output: str,
+        error: str = None,
+        *,
+        exit_code: int = None,
+        timed_out: bool = False,
+        truncated: bool = False,
+    ) -> str:
         """Format command execution output.
         
         Args:
@@ -134,7 +143,10 @@ class ProxmoxFormatters:
             command: The command that was executed
             output: Command output
             error: Optional error message
-            
+            exit_code: Optional exit code; shown only when non-zero
+            timed_out: True when the MCP wait limit passed while the command still ran
+            truncated: True when output was cut at the configured cap
+
         Returns:
             Formatted command output string
         """
@@ -142,6 +154,16 @@ class ProxmoxFormatters:
             f"{ProxmoxTheme.ACTIONS['command']} Console Command Result",
             f"  • Status: {'SUCCESS' if success else 'FAILED'}",
             f"  • Command: {command}",
+        ]
+        if exit_code not in (None, 0):
+            result.append(f"  • Exit code: {exit_code}")
+        if timed_out:
+            result.append(
+                "  • Timed out: command is still running in the guest; MCP wait limit reached"
+            )
+        if truncated:
+            result.append("  • Output truncated: the configured output limit was reached")
+        result += [
             "",
             "Output:",
             output.strip()

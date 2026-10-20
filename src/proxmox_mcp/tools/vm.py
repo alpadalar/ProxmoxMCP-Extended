@@ -57,14 +57,18 @@ class VMTools(ProxmoxTool):
     with QEMU guest agent for VM command execution.
     """
 
-    def __init__(self, proxmox_api):
+    def __init__(self, proxmox_api, exec_timeout: float = 30.0, exec_max_output: int = 65536):
         """Initialize VM tools.
 
         Args:
             proxmox_api: Initialized ProxmoxAPI instance
+            exec_timeout: Seconds to wait for a guest command to exit
+            exec_max_output: Maximum bytes kept per output stream of a guest command
         """
         super().__init__(proxmox_api)
-        self.console_manager = VMConsoleManager(proxmox_api)
+        self.console_manager = VMConsoleManager(
+            proxmox_api, exec_timeout=exec_timeout, exec_max_output=exec_max_output
+        )
 
     def get_vms(self) -> List[Content]:
         """List all virtual machines across the cluster with detailed status.
@@ -450,7 +454,9 @@ class VMTools(ProxmoxTool):
                 raise ValueError(f"VM {vmid} not found on node {node}")
             self._handle_error(f"reset VM {vmid}", e)
 
-    async def execute_command(self, node: str, vmid: str, command: str) -> List[Content]:
+    async def execute_command(
+        self, node: str, vmid: str, command: str, args: Optional[List[str]] = None
+    ) -> List[Content]:
         """Execute a command in a VM via QEMU guest agent.
 
         Uses the QEMU guest agent to execute commands within a running VM.
@@ -462,7 +468,8 @@ class VMTools(ProxmoxTool):
         Args:
             node: Host node name (e.g., 'pve1', 'proxmox-node2')
             vmid: VM ID number (e.g., '100', '101')
-            command: Shell command to run (e.g., 'uname -a', 'systemctl status nginx')
+            command: Program, or command line split with shlex rules when ``args`` is omitted
+            args: Optional argument list (no shell is involved)
 
         Returns:
             List of Content objects containing formatted command output:
@@ -479,14 +486,17 @@ class VMTools(ProxmoxTool):
         node = validate_node(node)
         vmid = validate_vmid(vmid)
         try:
-            result = await self.console_manager.execute_command(node, vmid, command)
+            result = await self.console_manager.execute_command(node, vmid, command, args)
             # Use the command output formatter from ProxmoxFormatters
             from ..formatting import ProxmoxFormatters
             formatted = ProxmoxFormatters.format_command_output(
                 success=result["success"],
                 command=command,
                 output=result["output"],
-                error=result.get("error")
+                error=result.get("error"),
+                exit_code=result.get("exit_code"),
+                timed_out=result.get("timed_out", False),
+                truncated=result.get("truncated", False),
             )
             return [Content(type="text", text=formatted)]
         except Exception as e:

@@ -16,8 +16,10 @@ The module implements a robust command execution system with:
 
 import asyncio
 import logging
+import shlex
+import time
 from functools import partial
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 from ...utils.redaction import redact_local
 
@@ -38,16 +40,89 @@ class VMConsoleManager:
     - Comprehensive error handling
     """
 
-    def __init__(self, proxmox_api):
+    MAX_ARGV_ITEMS = 64
+    MAX_ARG_CHARS = 4096
+    MAX_ARGV_TOTAL_CHARS = 32768
+    POLL_START = 0.5
+    POLL_MAX = 2.0
+
+    def __init__(
+        self,
+        proxmox_api,
+        exec_timeout: float = 30.0,
+        exec_max_output: int = 65536,
+    ):
         """Initialize the VM console manager.
 
         Args:
             proxmox_api: Initialized ProxmoxAPI instance
+            exec_timeout: Maximum seconds to wait for a command to exit
+            exec_max_output: Maximum bytes kept per output stream (stdout / stderr)
         """
         self.proxmox = proxmox_api
+        self.exec_timeout = exec_timeout
+        self.exec_max_output = exec_max_output
         self.logger = logging.getLogger("proxmox-mcp.vm-console")
 
-    async def execute_command(self, node: str, vmid: str, command: str) -> Dict[str, Any]:
+    @classmethod
+    def _build_argv(cls, command: str, args: Optional[List[str]] = None) -> List[str]:
+        """Build and validate the argv list sent to the guest agent (no shell).
+
+        With ``args`` the command is the program and ``args`` its arguments; otherwise the
+        command string is split into words with shlex rules. Oversized or malformed input is
+        rejected, never truncated. Error messages never contain the command text.
+        """
+        if not isinstance(command, str):
+            raise ValueError("command must be a string")
+        if args is None:
+            try:
+                argv = shlex.split(command)
+            except ValueError:
+                raise ValueError(
+                    "command could not be parsed (unbalanced quotes); use args to pass "
+                    "arguments explicitly"
+                ) from None
+        else:
+            if not isinstance(args, (list, tuple)):
+                raise ValueError("args must be a list of strings")
+            argv = [command, *args]
+        if not argv or not argv[0]:
+            raise ValueError("command must not be empty")
+        if len(argv) > cls.MAX_ARGV_ITEMS:
+            raise ValueError(f"too many arguments (maximum {cls.MAX_ARGV_ITEMS} including program)")
+        total = 0
+        for index, item in enumerate(argv):
+            if not isinstance(item, str):
+                raise ValueError(f"argument {index} must be a string")
+            if "\x00" in item:
+                raise ValueError(f"argument {index} contains a NUL byte")
+            if len(item) > cls.MAX_ARG_CHARS:
+                raise ValueError(
+                    f"argument {index} is too long (maximum {cls.MAX_ARG_CHARS} characters)"
+                )
+            total += len(item)
+        if total > cls.MAX_ARGV_TOTAL_CHARS:
+            raise ValueError(
+                f"arguments are too long in total (maximum {cls.MAX_ARGV_TOTAL_CHARS} characters)"
+            )
+        return argv
+
+    def _cap(self, text: Any) -> "tuple[str, bool]":
+        """Cap ``text`` at ``exec_max_output`` UTF-8 bytes on a character boundary."""
+        text = text if isinstance(text, str) else str(text)
+        raw = text.encode("utf-8", errors="replace")
+        if len(raw) <= self.exec_max_output:
+            return text, False
+        kept = raw[: self.exec_max_output].decode("utf-8", errors="ignore")
+        return f"{kept}\n[output truncated at {self.exec_max_output} bytes]", True
+
+    async def execute_command(
+        self,
+        node: str,
+        vmid: str,
+        command: str,
+        args: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
         """Execute a command in a VM's console via QEMU guest agent.
 
         Implements a two-phase command execution process:
@@ -69,7 +144,8 @@ class VMConsoleManager:
         Args:
             node: Name of the node where VM is running (e.g., 'pve1')
             vmid: ID of the VM to execute command in (e.g., '100')
-            command: Shell command to execute in the VM
+            command: Program (or, without ``args``, a command line split with shlex rules)
+            args: Optional argument list; when given no splitting takes place. No shell is used.
 
         Returns:
             Dictionary containing command execution results:
@@ -92,6 +168,7 @@ class VMConsoleManager:
         """
         # The command may embed secrets and is never logged; it is scrubbed from error text
         # per call only (never stored in the global redaction registry).
+        argv = self._build_argv(command, args)  # validation before any API call
         try:
             # Verify VM exists and is running
             # proxmoxer is synchronous; run every call in a worker thread so the
@@ -118,7 +195,7 @@ class VMConsoleManager:
                 # Start command execution
                 try:
                     exec_result = await asyncio.to_thread(
-                        partial(endpoint("exec").post, command=command)
+                        partial(endpoint("exec").post, command=argv)
                     )
                 except Exception as e:
                     self.logger.error(
@@ -132,55 +209,74 @@ class VMConsoleManager:
                 pid = exec_result['pid']
                 self.logger.info(f"Command started on VM {vmid} (PID: {pid})")
 
-                # Add a small delay to allow command to complete
-                await asyncio.sleep(1)
-
-                # Get command output using exec-status
-                try:
-                    console = await asyncio.to_thread(
-                        partial(endpoint("exec-status").get, pid=pid)
-                    )
-                    if not console:
-                        raise RuntimeError("No response from exec-status")
-                except Exception as e:
-                    self.logger.error(
-                        f"Failed to get command status for PID {pid}: {type(e).__name__}"
-                    )
-                    raise RuntimeError(
-                        f"Failed to get command status: {type(e).__name__}"
-                    ) from None
+                # Poll exec-status with backoff until the command exits or the deadline passes.
+                deadline = time.monotonic() + self.exec_timeout
+                interval = self.POLL_START
+                timed_out = False
+                while True:
+                    await asyncio.sleep(interval)
+                    interval = min(interval * 2, self.POLL_MAX)
+                    try:
+                        console = await asyncio.to_thread(
+                            partial(endpoint("exec-status").get, pid=pid)
+                        )
+                        if not console:
+                            raise RuntimeError("No response from exec-status")
+                    except Exception as e:
+                        self.logger.error(
+                            f"Failed to get command status for PID {pid}: {type(e).__name__}"
+                        )
+                        raise RuntimeError(
+                            f"Failed to get command status: {type(e).__name__}"
+                        ) from None
+                    if not isinstance(console, dict) or console.get("exited"):
+                        break
+                    if time.monotonic() >= deadline:
+                        timed_out = True
+                        break
             except Exception as e:
                 self.logger.error(f"API call failed on VM {vmid}: {type(e).__name__}")
-                raise RuntimeError(f"API call failed: {redact_local(str(e), command)}") from None
+                detail = redact_local(str(e), command, *argv)
+                raise RuntimeError(f"API call failed: {detail}") from None
 
-            # Handle different response structures
+            truncated = False
             if isinstance(console, dict):
-                # Handle exec-status response format
-                output = console.get("out-data", "")
-                error = console.get("err-data", "")
+                output, cut_out = self._cap(console.get("out-data", ""))
+                error, cut_err = self._cap(console.get("err-data", ""))
+                truncated = cut_out or cut_err or bool(
+                    console.get("out-truncated") or console.get("err-truncated")
+                )
                 exit_code = console.get("exitcode", 0)
-                exited = console.get("exited", 0)
-
-                if not exited:
-                    self.logger.warning("Command may not have completed")
+                exited = bool(console.get("exited", 0))
             else:
                 # Some versions might return data differently
-                output = str(console)
+                output, truncated = self._cap(str(console))
                 error = ""
                 exit_code = 0
+                exited = True
+
+            if timed_out:
+                self.logger.warning(f"Command on VM {vmid} still running at MCP wait limit")
 
             self.logger.info(
                 f"Command finished on VM {vmid} (node: {node}, PID: {pid}, exit_code: {exit_code}, "
-                f"exited: {bool(exited) if isinstance(console, dict) else 'unknown'}, "
+                f"exited: {exited}, timed_out: {timed_out}, "
                 f"output_len: {len(output)}, error_len: {len(error)})"
             )
 
-            return {
+            result = {
                 "success": True,
                 "output": output,
                 "error": error,
-                "exit_code": exit_code
+                "exit_code": exit_code,
+                "exited": exited,
+                "timed_out": timed_out,
+                "truncated": truncated,
+                "pid": pid,
             }
+            if timed_out:
+                result["message"] = "still running in the guest; MCP wait limit reached"
+            return result
 
         except ValueError:
             # Re-raise ValueError for VM not running
@@ -189,5 +285,5 @@ class VMConsoleManager:
             self.logger.error(f"Failed to execute command on VM {vmid}: {type(e).__name__}")
             if "not found" in str(e).lower():
                 raise ValueError(f"VM {vmid} not found on node {node}") from None
-            detail = redact_local(str(e), command)
+            detail = redact_local(str(e), command, *argv)
             raise RuntimeError(f"Failed to execute command: {detail}") from None

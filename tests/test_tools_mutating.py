@@ -178,7 +178,7 @@ async def test_execute_vm_command_returns_output(server, vm):
     with patch("asyncio.sleep", new=AsyncMock()):
         text = tool_text(await server.mcp.call_tool(
             "execute_vm_command", {**NODE_ARGS, "command": "echo hi"}))
-    exec_ep.post.assert_called_once_with(command="echo hi")
+    exec_ep.post.assert_called_once_with(command=["echo", "hi"])
     status_ep.get.assert_called_once_with(pid=7)
     assert "hello-from-guest" in text
 
