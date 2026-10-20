@@ -200,7 +200,8 @@ environment variables, or the `policy` section of the config file.
   pass `command` plus an `args` list (use `/bin/sh` with `['-c', '...']` explicitly if you need
   one). Each stream is capped (`exec_max_output_bytes`), calls time out
   (`exec_timeout_seconds`) and concurrency is limited (`exec_max_concurrent`).
-- Mutating tools accept optional `wait` and `timeout` to wait for the Proxmox task (UPID) to finish
+- The start, stop, shutdown, reset, delete, snapshot and container tools (not `create_vm`, `update_vm`
+  or `execute_vm_command`) accept optional `wait` and `timeout` to wait for the Proxmox task (UPID) to finish
   and report its real exit status.
 - HTTP mode requires an API key and binds loopback by default.
 

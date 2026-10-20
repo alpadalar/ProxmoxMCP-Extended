@@ -7,6 +7,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [1.0.0] - Unreleased
 
+<!-- Release checklist: replace "Unreleased" with the tag date and add the
+     [1.0.0] release-tag link reference at the bottom of this file. -->
+
 First release of ProxmoxMCP-Extended as an independent, hardened fork of
 [RekklesNA/ProxmoxMCP-Plus](https://github.com/RekklesNA/ProxmoxMCP-Plus) (itself a fork of
 [canvrno/ProxmoxMCP](https://github.com/canvrno/ProxmoxMCP)). Read the breaking changes before

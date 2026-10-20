@@ -11,6 +11,9 @@ limited, and how to report a vulnerability.
 | 1.0.x   | Yes       |
 | < 1.0   | No        |
 
+1.0.0 is not tagged yet (the changelog marks it "Unreleased"); until the first tag is published, the
+supported line is the current `main` branch.
+
 ## Reporting a vulnerability
 
 Do not open a public issue for security problems.
@@ -52,7 +55,8 @@ no lookup and `confirm=true` is a speed bump for the model, not an authorization
 `update_vm` was reclassified as destructive in 1.0.0 and has no `confirm` parameter (adding one would
 change the tool schema).
 
-Mutating tools accept optional `wait` and `timeout` (1 to 300 seconds). A waiting call occupies a worker
+The start, stop, shutdown, reset, delete, snapshot and container tools (not `create_vm`, `update_vm`
+or `execute_vm_command`) accept optional `wait` and `timeout` (1 to 300 seconds). A waiting call occupies a worker
 thread; at most 8 waits run at once and further waits fail immediately (the UPID is still returned).
 
 ## Recommended Proxmox token setup

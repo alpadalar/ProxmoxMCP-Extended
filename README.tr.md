@@ -194,7 +194,8 @@ değişkenleri veya yapılandırma dosyasındaki `policy` bölümüyle ayarlayı
   `['-c', '...']` değerlerini açıkça verin). Her akış sınırlandırılır
   (`exec_max_output_bytes`), çağrılar zaman aşımına uğrar (`exec_timeout_seconds`) ve eşzamanlılık
   sınırlıdır (`exec_max_concurrent`).
-- Durum değiştiren araçlar, Proxmox görevinin (UPID) bitmesini beklemek ve gerçek çıkış durumunu
+- Başlatma, durdurma, kapatma, sıfırlama, silme, snapshot ve konteyner araçları (`create_vm`,
+  `update_vm` ve `execute_vm_command` hariç), Proxmox görevinin (UPID) bitmesini beklemek ve gerçek çıkış durumunu
   bildirmek için isteğe bağlı `wait` ve `timeout` kabul eder.
 - HTTP modu API anahtarı gerektirir ve varsayılan olarak loopback'e bağlanır.
 
