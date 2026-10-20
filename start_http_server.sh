@@ -3,7 +3,7 @@
 # Start MCP server with HTTP transport (streamable)
 
 # Get host and port from environment variables or use defaults
-HOST=${MCP_HTTP_HOST:-"0.0.0.0"}
+HOST=${MCP_HTTP_HOST:-"127.0.0.1"}
 PORT=${MCP_HTTP_PORT:-"8812"}
 PATH_PREFIX=${MCP_HTTP_PATH:-"/proxmox-mcp"}
 CONFIG_FILE=${PROXMOX_MCP_CONFIG:-"proxmox-config/config.json"}
@@ -33,7 +33,7 @@ echo ""
 echo "🚀 Starting HTTP MCP server..."
 echo "🌐 Service address: http://${HOST}:${PORT}${PATH_PREFIX}"
 echo "📡 Protocol: MCP over HTTP (streamable)"
-echo "🔒 Authentication: Django Integration"
+echo "🔒 Authentication: API key (PROXMOX_MCP_API_KEY_HASHES)"
 echo ""
 echo "Press Ctrl+C to stop the server"
 echo ""

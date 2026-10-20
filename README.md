@@ -261,8 +261,17 @@ For local HTTP transport development:
 ./start_http_server.sh
 
 # Or with custom settings
-python -m proxmox_mcp.server_http --host 0.0.0.0 --port 8812 --path /proxmox-mcp
+python -m proxmox_mcp.server_http --host 127.0.0.1 --port 8812 --path /proxmox-mcp
 ```
+
+**Authentication is required.** Create a key digest and export it before starting
+(the server refuses to start otherwise; `--no-auth` is allowed on loopback only):
+```bash
+echo -n 'my-secret-key' | python -m proxmox_mcp.auth.apikey
+export PROXMOX_MCP_API_KEY_HASHES=<digest>[,<digest2>]
+# clients send: Authorization: Bearer my-secret-key   (or X-API-Key: my-secret-key)
+```
+`/health` is the only unauthenticated endpoint.
 
 **Features:**
 - ✅ FastMCP HTTP transport

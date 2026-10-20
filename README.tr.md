@@ -261,7 +261,7 @@ Yerel HTTP taşıması geliştirmesi için:
 ./start_http_server.sh
 
 # Veya özel ayarlarla
-python -m proxmox_mcp.server_http --host 0.0.0.0 --port 8812 --path /proxmox-mcp
+python -m proxmox_mcp.server_http --host 127.0.0.1 --port 8812 --path /proxmox-mcp
 ```
 
 **Özellikler:**

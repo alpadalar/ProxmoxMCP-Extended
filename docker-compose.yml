@@ -3,17 +3,18 @@ services:
     build: .
     container_name: ProxmoxMCP-Extended
     ports:
-      - "8812:8812"
+      - "127.0.0.1:8812:8812"
     volumes:
       - ./proxmox-config:/app/proxmox-config:ro
     environment:
       - PROXMOX_MCP_CONFIG=/app/proxmox-config/config.json
-      - HTTP_HOST=0.0.0.0
+      - HTTP_HOST=0.0.0.0  # inside container only; auth is mandatory
+      - PROXMOX_MCP_API_KEY_HASHES=${PROXMOX_MCP_API_KEY_HASHES:?set sha256 digests of API keys}
       - HTTP_PORT=8812
       - HTTP_PATH=/proxmox-mcp
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-s", "-f", "http://localhost:8812/proxmox-mcp"]
+      test: ["CMD", "curl", "-s", "-f", "http://localhost:8812/health"]
       interval: 30s
       timeout: 10s
       retries: 3
