@@ -197,5 +197,11 @@ def build_preview(tool: str, **target: Any) -> List[Content]:
         "target": shown,
         "effects": effects,
         "how_to_confirm": f"Repeat the {tool} call with confirm=true to perform this operation.",
+        "note": (
+            "This preview only echoes the target you supplied (no lookup is made, so verify "
+            "node, vmid and name yourself). confirm=true is a safeguard against accidents, "
+            "not an authorization: the operation is permitted only when the server runs "
+            "with policy.allow_destructive enabled."
+        ),
     }
     return [Content(type="text", text=json.dumps(payload))]

@@ -35,6 +35,8 @@ async def test_preview_target_fields(policy_app):
     snap = _preview(tool_text(await app.mcp.call_tool(
         "rollback_snapshot", SMOKE_ARGS["rollback_snapshot"])))
     assert snap["target"]["name"] == "snap1"
+    assert snap["target"]["node"] == "pve1" and snap["target"]["vmid"]
+    assert "allow_destructive" in snap["note"] and "not an authorization" in snap["note"]
     d = _preview(tool_text(await app.mcp.call_tool("delete_vm", SMOKE_ARGS["delete_vm"])))
     assert d["target"]["force"] is False
     assert not any("stopped first" in e for e in d["effects"])
