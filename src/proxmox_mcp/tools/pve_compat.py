@@ -18,6 +18,7 @@ import requests
 from proxmoxer.core import ResourceException
 
 from ..utils.redaction import redact
+from ..validators import UPID_RE
 
 # (privilege text, ACL path template) per operation key; PVE admin guide (pveum) privileges.
 OPERATION_PRIVILEGES: Dict[str, Tuple[str, str]] = {
@@ -40,6 +41,15 @@ OPERATION_PRIVILEGES: Dict[str, Tuple[str, str]] = {
     "get_nodes": ("Sys.Audit", "/nodes"),
     "get_containers": ("Sys.Audit", "/"),
     "get_cluster_status": ("Sys.Audit", "/"),
+    "start_container": ("VM.PowerMgmt", "/vms/{vmid}"),
+    "stop_container": ("VM.PowerMgmt", "/vms/{vmid}"),
+    "shutdown_container": ("VM.PowerMgmt", "/vms/{vmid}"),
+    "list_snapshots": ("VM.Audit", "/vms/{vmid}"),
+    "delete_snapshot": ("VM.Snapshot", "/vms/{vmid}"),
+    "list_backups": ("Datastore.Audit", "/storage/<storage>"),
+    "get_ha_status": ("Sys.Audit", "/"),
+    "get_task_status": ("Sys.Audit (or ownership of the task)", "/nodes/{node}"),
+    "wait_for_task": ("Sys.Audit (or ownership of the task)", "/nodes/{node}"),
     "execute_vm_command": (
         "VM.GuestAgent.Unrestricted (PVE 9) or VM.Monitor (PVE 8)",
         "/vms/{vmid}",
@@ -53,13 +63,14 @@ KNOWN_500_MARKERS: Dict[str, Tuple[str, ...]] = {
     "agent": ("guest agent is not running", "qga is not running"),
 }
 
-UPID_RE = re.compile(r"^UPID:[A-Za-z0-9._-]+:[0-9A-Fa-f]{8}:[0-9A-Fa-f]{8}:[0-9A-Fa-f]{8}:"
-                     r"[A-Za-z0-9._-]+:[A-Za-z0-9._-]*:[^\s:/\\]+:$")
-
-
 def is_upid(value: Any) -> bool:
     """True for a well-formed PVE task id (safe to place into an API path)."""
-    return isinstance(value, str) and len(value) <= 512 and UPID_RE.fullmatch(value) is not None
+    return (
+        isinstance(value, str)
+        and len(value) <= 512
+        and value.isascii()
+        and UPID_RE.fullmatch(value) is not None
+    )
 
 
 def _status_code(exc: BaseException) -> Optional[int]:

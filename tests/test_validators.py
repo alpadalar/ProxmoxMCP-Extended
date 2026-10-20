@@ -180,3 +180,49 @@ def test_vmid_huge_digit_string_raises_validation_error():
 
     with pytest.raises(InputValidationError):
         validate_vmid("9" * 5000)
+
+
+UPID_GOOD = [
+    "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:monitor@pve!mcp:",
+    "UPID:pve4:00002F9D:000DC5EA:57500527:vzcreate:602:root@pam:",
+]
+UPID_BAD = [
+    None, 5, b"UPID:x", "", "UPID:",
+    UPID_GOOD[0][:-1],  # missing trailing colon
+    UPID_GOOD[0] + "/x", UPID_GOOD[0].replace("monitor", "mon/itor"),
+    UPID_GOOD[0].replace("monitor", "mon\\itor"), UPID_GOOD[0].replace("monitor", "mon itor"),
+    UPID_GOOD[0] + "\n", UPID_GOOD[0].replace("monitor", "mon\x00itor"),
+    UPID_GOOD[0].replace("monitor", "mönitor"),
+    UPID_GOOD[0].replace("0000ABCD", "0000ABCG"), UPID_GOOD[0].replace("0000ABCD", "ABCD"),
+    "upid" + UPID_GOOD[0][4:],
+    "UPID:pve1:0000ABCD:00123456:65A1B2C3:qm/start:100:root@pam:",
+    "UPID:../x:0000ABCD:00123456:65A1B2C3:qmstart:100:root@pam:",
+    "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:" + "1" * 600 + ":root@pam:",
+]
+
+
+def test_validate_upid_good_unchanged_and_bad_rejected():
+    for value in UPID_GOOD:
+        assert v.validate_upid(value) == value
+    for value in UPID_BAD:
+        with pytest.raises(v.InputValidationError):
+            v.validate_upid(value)
+
+
+def test_upid_node():
+    assert v.upid_node(UPID_GOOD[0]) == "pve1"
+    assert v.upid_node(UPID_GOOD[1]) == "pve4"
+    # regex-valid but not a valid node name: must still be rejected before use in a path
+    for bad_node in ("..", ".", "a.b", "-x"):
+        with pytest.raises(v.InputValidationError):
+            v.upid_node(f"UPID:{bad_node}:0000ABCD:00123456:65A1B2C3:qmstart:100:root@pam:")
+    with pytest.raises(v.InputValidationError):
+        v.upid_node("nope")
+
+
+def test_validate_wait_timeout_bounds_and_strictness():
+    for value in (1, 30, 300):
+        assert v.validate_wait_timeout(value) == value
+    for value in (0, 301, -1, True, False, "30", 5.0, None):
+        with pytest.raises(v.InputValidationError):
+            v.validate_wait_timeout(value)

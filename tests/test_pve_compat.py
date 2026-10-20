@@ -99,6 +99,35 @@ def test_is_upid(value, ok):
     assert is_upid(value) is ok
 
 
+def test_is_upid_agrees_with_validate_upid():
+    from proxmox_mcp.validators import InputValidationError, validate_upid
+    from tests.test_validators import UPID_BAD, UPID_GOOD
+
+    for value in UPID_GOOD + UPID_BAD + [UPID, "../x", UPID + "\n"]:
+        try:
+            validate_upid(value)
+            passes = True
+        except InputValidationError:
+            passes = False
+        assert is_upid(value) is passes, value
+
+
+@pytest.mark.parametrize("key", [
+    "start_container", "stop_container", "shutdown_container", "list_snapshots",
+    "delete_snapshot", "list_backups", "get_ha_status", "get_task_status", "wait_for_task",
+])
+def test_new_operation_privileges_present(key):
+    from proxmox_mcp.tools.pve_compat import OPERATION_PRIVILEGES
+
+    assert key in OPERATION_PRIVILEGES
+
+
+def test_403_delete_snapshot_names_privilege_and_path():
+    err = translate_pve_error(rex(403), "delete a snapshot", node="pve1", vmid="105",
+                              privilege_key="delete_snapshot")
+    assert "VM.Snapshot" in str(err) and "/vms/105" in str(err)
+
+
 def test_parse_pve_version():
     v = parse_pve_version({"version": "9.0.3", "release": "9.0"})
     assert (v.major, v.minor, v.version, v.release) == (9, 0, "9.0.3", "9.0")

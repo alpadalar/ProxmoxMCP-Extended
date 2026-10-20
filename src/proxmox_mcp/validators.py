@@ -25,6 +25,10 @@ __all__ = [
     "validate_memory_mb",
     "validate_disk_gb",
     "validate_optional",
+    "UPID_RE",
+    "validate_upid",
+    "upid_node",
+    "validate_wait_timeout",
 ]
 
 T = TypeVar("T")
@@ -41,6 +45,15 @@ _VM_NAME_RE = re.compile(r"[A-Za-z0-9]([A-Za-z0-9.-]{0,61}[A-Za-z0-9])?")
 _ISO_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._+-]{0,254}")
 _OSTYPE_RE = re.compile(r"[a-z0-9]{2,16}")
 _DIGITS_RE = re.compile(r"[0-9]+")
+
+# PVE task id: UPID:<node>:<pid hex>:<pstart hex>:<starttime hex>:<type>:<id>:<user>:
+# Defined once here; tools.pve_compat re-exports it. The user part excludes whitespace,
+# separators and control characters so the id is safe inside an API path.
+UPID_RE = re.compile(
+    r"UPID:[A-Za-z0-9._-]+:[0-9A-Fa-f]{8}:[0-9A-Fa-f]{8}:[0-9A-Fa-f]{8}:"
+    r"[A-Za-z0-9._-]+:[A-Za-z0-9._-]*:[^\s:/\\\x00-\x1f\x7f]+:"
+)
+UPID_MAX = 512
 
 VMID_MIN = 100
 VMID_MAX = 999_999_999
@@ -161,3 +174,21 @@ def validate_optional(fn: Callable[..., T], value: object, *args: object) -> Opt
     if value is None:
         return None
     return fn(value, *args)
+
+
+def validate_upid(value: object, field: str = "upid") -> str:
+    """PVE task id (UPID); rejected, never rewritten. ASCII only, max 512 chars."""
+    if not isinstance(value, str) or len(value) > UPID_MAX:
+        raise _fail(field, "must be a PVE task id (UPID:node:...)", value)
+    return _match(value, UPID_RE, field, "must be a PVE task id (UPID:node:...)")
+
+
+def upid_node(value: object, field: str = "upid") -> str:
+    """Validate a UPID and return its node field (itself validated as a node name)."""
+    text = validate_upid(value, field)
+    return validate_node(text.split(":")[1], f"{field} node")
+
+
+def validate_wait_timeout(value: object, field: str = "timeout", lo: int = 1, hi: int = 300) -> int:
+    """Wait timeout in seconds, 1..300 (hard upper bound for any single blocking wait)."""
+    return _int_range(value, lo, hi, field)
