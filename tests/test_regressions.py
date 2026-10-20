@@ -1,10 +1,8 @@
 """Regression catalog keyed to ``.planning/codebase/CONCERNS.md``.
 
 Each row maps one CONCERNS item to exactly one test in this module.
-FIXED tests are green and guard bugs fixed in Phase 1.  PINNED tests assert the
-desired behavior, are marked ``xfail(strict=True, raises=AssertionError)`` and
-currently fail for the real reason; when the named phase fixes the defect the
-test XPASSes, the strict marker fails the suite, and the marker must be removed.
+Every row is FIXED: its test is green and guards the defect. (No strict-xfail pins remain
+since Phase 4 / TECH-02.)
 
 | CONCERNS item                                   | Test                                               | Status        | Phase / requirement |
 |-------------------------------------------------|----------------------------------------------------|---------------|---------------------|
@@ -22,7 +20,7 @@ test XPASSes, the strict marker fails the suite, and the marker must be removed.
 | Duplicated tool registration                    | test_stdio_http_tool_sets_identical                | FIXED         | Phase 3 / SRV-01    |
 | Connection setup at construction time           | test_proxmox_connect_is_lazy                       | FIXED         | Phase 3 / SRV-04    |
 | Known Bugs: blocking calls inside async path    | test_execute_command_does_not_block_loop           | FIXED         | Phase 3 / SRV-04    |
-| Inconsistent error semantics (delete_vm)        | test_delete_vm_not_found_not_substring_matched     | PINNED xfail  | Phase 4 / TECH-02   |
+| Inconsistent error semantics (delete_vm)        | test_delete_vm_not_found_not_substring_matched     | FIXED         | Phase 4 / TECH-02   |
 """
 import ast
 import json
@@ -37,9 +35,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src" / "proxmox_mcp"
 
 
-def _pin(reason: str):
-    """Strict xfail restricted to the intended failure mode."""
-    return pytest.mark.xfail(strict=True, raises=AssertionError, reason=reason)
+SCAN_FILES = ["tools/vm.py"]
 
 
 def _function_source(path: Path, name: str) -> str:
@@ -85,7 +81,7 @@ def test_packaging_single_source():
 
 
 # --------------------------------------------------------------------------
-# Pinned deferred bugs (strict xfail)
+# Fixed in later phases (green)
 # --------------------------------------------------------------------------
 
 def test_http_auth_not_hardcoded_off():
@@ -220,11 +216,32 @@ def test_execute_command_does_not_block_loop():
     assert src.count("to_thread") >= 3
 
 
-@_pin("CONCERNS: inconsistent error semantics; fixed in Phase 4 (TECH-02)")
+def _text_membership_tests(path: Path):
+    """``in`` / ``not in`` comparisons whose comparator is built from an error's text."""
+    tree = ast.parse(path.read_text())
+    bound = {n.name for n in ast.walk(tree) if isinstance(n, ast.ExceptHandler) and n.name}
+
+    def stringy(node: ast.AST) -> bool:
+        for sub in ast.walk(node):
+            if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name) and sub.func.id == "str":
+                return True
+            if isinstance(sub, ast.Name) and sub.id in bound:
+                return True
+        return False
+
+    return [
+        node.lineno
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Compare)
+        and any(isinstance(op, (ast.In, ast.NotIn)) for op in node.ops)
+        and any(stringy(c) for c in node.comparators)
+    ]
+
+
 def test_delete_vm_not_found_not_substring_matched():
-    """CONCERNS Tech Debt: delete_vm must not detect not-found by error-text substring."""
-    src = _function_source(SRC / "tools" / "vm.py", "delete_vm")
-    assert not re.search(r"['\"]not found['\"]\s+in\s+str\(", src)
+    """FIXED (Phase 4 / TECH-02): VM existence is never decided by error-text membership."""
+    for rel in SCAN_FILES:
+        assert _text_membership_tests(SRC / rel) == [], rel
 
 
 # --------------------------------------------------------------------------

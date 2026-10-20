@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastmcp.exceptions import ToolError, ValidationError
+from proxmoxer.core import ResourceException
 
 from tests.helpers import tool_text
 
@@ -30,7 +31,7 @@ def _set_status(vm, status):
 async def test_create_vm_calls_qemu_create(server, api):
     """create_vm creates the VM with vmid/name/cores/memory on the node."""
     node = api.nodes.return_value
-    node.qemu.return_value.config.get.side_effect = Exception("does not exist")
+    node.qemu.get.return_value = []
     node.storage.get.return_value = [
         {"storage": "local-lvm", "type": "lvmthin", "content": "images,rootdir"},
     ]
@@ -77,9 +78,12 @@ async def test_power_tools_post_once(server, vm, tool, action, state):
     ("start_vm", "start"), ("stop_vm", "stop"),
     ("shutdown_vm", "shutdown"), ("reset_vm", "reset"),
 ])
-async def test_power_tools_missing_vm_does_not_post(server, vm, tool, action):
+async def test_power_tools_missing_vm_does_not_post(server, api, vm, tool, action):
     """A nonexistent VM yields an error and never posts the action."""
-    vm.status.current.get.side_effect = Exception("VM 100 does not exist")
+    vm.status.current.get.side_effect = ResourceException(
+        500, "Internal Server Error", "Configuration file 'nodes/node1/qemu-server/100.conf' does not exist"
+    )
+    api.nodes.return_value.qemu.get.return_value = []
     args = {**NODE_ARGS, "confirm": True} if tool in ("stop_vm", "reset_vm") else NODE_ARGS
     with pytest.raises(ToolError, match="not found"):
         await server.mcp.call_tool(tool, args)
@@ -108,6 +112,12 @@ async def test_delete_vm_running_without_force_refused(server, vm):
 @pytest.mark.asyncio
 async def test_delete_vm_force_stops_then_deletes(server, vm):
     """force=True on a running VM stops it first, then deletes (call order)."""
+    server.vm_tools._sleep = lambda s: None
+    vm.status.current.get.side_effect = [
+        {"status": "running", "name": "web01"},  # lookup
+        {"status": "running", "name": "web01"},  # still stopping
+        {"status": "stopped", "name": "web01"},
+    ]
     manager = MagicMock()
     manager.attach_mock(vm.status.stop.post, "stop_post")
     manager.attach_mock(vm.delete, "delete")

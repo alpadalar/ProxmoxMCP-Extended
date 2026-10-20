@@ -173,6 +173,10 @@
       "id": "node/pve2"
     }
   ],
+  "GET nodes/*/tasks/*/status": {
+    "status": "stopped",
+    "exitstatus": "OK"
+  },
   "GET nodes/*/qemu/*/agent/exec-status": {
     "exited": 1,
     "exitcode": 0,
