@@ -28,7 +28,13 @@ def test_node_rejects(value):
 
 @pytest.mark.parametrize(
     "value,expected",
-    [("100", "100"), (100, "100"), (200, "200"), ("999999999", "999999999"), (999999999, "999999999")],
+    [
+        ("100", "100"),
+        (100, "100"),
+        (200, "200"),
+        ("999999999", "999999999"),
+        (999999999, "999999999"),
+    ],
 )
 def test_vmid_accepts(value, expected):
     assert v.validate_vmid(value) == expected
@@ -36,8 +42,24 @@ def test_vmid_accepts(value, expected):
 
 @pytest.mark.parametrize(
     "value",
-    ["99", "1000000000", "1e3", "100 ", "-100", "10.0", "", "0x64", "１００",
-     "100/status", "100\n", True, None, 100.0, 99, 1000000000],
+    [
+        "99",
+        "1000000000",
+        "1e3",
+        "100 ",
+        "-100",
+        "10.0",
+        "",
+        "0x64",
+        "１００",
+        "100/status",
+        "100\n",
+        True,
+        None,
+        100.0,
+        99,
+        1000000000,
+    ],
 )
 def test_vmid_rejects(value):
     with pytest.raises(v.InputValidationError):
@@ -73,9 +95,7 @@ def test_vm_name_accepts(value):
     assert v.validate_vm_name(value) == value
 
 
-@pytest.mark.parametrize(
-    "value", ["my vm", "a/b", "a,b", "../", "", "-x", "a" * 64, "a..b", None]
-)
+@pytest.mark.parametrize("value", ["my vm", "a/b", "a,b", "../", "", "-x", "a" * 64, "a..b", None])
 def test_vm_name_rejects(value):
     with pytest.raises(v.InputValidationError):
         v.validate_vm_name(value)
