@@ -72,6 +72,8 @@ def validate_vmid(value: object, field: str = "vmid") -> str:
     if isinstance(value, int):
         number = value
     elif isinstance(value, str) and value.isascii() and _DIGITS_RE.fullmatch(value):
+        if len(value) > 12:  # int() on huge digit strings raises a plain ValueError
+            raise _fail(field, "must be in range 100-999999999", value)
         number = int(value)
     else:
         raise _fail(field, "must be an integer 100-999999999", value)

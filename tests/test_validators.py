@@ -173,3 +173,10 @@ def test_validate_optional():
     with pytest.raises(v.InputValidationError) as exc:
         v.validate_optional(v.validate_storage, "a b", "iso_storage")
     assert "iso_storage" in str(exc.value)
+
+
+def test_vmid_huge_digit_string_raises_validation_error():
+    from proxmox_mcp.validators import InputValidationError, validate_vmid
+
+    with pytest.raises(InputValidationError):
+        validate_vmid("9" * 5000)
