@@ -13,7 +13,7 @@
         "MCP_TOKEN": "YOUR_TOKEN_HERE"
       },
       "disabled": false,
-      "description": "ProxmoxMCP HTTP Server with Django Authentication"
+      "description": "ProxmoxMCP HTTP Server (API key auth)"
     },
     "ProxmoxMCP-HTTP-SSE": {
       "transport": {

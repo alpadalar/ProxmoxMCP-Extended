@@ -1,155 +1,85 @@
 # ProxmoxMCP HTTP Server Kılavuzu
 
-Bu kılavuz, ProxmoxMCP'nin HTTP transport özelliği ile Django authentication entegrasyonunu açıklar.
+Bu kılavuz, ProxmoxMCP'nin HTTP transport özelliğini ve API anahtarı (API key) ile kimlik doğrulamayı açıklar.
 
 ## 🚀 Hızlı Başlangıç
 
-### 1. Bağımlılıkları Yükle
+### 1. API Anahtarı Üret ve Hash'le
 
 ```bash
-# Django desteği ile yükle
-uv pip install -e ".[django]"
+# Anahtar üret
+python -c "import secrets; print(secrets.token_urlsafe(32))"
 
-# Ya da manuel olarak
-pip install fastmcp django djangorestframework pyjwt asgiref
+# SHA-256 digest'ini hesapla (anahtarın kendisi asla yapılandırmaya yazılmaz)
+echo -n '<key>' | python -m proxmox_mcp.auth.apikey
 ```
 
-### 2. Django Projesi Hazırla
+### 2. Digest'i Yapılandır
 
-#### Model Dosyalarını Kopyala
+Digest şu kaynaklardan biriyle verilir. Öncelik: CLI/constructor > ortam değişkeni > config dosyası.
+Kaynaklar birbirinin yerine geçer (birleştirilmez); anahtar döndürürken eski bir digest'in config'de
+kalıp geçerli olmaya devam etmesi bu şekilde engellenir.
 
 ```bash
-# Django projende auth uygulaması oluştur
-python manage.py startapp auth
-
-# Örnek modelleri kopyala
-cp examples/django_models.py your_project/auth/models.py
+# Ortam değişkeni (virgülle ayrılmış, isteğe bağlı "sha256:" öneki)
+export PROXMOX_MCP_API_KEY_HASHES=<digest>[,<digest2>]
 ```
 
-#### Migration'ları Oluştur
-
-```bash
-python manage.py makemigrations auth
-python manage.py migrate
-```
-
-#### Süper Kullanıcı ve Token Oluştur
-
-```bash
-# Süper kullanıcı oluştur
-python manage.py createsuperuser
-
-# Django shell'de token oluştur
-python manage.py shell
-```
-
-```python
-from django.contrib.auth.models import User
-from auth.models import ApplicationToken, UserRole
-
-# Rol oluştur
-admin_role = UserRole.objects.create(
-    name="Administrator",
-    is_superuser=True,
-    can_write=True,
-    can_admin=True
-)
-
-# Kullanıcıya rol ata
-user = User.objects.get(username='your_username')
-user.role = admin_role
-user.save()
-
-# Token oluştur
-token, raw_token = ApplicationToken.create_token(
-    user=user,
-    name="ProxmoxMCP Access",
-    permission="admin",
-    expires_days=30
-)
-
-print(f"Your token: {raw_token}")
-```
-
-### 3. ProxmoxMCP Konfigürasyonu
-
-Mevcut `proxmox-config/config.json` dosyanızı kullanabilirsiniz:
+Ya da config dosyasında (`http.api_key_digests`):
 
 ```json
 {
     "proxmox": {
         "host": "your-proxmox-host",
         "port": 8006,
-        "verify_ssl": false,
-        "service": "PVE"
+        "verify_ssl": true,
+        "service": "PVE",
+        "timeout": 30
     },
     "auth": {
         "user": "username@pve",
         "token_name": "your-token-name",
         "token_value": "your-token-value"
     },
+    "http": {
+        "api_key_digests": ["<64 karakterlik sha256 hex digest>"]
+    },
     "logging": {
-        "level": "INFO",
-        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        "file": "proxmox_mcp.log"
+        "level": "INFO"
     }
 }
 ```
 
-### 4. HTTP Server'ı Başlat
+`proxmox.timeout` saniye cinsindendir (varsayılan 30, `0 < t <= 300`, ortam değişkeni `PROXMOX_TIMEOUT`).
+Digest verilmezse sunucu başlamaz (fail-closed).
 
-#### Seçenek 1: Django Management Command
-
-```bash
-# Django projenizde ProxmoxMCP command'ini ekleyin
-cp -r src/proxmox_mcp/management your_django_project/
-
-# Server'ı başlatın
-python manage.py run_mcp_server --host 0.0.0.0 --port 8812 --path /proxmox-mcp
-```
-
-#### Seçenek 2: Standalone HTTP Server
+### 3. HTTP Server'ı Başlat
 
 ```bash
 # Start script kullan
 ./start_http_server.sh
 
 # Ya da direkt Python ile
-python -m proxmox_mcp.server_http --host 0.0.0.0 --port 8812 --path /proxmox-mcp
+python -m proxmox_mcp.server_http --config proxmox-config/config.json --port 8812 --path /proxmox-mcp
 ```
 
-## 🔒 Authentication ve Authorization
+Yalnızca yerel geliştirme için: `--no-auth` kimlik doğrulamayı kapatır ve sadece loopback
+adreslerinde (`127.0.0.1`, `::1`, `localhost`) çalışır. `/health` yolu kimlik doğrulamasından muaftır.
 
-### Scope Sistemi
+## 🔒 Authentication
 
-ProxmoxMCP üç scope seviyesi kullanır:
+Tek bir paylaşılan anahtar seviyesi vardır; scope/rol ayrımı yoktur. Geçerli anahtara sahip istemci tüm
+araçları kullanabilir (VM oluşturma, silme ve komut çalıştırma dahil), bu yüzden anahtarı gizli tutun.
 
-- **`user`**: Okuma işlemleri (get_nodes, get_vms, vb.)
-- **`write`**: Yazma işlemleri (start_vm, create_snapshot, vb.)
-- **`admin`**: Yönetici işlemleri (create_vm, delete_vm, stop_vm, vb.)
+### Anahtar Kullanımı
 
-### Tool Permissions
-
-| Tool | Required Scope | Açıklama |
-|------|---------------|----------|
-| `get_nodes` | `user` | Node listesi |
-| `get_vms` | `user` | VM listesi |
-| `get_vm_usage` | `user` | VM kaynak kullanımı |
-| `start_vm` | `write` | VM başlat |
-| `shutdown_vm` | `write` | VM'i zarif kapat |
-| `execute_vm_command` | `write` | VM'de komut çalıştır |
-| `create_vm` | `admin` | Yeni VM oluştur |
-| `delete_vm` | `admin` | VM'i sil |
-| `stop_vm` | `admin` | VM'i zorla durdur |
-
-### Token Kullanımı
-
-HTTP isteklerinde Authorization header kullanın:
+İstemci anahtarı `Authorization: Bearer <key>` veya `X-API-Key: <key>` başlığıyla gönderir:
 
 ```bash
 curl -X POST http://localhost:8812/proxmox-mcp \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Authorization: Bearer YOUR_API_KEY_HERE" \
   -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
   -d '{"method": "tools/list"}'
 ```
 
@@ -167,10 +97,10 @@ Cursor/VS Code'da MCP ayarlarınıza şunu ekleyin:
         "type": "http",
         "url": "http://localhost:8812/proxmox-mcp",
         "headers": {
-          "Authorization": "Bearer YOUR_TOKEN_HERE"
+          "Authorization": "Bearer YOUR_API_KEY_HERE"
         }
       },
-      "description": "ProxmoxMCP HTTP Server with Django Auth"
+      "description": "ProxmoxMCP HTTP Server (API key auth)"
     }
   }
 }
@@ -188,7 +118,7 @@ Daha iyi performans için SSE kullanabilirsiniz:
         "type": "sse",
         "url": "http://localhost:8812/proxmox-mcp/sse",
         "headers": {
-          "Authorization": "Bearer YOUR_TOKEN_HERE"
+          "Authorization": "Bearer YOUR_API_KEY_HERE"
         }
       }
     }
@@ -211,13 +141,13 @@ python manage.py run_mcp_server --debug --log-file debug.log
 ```bash
 # Tool listesini test et
 curl -X POST http://localhost:8812/proxmox-mcp \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Authorization: Bearer YOUR_API_KEY_HERE" \
   -H "Content-Type: application/json" \
   -d '{"method": "tools/list"}'
 
 # VM listesini test et
 curl -X POST http://localhost:8812/proxmox-mcp \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Authorization: Bearer YOUR_API_KEY_HERE" \
   -H "Content-Type: application/json" \
   -d '{
     "method": "tools/call",
@@ -232,7 +162,7 @@ curl -X POST http://localhost:8812/proxmox-mcp \
 
 ```bash
 curl -X POST http://localhost:8812/proxmox-mcp \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Authorization: Bearer YOUR_API_KEY_HERE" \
   -H "Content-Type: application/json" \
   -d '{
     "method": "tools/call",
@@ -267,40 +197,30 @@ python -m proxmox_mcp.server_http \
 
 ## 🚨 Güvenlik Notları
 
-1. **HTTPS Kullanın**: Production'da mutlaka HTTPS kullanın
-2. **Token Güvenliği**: Token'ları güvenli şekilde saklayın
-3. **IP Kısıtlaması**: ApplicationToken modelinde allowed_ips kullanın
-4. **Token Expiration**: Token'lara mutlaka expiration süresi verin
-5. **Rate Limiting**: Production'da rate limiting ekleyin
+1. **HTTPS Kullanın**: Production'da mutlaka TLS sonlandıran bir reverse proxy kullanın
+2. **Anahtar Güvenliği**: API anahtarını güvenli saklayın; yapılandırmaya yalnızca SHA-256 digest yazılır
+3. **Anahtar Döndürme**: Yeni digest'i ortam değişkenine koyun; ortam değişkeni config'deki listeyi tamamen değiştirir
+4. **Rate Limiting**: Production'da reverse proxy seviyesinde rate limiting ekleyin
 
 ## 🔍 Troubleshooting
 
 ### Yaygın Hatalar
 
-1. **Authentication Failed**
+1. **401 Unauthorized**
    ```
-   Kimlik doğrulama gerekli. Geçerli bir token sağlayın.
+   {"error": "unauthorized", "message": "Valid API key required"}
    ```
-   - Token'ınızı kontrol edin
-   - Authorization header'ını doğru yazdığınızdan emin olun
+   - Anahtarınızı ve digest'inizi kontrol edin
+   - `Authorization: Bearer <key>` veya `X-API-Key` başlığını doğru yazdığınızdan emin olun
 
-2. **Permission Denied**
-   ```
-   Bu işlem için gerekli yetkilere (admin) sahip değilsiniz.
-   ```
-   - Kullanıcı rolünüzü kontrol edin
-   - Token permission'ını kontrol edin
+2. **Sunucu başlamıyor (No API key digests configured)**
+   - `PROXMOX_MCP_API_KEY_HASHES` veya `http.api_key_digests` ayarlayın
+   - Yerel geliştirmede loopback üzerinde `--no-auth` kullanın
 
 3. **Connection Error**
    - Server'ın çalıştığından emin olun
    - Port'un açık olduğunu kontrol edin
    - Firewall ayarlarını kontrol edin
-
-### Debug Modu
-
-```bash
-python manage.py run_mcp_server --debug --host 0.0.0.0 --port 8812
-```
 
 ### Log Analizi
 
@@ -311,6 +231,5 @@ tail -f proxmox_mcp.log | grep "AUDIT\|ERROR"
 ## 📚 Daha Fazla Bilgi
 
 - [FastMCP Documentation](https://github.com/jlowin/fastmcp)
-- [Django Authentication](https://docs.djangoproject.com/en/stable/topics/auth/)
 - [MCP Protocol Specification](https://spec.modelcontextprotocol.io/)
 - [ProxmoxMCP Ana Dokümantasyon](README.md)

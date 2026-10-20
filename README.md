@@ -295,6 +295,10 @@ echo -n 'my-secret-key' | python -m proxmox_mcp.auth.apikey
 export PROXMOX_MCP_API_KEY_HASHES=<digest>[,<digest2>]
 # clients send: Authorization: Bearer my-secret-key   (or X-API-Key: my-secret-key)
 ```
+Digests can also be set in the config file as `http.api_key_digests` (list of sha256 hex
+digests). Precedence: constructor/CLI > `PROXMOX_MCP_API_KEY_HASHES` > config; sources replace
+each other, they are never merged. The Proxmox request timeout is `proxmox.timeout`
+(seconds, default 30, max 300; env `PROXMOX_TIMEOUT`).
 `/health` is the only unauthenticated endpoint.
 
 **Features:**

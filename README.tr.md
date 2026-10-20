@@ -264,6 +264,17 @@ Yerel HTTP taşıması geliştirmesi için:
 python -m proxmox_mcp.server_http --host 127.0.0.1 --port 8812 --path /proxmox-mcp
 ```
 
+**Kimlik doğrulama zorunludur.** Başlatmadan önce bir anahtar digest'i oluşturun (aksi halde sunucu başlamaz; `--no-auth` yalnızca loopback'te çalışır):
+```bash
+echo -n 'my-secret-key' | python -m proxmox_mcp.auth.apikey
+export PROXMOX_MCP_API_KEY_HASHES=<digest>[,<digest2>]
+# istemciler gönderir: Authorization: Bearer my-secret-key   (veya X-API-Key: my-secret-key)
+```
+Digest'ler config dosyasında `http.api_key_digests` olarak da verilebilir. Öncelik: CLI/constructor >
+`PROXMOX_MCP_API_KEY_HASHES` > config; kaynaklar birleştirilmez, birbirinin yerine geçer.
+Proxmox istek zaman aşımı `proxmox.timeout` (saniye, varsayılan 30, en fazla 300; ortam değişkeni `PROXMOX_TIMEOUT`).
+`/health` kimlik doğrulaması olmayan tek uç noktadır.
+
 **Özellikler:**
 - ✅ FastMCP HTTP taşıması
 - ✅ Server-Sent Events (SSE) desteği
