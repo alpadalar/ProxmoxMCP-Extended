@@ -158,3 +158,14 @@ def test_websocket_is_not_let_through(client):
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect("/proxmox-mcp"):
             pass
+
+
+def test_run_installs_no_signal_handlers(mock_env_vars, mock_proxmox, monkeypatch):
+    import signal
+    from unittest.mock import MagicMock
+
+    server = ProxmoxMCPHTTPServer(api_key_digests=[hash_api_key(KEY)])
+    monkeypatch.setattr(server.mcp, "run", MagicMock())
+    before = (signal.getsignal(signal.SIGINT), signal.getsignal(signal.SIGTERM))
+    server.run()
+    assert (signal.getsignal(signal.SIGINT), signal.getsignal(signal.SIGTERM)) == before

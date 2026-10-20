@@ -10,7 +10,6 @@ with ``--no-auth`` on a loopback address.
 import json
 import logging
 import os
-import signal
 import sys
 import warnings
 from datetime import datetime
@@ -258,14 +257,7 @@ class ProxmoxMCPHTTPServer:
         Runs the server with streamable HTTP transport on the configured
         host and port.
         """
-        def signal_handler(signum, frame):
-            self.logger.info("Received signal to shutdown HTTP server...")
-            sys.exit(0)
-
-        # Set up signal handlers
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
-
+        # Signals are left to uvicorn/FastMCP so shutdown stays graceful.
         try:
             self.logger.info(f"Starting ProxmoxMCP HTTP server on {self.host}:{self.port}{self.path}")
             self.logger.info(f"Authentication: {self.auth_state()}")
