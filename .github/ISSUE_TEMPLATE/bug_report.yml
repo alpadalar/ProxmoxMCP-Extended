@@ -1,0 +1,76 @@
+name: Bug report
+description: Something does not work as documented
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security problems must NOT be reported here. Use the private advisory form linked in the issue chooser.
+        Do not paste API tokens, API keys, passwords or real cluster addresses anywhere in this issue.
+  - type: input
+    id: version
+    attributes:
+      label: ProxmoxMCP-Extended version
+      description: Output of `uv run python -c "import proxmox_mcp; print(proxmox_mcp.__version__)"` or the commit
+    validations:
+      required: true
+  - type: dropdown
+    id: pve
+    attributes:
+      label: Proxmox VE version
+      options:
+        - 8.x
+        - 9.x
+        - Older than 8
+        - Not applicable (server does not start)
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: MCP client
+      description: For example Claude Desktop, Cursor, Cline, or a custom client, with its version
+    validations:
+      required: true
+  - type: dropdown
+    id: transport
+    attributes:
+      label: Transport
+      options:
+        - stdio
+        - HTTP
+        - Docker (HTTP)
+    validations:
+      required: true
+  - type: input
+    id: policy
+    attributes:
+      label: Policy flags in effect
+      description: Values of read_only, allow_destructive and allow_exec
+      placeholder: "read_only=false, allow_destructive=false, allow_exec=false"
+  - type: input
+    id: tool
+    attributes:
+      label: Tool involved
+      description: Tool name, if any (for example start_vm)
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized log excerpt
+      description: |
+        WARNING: remove tokens, API keys, passwords, hostnames and IP addresses you do not want public before pasting.
+        The server redacts known secrets, but check the text yourself.
+      render: text

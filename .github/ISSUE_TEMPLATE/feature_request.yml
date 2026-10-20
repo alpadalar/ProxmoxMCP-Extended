@@ -1,0 +1,43 @@
+name: Feature request
+description: Suggest a new tool or an improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        New tools change the public MCP surface and are reviewed for safety. Please describe the use case, not only the API call.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+    validations:
+      required: true
+  - type: input
+    id: tool
+    attributes:
+      label: Proposed tool name and Proxmox API endpoint
+      description: For example list_tasks, GET /nodes/{node}/tasks
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Proposed risk class
+      description: read only reads data, write is recoverable, destructive can lose data or overwrite configuration, exec runs code in a guest
+      options:
+        - read
+        - write
+        - destructive
+        - exec
+    validations:
+      required: true
+  - type: textarea
+    id: privileges
+    attributes:
+      label: Proxmox privileges the operation needs
+      description: Privilege names and ACL paths, if you know them
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
