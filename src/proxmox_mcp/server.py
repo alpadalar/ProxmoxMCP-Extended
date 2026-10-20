@@ -19,7 +19,6 @@ import logging
 import json
 import os
 import sys
-import signal
 from typing import Optional, List, Annotated
 
 from fastmcp import FastMCP
@@ -251,20 +250,12 @@ class ProxmoxMCPServer:
         """Start the MCP server.
         
         Initializes the server with:
-        - Signal handlers for graceful shutdown (SIGINT, SIGTERM)
+        - Shutdown handled by fastmcp (KeyboardInterrupt / SIGTERM)
         - Async runtime for handling concurrent requests
         - Error handling and logging
         
         The server runs until terminated by a signal or fatal error.
         """
-        def signal_handler(signum, frame):
-            self.logger.info("Received signal to shutdown...")
-            sys.exit(0)
-
-        # Set up signal handlers
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
-
         try:
             # Optionally run tests before serving
             run_tests = os.getenv("RUN_TESTS_ON_START", "0").lower() in ("1", "true", "yes", "on")
