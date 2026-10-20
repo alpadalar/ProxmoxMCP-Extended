@@ -17,7 +17,7 @@ from starlette.responses import JSONResponse
 
 from .auth.apikey import APIKeyAuthMiddleware, is_authorized
 from .auth.hostguard import LoopbackHostGuardMiddleware
-from .auth.policy import resolve_auth_policy
+from .auth.policy import LOOPBACK_HOSTS, resolve_auth_policy
 from .core.proxmox import ProxmoxManager
 from .tools.cluster import ClusterTools
 from .tools.node import NodeTools
@@ -124,6 +124,14 @@ def create_app(
                 "AUTHENTICATION DISABLED (--no-auth): all MCP tools, including VM "
                 "create/delete/exec, are open to anyone who can reach %s:%s",
                 host, port,
+            )
+
+        elif host not in LOOPBACK_HOSTS:
+            logger.warning(
+                "Serving the API key over plaintext HTTP on non-loopback host %s; "
+                "there is no built-in TLS, so terminate TLS in a reverse proxy in front of "
+                "this server",
+                host,
             )
 
     manager = ProxmoxManager(config.proxmox, config.auth)

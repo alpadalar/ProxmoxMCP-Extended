@@ -105,3 +105,13 @@ def test_unreachable_proxmox_does_not_break_create_app(config):
     with patch("proxmox_mcp.core.proxmox.ProxmoxAPI", side_effect=ConnectionError("down")):
         app = create_app(config, "http", api_key_digests=[DIGEST])
         assert app.manager.connection_state() == "not_connected"
+
+
+def test_plaintext_non_loopback_warns(config, mock_proxmox, caplog):
+    with caplog.at_level(logging.WARNING):
+        create_app(config, "http", host="0.0.0.0", api_key_digests=[DIGEST])
+    assert any("plaintext HTTP" in r.getMessage() for r in caplog.records)
+    caplog.clear()
+    with caplog.at_level(logging.WARNING):
+        create_app(config, "http", host="127.0.0.1", api_key_digests=[DIGEST])
+    assert not any("plaintext HTTP" in r.getMessage() for r in caplog.records)

@@ -300,6 +300,7 @@ digests). Precedence: constructor/CLI > `PROXMOX_MCP_API_KEY_HASHES` > config; s
 each other, they are never merged. The Proxmox request timeout is `proxmox.timeout`
 (seconds, default 30, max 300; env `PROXMOX_TIMEOUT`).
 `/health` is the only unauthenticated endpoint and returns only `{"status": "ok"}`; auth mode and Proxmox reachability are returned to callers that send a valid API key (or via the `health` tool).
+The server has no built-in TLS: when binding a non-loopback host the API key travels in cleartext, so terminate TLS in a reverse proxy (a startup warning is logged).
 
 **Features:**
 - ✅ FastMCP HTTP transport
