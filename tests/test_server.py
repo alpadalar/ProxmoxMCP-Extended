@@ -15,7 +15,7 @@ def test_server_initialization(server, mock_proxmox):
     assert server.config.proxmox.host == "test.proxmox.com"
     assert server.config.auth.user == "test@pve"
     assert server.config.auth.token_name == "test_token"
-    assert server.config.auth.token_value == "test_value"
+    assert server.config.auth.token_value.get_secret_value() == "test_value"
     assert server.config.logging.level == "DEBUG"
 
     mock_proxmox.assert_called_once()

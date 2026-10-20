@@ -57,13 +57,18 @@ class ProxmoxManager:
         Returns:
             Dictionary containing merged configuration ready for API initialization
         """
+        if proxmox_config.verify_ssl is False:
+            self.logger.warning(
+                "TLS certificate verification is DISABLED (verify_ssl=false); "
+                "API traffic is vulnerable to interception"
+            )
         return {
             'host': proxmox_config.host,
             'port': proxmox_config.port,
             'user': auth_config.user,
             'token_name': auth_config.token_name,
-            'token_value': auth_config.token_value,
-            'verify_ssl': proxmox_config.verify_ssl,
+            'token_value': auth_config.token_value.get_secret_value(),
+            'verify_ssl': proxmox_config.ca_bundle or proxmox_config.verify_ssl,
             'service': proxmox_config.service
         }
 
