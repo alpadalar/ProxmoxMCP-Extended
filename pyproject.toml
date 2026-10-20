@@ -29,6 +29,7 @@ classifiers = [
 
 dependencies = [
     "fastmcp>=4.1.2,<5",
+    "mcp>=2,<3",
     "proxmoxer>=2.2,<3",
     "pydantic>=2.12,<3",
     "requests>=2.32,<3",
