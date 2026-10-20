@@ -42,6 +42,7 @@ Parameters:
 node* - Host node name (e.g. 'pve')
 vmid* - VM ID number (e.g. '100')
 name* - Snapshot name to rollback to (e.g. 'pre-upgrade')
+confirm - Must be true to actually perform the operation; without it only a preview is returned (default: false)
 
 Example:
 Rollback VM 100 on node pve to snapshot 'pre-upgrade'"""
@@ -99,6 +100,7 @@ STOP_VM_DESC = """Stop a virtual machine (force stop).
 Parameters:
 node* - Host node name (e.g. 'pve')  
 vmid* - VM ID number (e.g. '101')
+confirm - Must be true to actually perform the operation; without it only a preview is returned (default: false)
 
 Example:
 Force stop VPN-Server with ID 101 on node pve"""
@@ -117,6 +119,7 @@ RESET_VM_DESC = """Reset (restart) a virtual machine.
 Parameters:
 node* - Host node name (e.g. 'pve')
 vmid* - VM ID number (e.g. '101')
+confirm - Must be true to actually perform the operation; without it only a preview is returned (default: false)
 
 Example:
 Reset VPN-Server with ID 101 on node pve"""
@@ -129,6 +132,7 @@ Parameters:
 node* - Host node name (e.g. 'pve')
 vmid* - VM ID number (e.g. '998')
 force - Force deletion even if VM is running (optional, default: false)
+confirm - Must be true to actually perform the operation; without it only a preview is returned (default: false)
 
 This will permanently remove:
 - VM configuration

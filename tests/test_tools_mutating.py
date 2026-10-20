@@ -66,7 +66,8 @@ async def test_power_tools_post_once(server, vm, tool, action, state):
     """Each power tool posts to the matching status endpoint exactly once."""
     _set_status(vm, state)
     vm.status.__getattr__(action).post.return_value = "UPID:task"
-    text = tool_text(await server.mcp.call_tool(tool, NODE_ARGS))
+    args = {**NODE_ARGS, "confirm": True} if tool in ("stop_vm", "reset_vm") else NODE_ARGS
+    text = tool_text(await server.mcp.call_tool(tool, args))
     getattr(vm.status, action).post.assert_called_once_with()
     assert "UPID:task" in text
 
@@ -79,8 +80,9 @@ async def test_power_tools_post_once(server, vm, tool, action, state):
 async def test_power_tools_missing_vm_does_not_post(server, vm, tool, action):
     """A nonexistent VM yields an error and never posts the action."""
     vm.status.current.get.side_effect = Exception("VM 100 does not exist")
+    args = {**NODE_ARGS, "confirm": True} if tool in ("stop_vm", "reset_vm") else NODE_ARGS
     with pytest.raises(ToolError, match="not found"):
-        await server.mcp.call_tool(tool, NODE_ARGS)
+        await server.mcp.call_tool(tool, args)
     getattr(vm.status, action).post.assert_not_called()
 
 
@@ -89,7 +91,7 @@ async def test_delete_vm_stopped(server, vm):
     """Deleting a stopped VM calls qemu(vmid).delete without stopping first."""
     _set_status(vm, "stopped")
     vm.delete.return_value = "UPID:del"
-    text = tool_text(await server.mcp.call_tool("delete_vm", NODE_ARGS))
+    text = tool_text(await server.mcp.call_tool("delete_vm", {**NODE_ARGS, "confirm": True}))
     vm.delete.assert_called_once_with()
     vm.status.stop.post.assert_not_called()
     assert "UPID:del" in text
@@ -99,7 +101,7 @@ async def test_delete_vm_stopped(server, vm):
 async def test_delete_vm_running_without_force_refused(server, vm):
     """A running VM is not deleted without force."""
     with pytest.raises(ToolError, match="running"):
-        await server.mcp.call_tool("delete_vm", NODE_ARGS)
+        await server.mcp.call_tool("delete_vm", {**NODE_ARGS, "confirm": True})
     vm.delete.assert_not_called()
 
 
@@ -109,7 +111,7 @@ async def test_delete_vm_force_stops_then_deletes(server, vm):
     manager = MagicMock()
     manager.attach_mock(vm.status.stop.post, "stop_post")
     manager.attach_mock(vm.delete, "delete")
-    await server.mcp.call_tool("delete_vm", {**NODE_ARGS, "force": True})
+    await server.mcp.call_tool("delete_vm", {**NODE_ARGS, "force": True, "confirm": True})
     names = [c[0] for c in manager.mock_calls if c[0] in ("stop_post", "delete")]
     assert names == ["stop_post", "delete"]
 
@@ -154,7 +156,7 @@ async def test_create_snapshot_minimal(server, vm):
 async def test_rollback_snapshot_posts_rollback(server, vm):
     """rollback_snapshot posts snapshot(name).rollback."""
     vm.snapshot.return_value.rollback.post.return_value = "UPID:rb"
-    text = tool_text(await server.mcp.call_tool("rollback_snapshot", {**NODE_ARGS, "name": "pre"}))
+    text = tool_text(await server.mcp.call_tool("rollback_snapshot", {**NODE_ARGS, "name": "pre", "confirm": True}))
     vm.snapshot.assert_called_with("pre")
     vm.snapshot.return_value.rollback.post.assert_called_once_with()
     assert "UPID:rb" in text

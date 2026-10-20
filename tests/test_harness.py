@@ -137,6 +137,12 @@ SMOKE_ARGS = {
 }
 
 
+CONFIRM_TOOLS = ("delete_vm", "stop_vm", "reset_vm", "rollback_snapshot")
+SMOKE_ARGS_CONFIRMED = {
+    n: ({**a, "confirm": True} if n in CONFIRM_TOOLS else a) for n, a in SMOKE_ARGS.items()
+}
+
+
 def test_smoke_table_matches_golden():
     golden = {t["name"] for t in json.loads(GOLDEN.read_text())}
     assert set(SMOKE_ARGS) == golden
@@ -152,7 +158,7 @@ async def test_every_tool_runs_through_fake(fake_pve_server, fake_pve, name):
         )
     with patch("asyncio.sleep", new=AsyncMock()):
         try:
-            result = await fake_pve_server.mcp.call_tool(name, SMOKE_ARGS[name])
+            result = await fake_pve_server.mcp.call_tool(name, SMOKE_ARGS_CONFIRMED[name])
         except UnmockedCallError:
             raise
         except Exception as exc:  # legitimate business refusals are tolerated

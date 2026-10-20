@@ -1,0 +1,286 @@
+[
+  {
+    "name": "create_snapshot",
+    "params": [
+      {
+        "name": "description",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "vmstate",
+        "required": false,
+        "type": "boolean"
+      }
+    ]
+  },
+  {
+    "name": "create_vm",
+    "params": [
+      {
+        "name": "cpus",
+        "required": true,
+        "type": "integer"
+      },
+      {
+        "name": "disk_size",
+        "required": true,
+        "type": "integer"
+      },
+      {
+        "name": "iso_name",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "iso_storage",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "memory",
+        "required": true,
+        "type": "integer"
+      },
+      {
+        "name": "name",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "ostype",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "storage",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "delete_vm",
+    "params": [
+      {
+        "name": "force",
+        "required": false,
+        "type": "boolean"
+      },
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "execute_vm_command",
+    "params": [
+      {
+        "name": "command",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "get_cluster_status",
+    "params": []
+  },
+  {
+    "name": "get_containers",
+    "params": []
+  },
+  {
+    "name": "get_node_status",
+    "params": [
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "get_nodes",
+    "params": []
+  },
+  {
+    "name": "get_storage",
+    "params": []
+  },
+  {
+    "name": "get_vm_usage",
+    "params": [
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "get_vms",
+    "params": []
+  },
+  {
+    "name": "health",
+    "params": []
+  },
+  {
+    "name": "reset_vm",
+    "params": [
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "rollback_snapshot",
+    "params": [
+      {
+        "name": "name",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "shutdown_vm",
+    "params": [
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "start_vm",
+    "params": [
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "stop_vm",
+    "params": [
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "update_vm",
+    "params": [
+      {
+        "name": "cpus",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "memory",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "name",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      }
+    ]
+  }
+]

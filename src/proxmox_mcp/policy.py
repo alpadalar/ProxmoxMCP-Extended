@@ -8,11 +8,15 @@ denied call fails with ``policy_denied`` before any Proxmox call is made.
 """
 import functools
 import inspect
+import json
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from fastmcp.exceptions import ToolError
+from mcp.types import TextContent as Content
+
+from .validators import validate_node, validate_snapshot_name, validate_vmid
 
 logger = logging.getLogger("proxmox-mcp.policy")
 
@@ -145,3 +149,53 @@ def compose_wraps(*wraps: Optional[Callable[..., Any]]) -> Callable[[Any, Callab
         return handler
 
     return composed
+
+
+_EFFECTS: Dict[str, List[str]] = {
+    "stop_vm": [
+        "Hard power-off of the VM without a guest shutdown.",
+        "Unsaved guest data may be lost and filesystems may need recovery.",
+    ],
+    "reset_vm": [
+        "Hard reset of the VM, equivalent to pressing the reset button.",
+        "Unsaved guest state is lost.",
+    ],
+    "delete_vm": [
+        "Permanently removes the VM configuration, all its disks and all its snapshots.",
+        "This cannot be undone.",
+    ],
+    "rollback_snapshot": [
+        "Discards all current VM state since the snapshot was taken.",
+        "Changes made after the snapshot cannot be recovered.",
+    ],
+}
+
+
+def build_preview(tool: str, **target: Any) -> List[Content]:
+    """Return a confirmation preview for a destructive tool; performs no I/O.
+
+    Inputs are validated (rejected, never sanitized) with the central validators first.
+    """
+    if tool not in _EFFECTS:
+        raise ValueError(f"No preview defined for tool '{tool}'")
+    shown: Dict[str, Any] = {
+        "node": validate_node(target.get("node")),
+        "vmid": validate_vmid(target.get("vmid")),
+    }
+    if "name" in target:
+        shown["name"] = validate_snapshot_name(target["name"])
+    effects = list(_EFFECTS[tool])
+    if tool == "delete_vm":
+        force = bool(target.get("force", False))
+        shown["force"] = force
+        if force:
+            effects.append("A running VM will be stopped first (force=true).")
+    payload = {
+        "preview": True,
+        "executed": False,
+        "tool": tool,
+        "target": shown,
+        "effects": effects,
+        "how_to_confirm": f"Repeat the {tool} call with confirm=true to perform this operation.",
+    }
+    return [Content(type="text", text=json.dumps(payload))]

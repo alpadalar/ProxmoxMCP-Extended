@@ -155,7 +155,7 @@ async def test_rollback_snapshot(server, mock_proxmox):
     mock_proxmox.return_value.nodes.return_value.qemu.return_value.snapshot.return_value = snap_resource
     response = await server.mcp.call_tool(
         "rollback_snapshot",
-        {"node": "node1", "vmid": "100", "name": "pre-upgrade"},
+        {"node": "node1", "vmid": "100", "name": "pre-upgrade", "confirm": True},
     )
     text = tool_text(response)
     assert "Rollback to snapshot 'pre-upgrade'" in text

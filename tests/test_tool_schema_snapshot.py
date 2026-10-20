@@ -18,6 +18,15 @@ import pytest
 import pytest_asyncio
 
 GOLDEN_PATH = Path(__file__).parent / "golden" / "tools.json"
+# tools_phase3.json is the frozen pre-Phase-4 tool surface; tools.json may differ from it
+# only by DOCUMENTED_ADDITIONS below (deliberate, additive, optional parameters).
+BASELINE_PATH = Path(__file__).parent / "golden" / "tools_phase3.json"
+DOCUMENTED_ADDITIONS = {
+    "delete_vm": {"confirm": "boolean"},
+    "stop_vm": {"confirm": "boolean"},
+    "reset_vm": {"confirm": "boolean"},
+    "rollback_snapshot": {"confirm": "boolean"},
+}
 SIMPLE_TYPES = {"string", "integer", "number", "boolean", "array", "object"}
 
 
@@ -121,3 +130,15 @@ def test_mismatch_is_reported():
     diff = diff_snapshots(golden, mutated)
     assert diff
     assert dropped["name"] in diff
+
+
+def test_golden_is_phase3_plus_documented_additions():
+    """The current surface is the frozen Phase 3 baseline plus exactly the documented extras."""
+    expected = {t["name"]: {p["name"]: p for p in t["params"]}
+                for t in json.loads(BASELINE_PATH.read_text(encoding="utf-8"))}
+    for tool, extras in DOCUMENTED_ADDITIONS.items():
+        for pname, ptype in extras.items():
+            assert pname not in expected[tool], f"{tool}.{pname} already in baseline"
+            expected[tool][pname] = {"name": pname, "required": False, "type": ptype}
+    actual = {t["name"]: {p["name"]: p for p in t["params"]} for t in _load_golden()}
+    assert actual == expected

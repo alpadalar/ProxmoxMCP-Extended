@@ -16,6 +16,7 @@ from fastmcp import FastMCP
 from mcp.types import TextContent as Content
 from pydantic import Field
 
+from ..policy import build_preview
 from .definitions import (
     CREATE_SNAPSHOT_DESC,
     CREATE_VM_DESC,
@@ -179,8 +180,11 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
     @_tool(STOP_VM_DESC)
     def stop_vm(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-        vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")]
+        vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")],
+        confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
     ):
+        if not confirm:
+            return build_preview("stop_vm", node=node, vmid=vmid)
         return ctx.vm_tools.stop_vm(node, vmid)
 
     @_tool(SHUTDOWN_VM_DESC)
@@ -193,16 +197,22 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
     @_tool(RESET_VM_DESC)
     def reset_vm(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-        vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")]
+        vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")],
+        confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
     ):
+        if not confirm:
+            return build_preview("reset_vm", node=node, vmid=vmid)
         return ctx.vm_tools.reset_vm(node, vmid)
 
     @_tool(DELETE_VM_DESC)
     def delete_vm(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '998')")],
-        force: Annotated[bool, Field(description="Force deletion even if VM is running", default=False)] = False
+        force: Annotated[bool, Field(description="Force deletion even if VM is running", default=False)] = False,
+        confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
     ):
+        if not confirm:
+            return build_preview("delete_vm", node=node, vmid=vmid, force=force)
         return ctx.vm_tools.delete_vm(node, vmid, force)
 
     @_tool(UPDATE_VM_DESC)
@@ -231,7 +241,10 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
         name: Annotated[str, Field(description="Snapshot name to rollback to")],
+        confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
     ):
+        if not confirm:
+            return build_preview("rollback_snapshot", node=node, vmid=vmid, name=name)
         return ctx.vm_tools.rollback_snapshot(node, vmid, name)
 
     # VM usage tool

@@ -13,7 +13,7 @@ from starlette.testclient import TestClient
 from proxmox_mcp.config.models import PolicyConfig
 from proxmox_mcp.policy import PolicyDeniedError, ToolPolicy, compose_wraps, make_policy_wrap
 from proxmox_mcp.tools.registry import RISK_CLASSES
-from tests.test_harness import SMOKE_ARGS
+from tests.test_harness import SMOKE_ARGS, SMOKE_ARGS_CONFIRMED
 
 
 def _spec(risk, name="some_tool"):
@@ -136,7 +136,7 @@ async def test_policy_matrix(policy_app, fake_pve, name, combo):
     with patch("asyncio.sleep", new=AsyncMock()):
         if allowed:
             try:
-                await app.mcp.call_tool(name, SMOKE_ARGS[name])
+                await app.mcp.call_tool(name, SMOKE_ARGS_CONFIRMED[name])
             except Exception as exc:  # business refusals are fine, policy denials are not
                 assert "policy_denied" not in str(exc)
             if name != "health":

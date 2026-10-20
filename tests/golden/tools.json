@@ -88,6 +88,11 @@
     "name": "delete_vm",
     "params": [
       {
+        "name": "confirm",
+        "required": false,
+        "type": "boolean"
+      },
+      {
         "name": "force",
         "required": false,
         "type": "boolean"
@@ -177,6 +182,11 @@
     "name": "reset_vm",
     "params": [
       {
+        "name": "confirm",
+        "required": false,
+        "type": "boolean"
+      },
+      {
         "name": "node",
         "required": true,
         "type": "string"
@@ -191,6 +201,11 @@
   {
     "name": "rollback_snapshot",
     "params": [
+      {
+        "name": "confirm",
+        "required": false,
+        "type": "boolean"
+      },
       {
         "name": "name",
         "required": true,
@@ -241,6 +256,11 @@
   {
     "name": "stop_vm",
     "params": [
+      {
+        "name": "confirm",
+        "required": false,
+        "type": "boolean"
+      },
       {
         "name": "node",
         "required": true,

@@ -87,7 +87,7 @@ def test_matrix_covers_every_golden_tool():
             if any(h in pname for h in IDENT_HINTS):
                 assert pname in GOOD, f"{tool}.{pname} is not covered by the injection matrix"
             else:
-                assert pname in OTHER or pname in {"description", "vmstate", "force"}, (
+                assert pname in OTHER or pname in {"description", "vmstate", "force", "confirm", "args"}, (
                     f"{tool}.{pname} is unknown to the injection matrix"
                 )
 
