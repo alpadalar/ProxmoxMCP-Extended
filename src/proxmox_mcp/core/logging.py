@@ -2,7 +2,7 @@
 Logging configuration for the Proxmox MCP server.
 
 This module handles logging setup and configuration:
-- File and console logging handlers
+- Console (stderr) logging by default, optional size-bounded rotating file logging (0600)
 - Log level management
 - Format customization
 - Handler lifecycle management
@@ -17,9 +17,24 @@ The logging system supports:
 
 import logging
 import os
+from io import TextIOWrapper
+from logging.handlers import RotatingFileHandler
 
 from ..config.models import LoggingConfig
 from ..utils.redaction import RedactingFilter
+
+LOG_FILE_MAX_BYTES = 10 * 1024 * 1024
+LOG_FILE_BACKUP_COUNT = 5  # total on disk is bounded to (1 + 5) * 10 MiB
+
+
+class _PrivateRotatingFileHandler(RotatingFileHandler):
+    """Rotating file handler whose active and rotated files are always mode 0600."""
+
+    def _open(self) -> TextIOWrapper:
+        fd = os.open(self.baseFilename, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        os.close(fd)
+        os.chmod(self.baseFilename, 0o600)
+        return super()._open()
 
 
 def _resolve_level(name: str) -> int:
@@ -39,9 +54,10 @@ def setup_logging(config: LoggingConfig) -> logging.Logger:
       * Uses configured log level
       * Applies custom format
 
-    - Console logging:
-      * Always enabled for errors
-      * Ensures critical issues are visible
+    - Console logging (stderr):
+      * Without a log file: everything at the configured level
+      * With a log file: errors only
+    - File logging is rotated (10 MiB x 5 backups) and files are 0600
 
     - Handler Management:
       * Removes existing handlers
@@ -76,17 +92,20 @@ def setup_logging(config: LoggingConfig) -> logging.Logger:
     handlers: list[logging.Handler] = []
 
     if log_file:
-        # Create with 0600 (umask-independent) and tighten any pre-existing file.
-        fd = os.open(log_file, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
-        os.close(fd)
-        os.chmod(log_file, 0o600)
-        file_handler = logging.FileHandler(log_file)
+        file_handler = _PrivateRotatingFileHandler(
+            log_file,
+            maxBytes=LOG_FILE_MAX_BYTES,
+            backupCount=LOG_FILE_BACKUP_COUNT,
+            encoding="utf-8",
+        )
         file_handler.setLevel(level)
         handlers.append(file_handler)
 
-    # Console handler for errors only
+    # Console (stderr; stdout is the stdio MCP channel). Without a log file it carries
+    # everything at the configured level (the Docker logging driver collects it);
+    # with a log file only errors are mirrored.
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.ERROR)
+    console_handler.setLevel(logging.ERROR if log_file else level)
     handlers.append(console_handler)
 
     # Configure formatters and secret redaction on every handler

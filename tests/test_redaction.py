@@ -94,6 +94,37 @@ def test_setup_logging_new_file_0600_and_idempotent(tmp_path, restore_root_logge
         os.umask(old)
 
 
+def test_file_logging_rotates_bounded_and_0600(tmp_path, restore_root_logger, monkeypatch):
+    import proxmox_mcp.core.logging as plog
+
+    monkeypatch.setattr(plog, "LOG_FILE_MAX_BYTES", 300)
+    monkeypatch.setattr(plog, "LOG_FILE_BACKUP_COUNT", 2)
+    old = os.umask(0o000)
+    try:
+        path = tmp_path / "rot.log"
+        logger = setup_logging(LoggingConfig(level="INFO", file=str(path)))
+        for i in range(60):
+            logger.info("line %d %s", i, "x" * 40)
+    finally:
+        os.umask(old)
+    files = sorted(tmp_path.glob("rot.log*"))
+    assert {f.name for f in files} == {"rot.log", "rot.log.1", "rot.log.2"}
+    for f in files:
+        assert stat.S_IMODE(os.stat(f).st_mode) == 0o600
+        assert f.stat().st_size <= 300 + 200  # one record may overshoot the limit
+
+
+def test_console_logs_at_level_without_file_and_errors_only_with_file(
+    tmp_path, restore_root_logger
+):
+    setup_logging(LoggingConfig(level="INFO"))
+    (console,) = [h for h in logging.getLogger().handlers if not isinstance(h, logging.FileHandler)]
+    assert console.level == logging.INFO
+    setup_logging(LoggingConfig(level="INFO", file=str(tmp_path / "c.log")))
+    (console,) = [h for h in logging.getLogger().handlers if not isinstance(h, logging.FileHandler)]
+    assert console.level == logging.ERROR
+
+
 def test_default_level_info_and_invalid_rejected():
     assert LoggingConfig().level == "INFO"
     with pytest.raises(ValueError):
