@@ -10,14 +10,21 @@ services:
     environment:
       - PROXMOX_MCP_CONFIG=/config/config.json
       - PROXMOX_MCP_API_KEY_HASHES=${PROXMOX_MCP_API_KEY_HASHES:?set sha256 digests of API keys}
-      - LOG_FILE=/tmp/proxmox_mcp.log
+      # No LOG_FILE: the app logs to stderr and Docker collects it (see logging below).
     # Run as the uid that owns a 0600 config file on the host: PROXMOX_MCP_UID=$(id -u)
     # PROXMOX_MCP_GID=$(id -g). The default is the image user.
     user: "${PROXMOX_MCP_UID:-10001}:${PROXMOX_MCP_GID:-10001}"
     read_only: true
     init: true
+    # Small tmpfs for genuinely temporary files only. Do not put logs here: it is RAM-backed,
+    # capped, and wiped on restart. Logs go to the Docker logging driver below.
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=16m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     cap_drop:
       - ALL
     security_opt:

@@ -87,7 +87,6 @@ jobs:
           docker run -d --name smoke \
             --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
             -e "PROXMOX_MCP_API_KEY_HASHES=$digest" \
-            -e LOG_FILE=/tmp/proxmox_mcp.log \
             -v "$cfg:/config:ro" \
             -p "127.0.0.1:${SMOKE_PORT}:8812" \
             "$IMAGE_ID"

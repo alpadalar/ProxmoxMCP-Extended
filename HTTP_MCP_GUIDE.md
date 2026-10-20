@@ -157,7 +157,8 @@ proxy kullanın.
 5. **Bağlantı hatası**: Sunucunun çalıştığını, portun ve `MCP_HTTP_HOST`/`MCP_HTTP_PORT`
    değerlerinin doğru olduğunu kontrol edin.
 
-Loglar yapılandırılan `logging.file` dosyasına yazılır (varsayılan örnek `proxmox_mcp.log`).
+Loglar varsayılan olarak stderr'e yazılır (Docker'da `docker compose logs`). İsteğe bağlı olarak
+`logging.file` / `LOG_FILE` ile 0600 izinli, döndürülen (10 MiB x 5) bir dosyaya da yazılabilir.
 
 ## Daha fazla bilgi
 

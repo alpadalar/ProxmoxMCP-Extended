@@ -127,6 +127,11 @@ upgrading an existing setup.
   capped at 300 characters.
 - Tools validate all inputs first (node, vmid, storage, snapshot name, UPID and so on) before any
   Proxmox call.
+- Logging: with no `logging.file` the server logs to stderr at the configured level (previously
+  only errors reached the console). The container no longer sets `LOG_FILE`; compose uses the
+  `json-file` driver (10 MB x 5) and `config.example.json` no longer sets a log file. The optional
+  log file is now rotated (10 MiB x 5 backups), and active and rotated files are created with mode
+  0600.
 - Linting and type checking: `ruff check`, `ruff format` and `mypy src` are clean and enforced.
 - Version bumped to 1.0.0; development status Beta.
 

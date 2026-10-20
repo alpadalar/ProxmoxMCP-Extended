@@ -64,3 +64,15 @@ def test_compose_is_hardened() -> None:
     assert "privileged" not in svc
     assert "cap_add" not in svc
     assert not any(str(e).startswith("HTTP_") for e in svc["environment"])
+
+
+def test_logs_go_to_the_docker_driver_not_tmpfs() -> None:
+    raw = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    svc = yaml.safe_load(raw)["services"]["proxmox-mcp-extended"]
+    assert not any(str(e).startswith("LOG_FILE") for e in svc["environment"])
+    assert svc["logging"]["driver"] == "json-file"
+    assert svc["logging"]["options"] == {"max-size": "10m", "max-file": "5"}
+    (tmp,) = svc["tmpfs"]
+    assert tmp.startswith("/tmp:") and "noexec" in tmp
+    assert "LOG_FILE" not in (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    assert "LOG_FILE" not in (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")

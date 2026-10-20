@@ -401,8 +401,10 @@ uv run pytest -q
   çaredir.
 - **"Permission denied ... Required privilege"**: token'ın o yolda belirtilen yetkisi yok.
 - **Bir araç politika nedeniyle kapalı diyor**: [Güvenlik modeli](#güvenlik-modeli) bölümüne bakın.
-- Loglar yapılandırılan `logging.file` dosyasına (konteynerde `/tmp/proxmox_mcp.log`) ve
-  `docker compose logs` çıktısına gider.
+- Loglar varsayılan olarak stderr'e gider (konteynerde `docker compose logs`; json-file sürücüsü
+  10 MB x 5 dosya tutar). İsteğe bağlı dosya için `logging.file` / `LOG_FILE` ayarlayın: dosya
+  döndürülür (10 MiB x 5 yedek) ve 0600 izniyle oluşturulur. Konteynerin küçük ve yeniden
+  başlatmada silinen `/tmp` tmpfs'ine yazmayın; bir volume bağlayın.
 
 ## Güvenlik
 

@@ -24,7 +24,6 @@
     },
     "logging": {
         "level": "INFO",
-        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        "file": "proxmox_mcp.log"
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     }
 }

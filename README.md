@@ -406,8 +406,10 @@ uv run pytest -q
   last resort.
 - **"Permission denied ... Required privilege"**: the token lacks the named privilege on that path.
 - **A tool says it is disabled by policy**: see [Safety model](#safety-model).
-- Logs go to the configured `logging.file` (in the container, `/tmp/proxmox_mcp.log`) and
-  `docker compose logs`.
+- Logs go to stderr by default (in the container: `docker compose logs`, kept by the json-file
+  driver, 10 MB x 5 files). Set `logging.file` / `LOG_FILE` for an optional file instead of
+  relying on the console: it is rotated (10 MiB x 5 backups) and created with mode 0600. Do not
+  point it at the container's `/tmp` tmpfs (small and wiped on restart); mount a volume instead.
 
 ## Security
 
