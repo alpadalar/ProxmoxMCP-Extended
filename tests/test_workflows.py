@@ -22,8 +22,8 @@ UNTRUSTED = re.compile(
 )
 LATEST = "latest=${{ github.event_name == 'push' && 'auto' || 'false' }}"
 LINT_COMMANDS = [
-    "uv run ruff check src tests",
-    "uv run ruff format --check src tests",
+    "uv run ruff check src tests scripts",
+    "uv run ruff format --check src tests scripts",
     "uv run mypy src",
 ]
 # Keep in sync with requires-python and the CI matrix in .github/workflows/ci.yml.
