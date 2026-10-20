@@ -48,6 +48,39 @@ RISK_CLASSES = {
 }
 _RISK_BY_NAME = {n: r for r, names in RISK_CLASSES.items() for n in names}
 
+# MCP tool annotations (camelCase keys, accepted by fastmcp 4.x as a dict).
+_ANNOTATION_DEFAULTS: Dict[str, Dict[str, bool]] = {
+    "read": {
+        "readOnlyHint": True, "destructiveHint": False,
+        "idempotentHint": True, "openWorldHint": False,
+    },
+    "write": {
+        "readOnlyHint": False, "destructiveHint": False,
+        "idempotentHint": False, "openWorldHint": False,
+    },
+    "destructive": {
+        "readOnlyHint": False, "destructiveHint": True,
+        "idempotentHint": False, "openWorldHint": False,
+    },
+    "exec": {
+        "readOnlyHint": False, "destructiveHint": True,
+        "idempotentHint": False, "openWorldHint": False,
+    },
+}
+ANNOTATION_OVERRIDES: Dict[str, Dict[str, bool]] = {
+    "update_vm": {"destructiveHint": True},  # overwrites existing configuration
+    "start_vm": {"idempotentHint": True},
+    "shutdown_vm": {"idempotentHint": True},
+    "execute_vm_command": {"openWorldHint": True},  # runs arbitrary code in a guest
+}
+
+
+def annotations_for(name: str, risk: str) -> Dict[str, bool]:
+    """MCP annotations for tool ``name`` derived from its risk class."""
+    annotations = dict(_ANNOTATION_DEFAULTS[risk])
+    annotations.update(ANNOTATION_OVERRIDES.get(name, {}))
+    return annotations
+
 
 @dataclass(frozen=True)
 class ToolSpec:
@@ -83,6 +116,7 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
                     name=fn.__name__,
                     handler=fn,
                     description=description,
+                    annotations=annotations_for(fn.__name__, _RISK_BY_NAME[fn.__name__]),
                     risk=_RISK_BY_NAME[fn.__name__],
                 )
             )

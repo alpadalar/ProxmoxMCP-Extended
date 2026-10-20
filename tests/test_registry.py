@@ -36,7 +36,9 @@ def test_spec_fields():
     for spec in build_registry(_ctx()):
         assert isinstance(spec.name, str) and callable(spec.handler)
         assert spec.description
-        assert spec.annotations is None
+        assert set(spec.annotations) == {
+            "readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint",
+        }
         assert spec.risk in {"read", "write", "destructive", "exec"}
         assert spec.tags == frozenset()
 
