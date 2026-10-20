@@ -1,0 +1,8 @@
+# Allowlist for scripts/scan_history.py (one entry per line).
+#   <rule-id>:<path>   accept one rule in one file
+#   sha256:<prefix>    accept a value by the sha256 prefix of its text (value never stored)
+#   anything else      case-insensitive placeholder substring
+#
+# Planning notes that quote the text of a PEM header while describing the scanner tests.
+# No key material is present, only the header words.
+pem-private-key:.planning/phases/06-release-prep/06-03-PLAN.md
