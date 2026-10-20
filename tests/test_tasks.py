@@ -305,3 +305,26 @@ def test_poll_error_after_mutation_keeps_upid(fake_pve):
     text = task_result_text(fake_pve, UPID, True, 5, sleep=lambda s: None)
     assert text.startswith(describe_task_result(UPID)) and UPID in text
     assert "Wait failed" in text and "get_task_status" in text
+
+
+def test_concurrent_wait_cap_fails_fast_and_releases(fake_pve):
+    from proxmox_mcp.tools import tasks as t
+
+    fake_pve.set("GET", STATUS, {"status": "running"})
+    held = [t._WAIT_SLOTS.acquire(blocking=False) for _ in range(t.MAX_CONCURRENT_WAITS)]
+    try:
+        assert all(held)
+        with pytest.raises(t.TooManyWaitsError):
+            poll_task(fake_pve, UPID, 5, sleep=lambda s: None)
+        assert fake_pve.calls == []
+        # task_result_text keeps the UPID instead of failing the whole call
+        text = task_result_text(fake_pve, UPID, True, 5, sleep=lambda s: None)
+        assert UPID in text and "too many concurrent waits" in text
+    finally:
+        for _ in range(sum(held)):
+            t._WAIT_SLOTS.release()
+    fake_pve.set("GET", STATUS, {"status": "stopped", "exitstatus": "OK"})
+    assert poll_task(fake_pve, UPID, 5, sleep=lambda s: None).success
+    # a failing poll must still release its slot
+    for _ in range(t.MAX_CONCURRENT_WAITS + 2):
+        poll_task(fake_pve, UPID, 5, sleep=lambda s: None)

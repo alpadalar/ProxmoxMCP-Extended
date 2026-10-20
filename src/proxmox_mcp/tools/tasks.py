@@ -16,6 +16,7 @@ Task log lines and exitstatus text are untrusted external data: they are redacte
 truncated before being returned, and are never interpolated into logger calls.
 """
 import json
+import threading
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -28,10 +29,20 @@ from ..validators import InputValidationError, upid_node, validate_wait_timeout
 from .base import ProxmoxTool
 from .pve_compat import TaskFailedError, describe_task_result, is_upid
 
+# Global cap on concurrent blocking waits. Each wait holds one worker thread for up to 300 s
+# (time.sleep); without a bound, ~40 waits would exhaust the threadpool and stall every other
+# sync tool. When the cap is reached a wait fails fast instead of queueing.
+MAX_CONCURRENT_WAITS = 8
+_WAIT_SLOTS = threading.BoundedSemaphore(MAX_CONCURRENT_WAITS)
+
 LOG_LIMIT = 200
 LOG_TAIL_LINES = 10
 LOG_LINE_MAX = 300
 _STATUS_KEYS = ("status", "exitstatus", "starttime", "type", "id", "user", "node")
+
+
+class TooManyWaitsError(ValueError):
+    """The global concurrent-wait cap (MAX_CONCURRENT_WAITS) is exhausted."""
 
 
 @dataclass(frozen=True)
@@ -119,6 +130,27 @@ def poll_task(
     ``timed_out=True`` (state ``running``); this function does not raise for a timeout.
     """
     validate_wait_timeout(timeout)
+    upid_node(upid)
+    if not _WAIT_SLOTS.acquire(blocking=False):
+        raise TooManyWaitsError(
+            f"too many concurrent waits (max {MAX_CONCURRENT_WAITS}); "
+            f"task {upid} is unaffected, use get_task_status to check it"
+        )
+    try:
+        return _poll_loop(api, upid, timeout, interval, max_interval, sleep, clock)
+    finally:
+        _WAIT_SLOTS.release()
+
+
+def _poll_loop(
+    api: Any,
+    upid: str,
+    timeout: int,
+    interval: float,
+    max_interval: float,
+    sleep: Callable[[float], None],
+    clock: Callable[[], float],
+) -> TaskOutcome:
     deadline = clock() + timeout
     attempt = 0
     while True:
