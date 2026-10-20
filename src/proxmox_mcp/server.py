@@ -19,7 +19,7 @@ import logging
 import json
 import os
 import sys
-from typing import Optional, List, Annotated
+from typing import Any, Dict, Mapping, Optional, List, Annotated
 
 from fastmcp import FastMCP
 from mcp.types import TextContent as Content
@@ -56,14 +56,19 @@ from .tools.definitions import (
 class ProxmoxMCPServer:
     """Main server class for Proxmox MCP."""
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(
+        self,
+        config_path: Optional[str] = None,
+        cli_overrides: Optional[Mapping[str, Any]] = None,
+    ):
         """Initialize the server.
 
         Args:
             config_path: Path to configuration file
+            cli_overrides: Optional nested overrides (highest precedence)
         """
         # Pass-through: if caller provides a config path, use it; otherwise loader will use ENV fallback
-        self.config = load_config(config_path)
+        self.config = load_config(config_path, cli_overrides=cli_overrides)
         self.logger = setup_logging(self.config.logging)
         
         # Initialize core components
@@ -289,7 +294,24 @@ def main(argv: Optional[List[str]] = None) -> None:
         default=None,
         help="Path to the config JSON file (default: $PROXMOX_MCP_CONFIG)",
     )
+    parser.add_argument("--log-level", default=None, help="Override logging level")
+    parser.add_argument("--log-file", default=None, help="Override log file path")
+    parser.add_argument(
+        "--verify-ssl", default=None,
+        help="Override TLS verification (true/false, 1/0, yes/no, on/off)",
+    )
+    parser.add_argument("--ca-bundle", default=None, help="CA bundle file for TLS verification")
     args = parser.parse_args(argv)
+
+    cli_overrides: Dict[str, Any] = {}
+    for section, key, value in (
+        ("logging", "level", args.log_level),
+        ("logging", "file", args.log_file),
+        ("proxmox", "verify_ssl", args.verify_ssl),
+        ("proxmox", "ca_bundle", args.ca_bundle),
+    ):
+        if value is not None:
+            cli_overrides.setdefault(section, {})[key] = value
 
     config_path = args.config or os.getenv("PROXMOX_MCP_CONFIG")
     if not config_path:
@@ -300,7 +322,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         sys.exit(1)
 
     try:
-        server = ProxmoxMCPServer(config_path)
+        server = ProxmoxMCPServer(config_path, cli_overrides=cli_overrides)
         server.start()
     except KeyboardInterrupt:
         print("\nShutting down gracefully...")

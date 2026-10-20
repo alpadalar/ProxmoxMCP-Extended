@@ -14,11 +14,11 @@ test XPASSes, the strict marker fails the suite, and the marker must be removed.
 | Packaging/config drift                          | test_packaging_single_source                       | FIXED         | Phase 1 / STAB-01   |
 | HTTP server runs without authentication         | test_http_auth_not_hardcoded_off                   | FIXED         | Interim (SRV-02/03) |
 | /health auth status and --no-auth meaningless   | test_health_reports_real_auth_state                | FIXED         | Interim (SRV-03)    |
-| TLS verification can be silently weakened       | test_verify_ssl_typo_rejected                      | PINNED xfail  | Phase 2 / CONF-01   |
-| Secrets handling and logging (token in repr)    | test_token_value_not_in_repr                       | PINNED xfail  | Phase 2 / CONF-03   |
+| TLS verification can be silently weakened       | test_verify_ssl_typo_rejected                      | FIXED         | Phase 2 / CONF-01   |
+| Secrets handling and logging (token in repr)    | test_token_value_not_in_repr                       | FIXED         | Phase 2 / CONF-01/03 |
 | Input validation / injection (node path)        | test_path_traversal_node_rejected                  | PINNED xfail  | Phase 2 / CONF-02   |
 | Arbitrary command execution logged              | test_exec_command_not_logged                       | PINNED xfail  | Phase 4 / SEC-03    |
-| TLS/logging defaults in example config          | test_example_config_safe_defaults                  | PINNED xfail  | Phase 2 / CONF-04   |
+| TLS/logging defaults in example config          | test_example_config_safe_defaults                  | FIXED         | Phase 2 / CONF-04   |
 | Duplicated tool registration                    | test_stdio_http_tool_sets_identical                | PINNED xfail  | Phase 3 / SRV-01    |
 | Connection setup at construction time           | test_proxmox_connect_is_lazy                       | PINNED xfail  | Phase 3 / SRV-04    |
 | Known Bugs: blocking calls inside async path    | test_execute_command_does_not_block_loop           | PINNED xfail  | Phase 3 / SRV-04    |
@@ -123,7 +123,6 @@ def test_health_reports_real_auth_state():
     assert all("use_django_auth" not in v for v in payload_values)
 
 
-@_pin("CONCERNS: TLS verification can be silently weakened; fixed in Phase 2 (CONF-01)")
 def test_verify_ssl_typo_rejected(monkeypatch):
     """CONCERNS Security: PROXMOX_VERIFY_SSL=ture must raise, not silently disable TLS."""
     from proxmox_mcp.config.loader import load_config
@@ -143,7 +142,6 @@ def test_verify_ssl_typo_rejected(monkeypatch):
     raise AssertionError(f"typo accepted, verify_ssl={cfg.proxmox.verify_ssl}")
 
 
-@_pin("CONCERNS: secrets handling; fixed in Phase 2 (CONF-01/CONF-03)")
 def test_token_value_not_in_repr():
     """CONCERNS Security: token value must not leak through repr/model_dump string."""
     from proxmox_mcp.config.models import AuthConfig
@@ -195,7 +193,6 @@ async def test_exec_command_not_logged(server, api, caplog):
     assert sentinel not in caplog.text
 
 
-@_pin("CONCERNS: TLS/logging defaults; fixed in Phase 2 (CONF-04)")
 def test_example_config_safe_defaults():
     """CONCERNS Security: example config must default to verify_ssl true and non-DEBUG logs."""
     cfg = json.loads((ROOT / "proxmox-config" / "config.example.json").read_text())

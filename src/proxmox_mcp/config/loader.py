@@ -1,117 +1,116 @@
 """
 Configuration loading utilities for the Proxmox MCP server.
 
-This module handles loading and validation of server configuration:
-- JSON configuration file loading
-- Environment variable handling
-- Configuration validation using Pydantic models
-- Error handling for invalid configurations
+A single loader resolves configuration for both the file-path and env-only
+cases. Precedence, highest wins:
 
-The module ensures that all required configuration is present
-and valid before the server starts operation.
+    CLI overrides > environment variables > JSON file > built-in defaults
+
+Errors raised here are built only from field locations and validation
+messages, never from input values, so secrets cannot leak through them.
 """
 import json
 import os
-from typing import Optional
+from typing import Any, Dict, Mapping, Optional
+
+from pydantic import ValidationError
+
 from .models import Config
 
-def load_config(config_path: Optional[str] = None) -> Config:
-    """Load and validate configuration from JSON file.
+# env var -> (section, key)
+_ENV_MAP = {
+    "PROXMOX_HOST": ("proxmox", "host"),
+    "PROXMOX_PORT": ("proxmox", "port"),
+    "PROXMOX_VERIFY_SSL": ("proxmox", "verify_ssl"),
+    "PROXMOX_CA_BUNDLE": ("proxmox", "ca_bundle"),
+    "PROXMOX_SERVICE": ("proxmox", "service"),
+    "PROXMOX_USER": ("auth", "user"),
+    "PROXMOX_TOKEN_NAME": ("auth", "token_name"),
+    "PROXMOX_TOKEN_VALUE": ("auth", "token_value"),
+    "LOG_LEVEL": ("logging", "level"),
+    "LOG_FILE": ("logging", "file"),
+}
 
-    Performs the following steps:
-    1. Verifies config path is provided
-    2. Loads JSON configuration file
-    3. Validates required fields are present
-    4. Converts to typed Config object using Pydantic
-    
-    Configuration must include:
-    - Proxmox connection settings (host, port, etc.)
-    - Authentication credentials (user, token)
-    - Logging configuration
-    
+
+def _overlay(base: Dict[str, Any], top: Mapping[str, Any]) -> None:
+    """Recursively overlay ``top`` onto ``base`` in place."""
+    for key, value in top.items():
+        if isinstance(value, Mapping) and isinstance(base.get(key), dict):
+            _overlay(base[key], value)
+        elif isinstance(value, Mapping):
+            base[key] = {}
+            _overlay(base[key], value)
+        else:
+            base[key] = value
+
+
+def _read_json(config_path: str) -> Dict[str, Any]:
+    try:
+        with open(config_path) as f:
+            data = json.load(f)
+    except json.JSONDecodeError as e:
+        raise ValueError(
+            f"Invalid JSON in config file: {e.msg} (line {e.lineno}, column {e.colno})"
+        ) from None
+    except OSError:
+        raise ValueError(f"Cannot read config file: {config_path}") from None
+    if not isinstance(data, dict):
+        raise ValueError("Config file must contain a JSON object")
+    return data
+
+
+def _env_layer() -> Dict[str, Any]:
+    layer: Dict[str, Any] = {}
+    for name, (section, key) in _ENV_MAP.items():
+        value = os.environ.get(name)
+        if value is None or value == "":
+            continue
+        layer.setdefault(section, {})[key] = value
+    return layer
+
+
+def _format_errors(exc: ValidationError) -> str:
+    parts = []
+    for err in exc.errors(include_input=False, include_url=False):
+        loc = ".".join(str(p) for p in err.get("loc", ())) or "config"
+        parts.append(f"{loc}: {err.get('msg', 'invalid value')}")
+    return "Invalid configuration: " + "; ".join(parts)
+
+
+def load_config(
+    config_path: Optional[str] = None,
+    cli_overrides: Optional[Mapping[str, Any]] = None,
+) -> Config:
+    """Load and validate configuration.
+
+    Layers (highest precedence wins): CLI overrides > environment variables
+    > JSON file (if ``config_path``) > model defaults.
+
+    Environment variables: PROXMOX_HOST, PROXMOX_PORT, PROXMOX_USER,
+    PROXMOX_TOKEN_NAME, PROXMOX_TOKEN_VALUE, PROXMOX_VERIFY_SSL,
+    PROXMOX_CA_BUNDLE, PROXMOX_SERVICE, LOG_LEVEL, LOG_FILE. An empty
+    string is treated as unset.
+
     Args:
-        config_path: Path to the JSON configuration file
-                    If not provided, raises ValueError
+        config_path: Optional path to a JSON config file.
+        cli_overrides: Optional nested dict shaped like the JSON file.
 
     Returns:
-        Config object containing validated configuration:
-        {
-            "proxmox": {
-                "host": "proxmox-host",
-                "port": 8006,
-                ...
-            },
-            "auth": {
-                "user": "username",
-                "token_name": "token-name",
-                ...
-            },
-            "logging": {
-                "level": "INFO",
-                ...
-            }
-        }
+        Validated Config.
 
     Raises:
-        ValueError: If:
-                 - Config path is not provided
-                 - JSON is invalid
-                 - Required fields are missing
-                 - Field values are invalid
+        ValueError: on unreadable/invalid JSON, unknown keys, missing or
+            invalid values. Messages never contain secret values.
     """
-    # If a config path is provided, load from JSON file
+    # Seed required sections so missing fields are reported as e.g. "proxmox.host"
+    data: Dict[str, Any] = {"proxmox": {}, "auth": {}}
     if config_path:
-        try:
-            with open(config_path) as f:
-                config_data = json.load(f)
-                if not config_data.get('proxmox', {}).get('host'):
-                    raise ValueError("Proxmox host cannot be empty")
-                return Config(**config_data)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in config file: {e}")
-        except Exception as e:
-            raise ValueError(f"Failed to load config: {e}")
-
-    # Otherwise, build config from environment variables (test-friendly path)
-    proxmox_host = os.getenv("PROXMOX_HOST")
-    proxmox_user = os.getenv("PROXMOX_USER")
-    token_name = os.getenv("PROXMOX_TOKEN_NAME")
-    token_value = os.getenv("PROXMOX_TOKEN_VALUE")
-    log_level = os.getenv("LOG_LEVEL", "INFO")
-
-    if not all([proxmox_host, proxmox_user, token_name, token_value]):
-        raise ValueError("PROXMOX_MCP_CONFIG environment variable must be set")
-
-    # Optional overrides
-    port_str = os.getenv("PROXMOX_PORT")
-    verify_ssl_str = os.getenv("PROXMOX_VERIFY_SSL")
-    service = os.getenv("PROXMOX_SERVICE", "PVE")
+        _overlay(data, _read_json(config_path))
+    _overlay(data, _env_layer())
+    if cli_overrides:
+        _overlay(data, cli_overrides)
 
     try:
-        port = int(port_str) if port_str else 8006
-    except ValueError:
-        raise ValueError("Invalid PROXMOX_PORT value; must be integer")
-
-    if verify_ssl_str is None:
-        verify_ssl = True
-    else:
-        verify_ssl = verify_ssl_str.lower() in ("1", "true", "yes", "on")
-
-    config_data = {
-        "proxmox": {
-            "host": proxmox_host,
-            "port": port,
-            "verify_ssl": verify_ssl,
-            "service": service,
-        },
-        "auth": {
-            "user": proxmox_user,
-            "token_name": token_name,
-            "token_value": token_value,
-        },
-        "logging": {
-            "level": log_level,
-        },
-    }
-
-    return Config(**config_data)
+        return Config(**data)
+    except ValidationError as e:
+        raise ValueError(_format_errors(e)) from None

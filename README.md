@@ -204,6 +204,30 @@ Before starting, ensure you have:
 
 ## Configuration
 
+Configuration is resolved by a single loader. Precedence (highest wins):
+**CLI flags > environment variables > JSON config file > built-in defaults.**
+Unknown keys, mistyped booleans (e.g. `PROXMOX_VERIFY_SSL=ture`) and invalid values
+fail at startup with an error that never includes secret values.
+
+| Setting | JSON key | Environment variable | CLI flag |
+|---|---|---|---|
+| Host | `proxmox.host` | `PROXMOX_HOST` | |
+| Port (default 8006) | `proxmox.port` | `PROXMOX_PORT` | |
+| TLS verification (default `true`) | `proxmox.verify_ssl` | `PROXMOX_VERIFY_SSL` | `--verify-ssl` |
+| CA bundle file (private CA) | `proxmox.ca_bundle` | `PROXMOX_CA_BUNDLE` | `--ca-bundle` |
+| Service (`PVE`/`PMG`/`PBS`) | `proxmox.service` | `PROXMOX_SERVICE` | |
+| API user | `auth.user` | `PROXMOX_USER` | |
+| Token name | `auth.token_name` | `PROXMOX_TOKEN_NAME` | |
+| Token secret | `auth.token_value` | `PROXMOX_TOKEN_VALUE` | |
+| Log level (default `INFO`) | `logging.level` | `LOG_LEVEL` | `--log-level` |
+| Log file | `logging.file` | `LOG_FILE` | `--log-file` |
+
+Booleans accept `true/false`, `1/0`, `yes/no`, `on/off`. Empty environment variables are
+treated as unset. `ca_bundle` cannot be combined with `verify_ssl=false`, and disabling
+verification logs a warning. The example config uses a least-privilege `monitor@pve`
+user; copy `proxmox-config/config.example.json` to `proxmox-config/config.json`
+(git-ignored) and fill in your values.
+
 ### Proxmox API Token Setup
 1. Log into your Proxmox web interface
 2. Navigate to Datacenter -> Permissions -> API Tokens
