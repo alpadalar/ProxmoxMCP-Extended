@@ -137,19 +137,21 @@ def _int_range(value: object, lo: int, hi: int, field: str) -> int:
     return value
 
 
-def validate_cpus(value: object, field: str = "cpus") -> int:
+def validate_cpus(value: object, field: str = "cpus", lo: int = 1, hi: int = 128) -> int:
     """CPU count 1..128 (server Field bounds for create_vm are tighter)."""
-    return _int_range(value, 1, 128, field)
+    return _int_range(value, lo, hi, field)
 
 
-def validate_memory_mb(value: object, field: str = "memory") -> int:
+def validate_memory_mb(
+    value: object, field: str = "memory", lo: int = 16, hi: int = 4_194_304
+) -> int:
     """Memory in MiB, 16..4194304 (4 TiB)."""
-    return _int_range(value, 16, 4_194_304, field)
+    return _int_range(value, lo, hi, field)
 
 
-def validate_disk_gb(value: object, field: str = "disk_size") -> int:
+def validate_disk_gb(value: object, field: str = "disk_size", lo: int = 1, hi: int = 65_536) -> int:
     """Disk size in GiB, 1..65536."""
-    return _int_range(value, 1, 65_536, field)
+    return _int_range(value, lo, hi, field)
 
 
 def validate_optional(fn: Callable[..., T], value: object, *args: object) -> Optional[T]:

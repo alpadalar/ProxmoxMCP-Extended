@@ -198,3 +198,14 @@ def test_every_tool_has_a_mock_test():
     corpus = (here / "test_tools_read.py").read_text() + (here / "test_tools_mutating.py").read_text()
     missing = [t["name"] for t in golden if f'"{t["name"]}"' not in corpus]
     assert not missing, f"tools without a mock test: {missing}"
+
+
+@pytest.mark.parametrize("cpus,memory,disk", [
+    (-1, 2048, 10), (64, 2048, 10), (2, 10**12, 10), (2, 256, 10),
+    (2, 2048, 10**9), (2, 2048, 1), (True, 2048, 10),
+])
+def test_create_vm_tool_enforces_limits_itself(server, api, cpus, memory, disk):
+    """Limits live in VMTools.create_vm so the HTTP transport (bare ints) is covered."""
+    with pytest.raises(Exception):
+        server.vm_tools.create_vm("node1", "200", "new-vm", cpus, memory, disk)
+    api.nodes.return_value.qemu.create.assert_not_called()

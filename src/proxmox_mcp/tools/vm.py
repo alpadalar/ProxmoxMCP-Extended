@@ -37,6 +37,7 @@ from ..validators import (
     validate_description,
     validate_cpus,
     validate_memory_mb,
+    validate_disk_gb,
     validate_optional,
 )
 
@@ -165,6 +166,10 @@ class VMTools(ProxmoxTool):
         iso_storage = validate_optional(validate_storage, iso_storage, "iso_storage")
         iso_name = validate_optional(validate_iso_name, iso_name, "iso_name")
         ostype = validate_optional(validate_ostype, ostype)
+        # Same limits as the stdio Field bounds, enforced here so every transport is covered.
+        cpus = validate_cpus(cpus, hi=32)
+        memory = validate_memory_mb(memory, lo=512, hi=131072)
+        disk_size = validate_disk_gb(disk_size, lo=5, hi=1000)
         try:
             # Check if VM ID already exists
             try:
