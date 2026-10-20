@@ -14,6 +14,7 @@ from proxmox_mcp.config.models import PolicyConfig
 from proxmox_mcp.policy import PolicyDeniedError, ToolPolicy, compose_wraps, make_policy_wrap
 from proxmox_mcp.tools.registry import RISK_CLASSES
 from tests.test_harness import SMOKE_ARGS, SMOKE_ARGS_CONFIRMED
+from tests.test_tool_schema_snapshot import EXPECTED_TOOL_COUNT
 
 
 def _spec(risk, name="some_tool"):
@@ -156,7 +157,7 @@ async def test_tool_list_identical_under_every_combination(policy_app, combo):
     app = policy_app(read_only=combo[0], allow_destructive=combo[1], allow_exec=combo[2])
     names = sorted(t.name for t in await app.mcp.list_tools())
     assert names == sorted(SMOKE_ARGS)
-    assert len(names) == 18
+    assert len(names) == EXPECTED_TOOL_COUNT
 
 
 @pytest.mark.asyncio

@@ -183,7 +183,7 @@ async def test_stdio_http_tool_sets_identical(mock_env_vars, mock_proxmox):
     """CONCERNS Tech Debt: stdio and HTTP servers must register the same tools."""
     from proxmox_mcp.server import ProxmoxMCPServer
     from proxmox_mcp.server_http import ProxmoxMCPHTTPServer
-    from tests.test_tool_schema_snapshot import build_snapshot
+    from tests.test_tool_schema_snapshot import EXPECTED_TOOL_COUNT, build_snapshot
 
     stdio = ProxmoxMCPServer()
     with patch("proxmox_mcp.server_http.setup_logging", lambda cfg: logging.getLogger("x")):
@@ -191,7 +191,7 @@ async def test_stdio_http_tool_sets_identical(mock_env_vars, mock_proxmox):
     stdio_snap = await build_snapshot(stdio)
     http_snap = await build_snapshot(http)
     assert stdio_snap == http_snap
-    assert len(stdio_snap) == 18
+    assert len(stdio_snap) == EXPECTED_TOOL_COUNT
     for module in ("server.py", "server_http.py"):
         assert ".tool(" not in (SRC / module).read_text()
 

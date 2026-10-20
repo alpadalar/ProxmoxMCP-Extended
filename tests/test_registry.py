@@ -7,7 +7,7 @@ import pytest
 from fastmcp import FastMCP
 
 from proxmox_mcp.tools.registry import ToolContext, ToolSpec, build_registry, register_tools
-from tests.test_tool_schema_snapshot import GOLDEN_PATH, normalize_tool
+from tests.test_tool_schema_snapshot import EXPECTED_TOOL_COUNT, GOLDEN_PATH, normalize_tool
 
 GOLDEN = json.loads(GOLDEN_PATH.read_text(encoding="utf-8"))
 
@@ -28,7 +28,7 @@ async def _snapshot(mcp):
 
 def test_registry_names_match_golden():
     specs = build_registry(_ctx())
-    assert len(specs) == 18
+    assert len(specs) == EXPECTED_TOOL_COUNT
     assert sorted(s.name for s in specs) == [t["name"] for t in GOLDEN]
 
 

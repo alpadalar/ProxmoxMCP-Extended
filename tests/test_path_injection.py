@@ -20,6 +20,7 @@ GOOD = {
     "iso_storage": "local",
     "iso_name": "debian.iso",
     "ostype": "l26",
+    "upid": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:monitor@pve!mcp:",
 }
 # Tool-specific override for the generic "name" parameter (snapshot tools).
 GOOD_BY_TOOL = {
@@ -38,12 +39,22 @@ EXTRA_BAD = {
     ("rollback_snapshot", "name"): ["current"],
 }
 
+# Bad task ids (UPID); the generic BAD list does not exercise the UPID grammar.
+BAD_UPID = [
+    "../x", "a b", "x\n", "", "UPID:", "upid:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:u:",
+    "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:monitor@pve!mcp",  # no trailing colon
+    "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:../../x:",
+    "UPID:../x:0000ABCD:00123456:65A1B2C3:qmstart:100:root@pam:",
+    "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:a b:",
+    "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:" + "1" * 600 + ":root@pam:",
+]
+
 # Tools without identifier parameters: explicitly exempt.
 NO_INPUT_TOOLS = {
     "get_nodes", "get_vms", "get_containers", "get_storage",
     "get_cluster_status", "health",
 }
-IDENT_HINTS = ("node", "vmid", "storage", "snapshot", "name", "iso", "ostype")
+IDENT_HINTS = ("node", "vmid", "storage", "snapshot", "name", "iso", "ostype", "upid")
 
 
 def _good(tool, pname):
@@ -57,7 +68,8 @@ def _cases():
             pname = p["name"]
             if pname not in GOOD:
                 continue
-            bads = (BAD_VMID if pname == "vmid" else BAD) + EXTRA_BAD.get((tool, pname), [])
+            base = BAD_UPID if pname == "upid" else (BAD_VMID if pname == "vmid" else BAD)
+            bads = base + EXTRA_BAD.get((tool, pname), [])
             for bad in bads:
                 yield tool, pname, bad
 
@@ -87,7 +99,9 @@ def test_matrix_covers_every_golden_tool():
             if any(h in pname for h in IDENT_HINTS):
                 assert pname in GOOD, f"{tool}.{pname} is not covered by the injection matrix"
             else:
-                assert pname in OTHER or pname in {"description", "vmstate", "force", "confirm", "args"}, (
+                assert pname in OTHER or pname in {
+                    "description", "vmstate", "force", "confirm", "args", "wait", "timeout",
+                }, (
                     f"{tool}.{pname} is unknown to the injection matrix"
                 )
 

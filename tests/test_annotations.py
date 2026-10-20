@@ -14,6 +14,7 @@ from proxmox_mcp.tools.registry import (
     build_registry,
     register_tools,
 )
+from tests.test_tool_schema_snapshot import EXPECTED_TOOL_COUNT
 
 DIGEST = "0" * 64
 
@@ -44,7 +45,7 @@ async def test_all_tools_annotated_on_both_transports(mock_env_vars, transport):
         kwargs = {"api_key_digests": [DIGEST]} if transport == "http" else {}
         app = create_app(config, transport, **kwargs)
     found = await _by_name(app.mcp)
-    assert len(found) == 18
+    assert len(found) == EXPECTED_TOOL_COUNT
     assert all(a is not None for a in found.values())
 
 

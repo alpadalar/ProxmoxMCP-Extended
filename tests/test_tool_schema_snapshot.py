@@ -7,6 +7,11 @@ descriptions, defaults, bounds and ``anyOf`` nesting are ignored.
 Regenerate after an intentional, reviewed contract change with::
 
     UPDATE_GOLDEN=1 uv run pytest tests/test_tool_schema_snapshot.py -q
+
+Surface history: ``tools_phase3.json`` (frozen) + DOCUMENTED_ADDITIONS = ``tools_phase4.json``
+(frozen, never regenerated); ``tools.json`` must equal ``tools_phase4.json`` plus exactly
+PHASE5_NEW_TOOLS and PHASE5_PARAM_ADDITIONS. Each Phase 5 plan extends those two dicts in the
+same commit that regenerates ``tools.json`` (then rerun the tests without UPDATE_GOLDEN).
 """
 import copy
 import difflib
@@ -28,6 +33,13 @@ DOCUMENTED_ADDITIONS = {
     "rollback_snapshot": {"confirm": "boolean"},
     "execute_vm_command": {"args": "array"},
 }
+# Phase 4 -> Phase 5 delta. New tools: tool -> param -> (simple type, required).
+PHASE4_BASELINE_PATH = Path(__file__).parent / "golden" / "tools_phase4.json"
+PHASE5_NEW_TOOLS: dict[str, dict[str, tuple[str, bool]]] = {}
+# Existing tools gaining new OPTIONAL parameters: tool -> param -> simple type.
+PHASE5_PARAM_ADDITIONS: dict[str, dict[str, str]] = {}
+PHASE4_TOOL_COUNT = 18
+EXPECTED_TOOL_COUNT = PHASE4_TOOL_COUNT + len(PHASE5_NEW_TOOLS)
 SIMPLE_TYPES = {"string", "integer", "number", "boolean", "array", "object"}
 
 
@@ -100,7 +112,7 @@ async def test_tool_names_match_golden(snapshot):
     assert actual == expected, diff_snapshots(
         [{"name": n} for n in expected], [{"name": n} for n in actual]
     )
-    assert len(actual) == 18
+    assert len(actual) == EXPECTED_TOOL_COUNT
 
 
 @pytest.mark.asyncio
@@ -133,7 +145,7 @@ def test_mismatch_is_reported():
     assert dropped["name"] in diff
 
 
-def test_golden_is_phase3_plus_documented_additions():
+def test_golden_phase4_is_phase3_plus_documented_additions():
     """The current surface is the frozen Phase 3 baseline plus exactly the documented extras."""
     expected = {t["name"]: {p["name"]: p for p in t["params"]}
                 for t in json.loads(BASELINE_PATH.read_text(encoding="utf-8"))}
@@ -141,5 +153,25 @@ def test_golden_is_phase3_plus_documented_additions():
         for pname, ptype in extras.items():
             assert pname not in expected[tool], f"{tool}.{pname} already in baseline"
             expected[tool][pname] = {"name": pname, "required": False, "type": ptype}
+    actual = {t["name"]: {p["name"]: p for p in t["params"]}
+              for t in json.loads(PHASE4_BASELINE_PATH.read_text(encoding="utf-8"))}
+    assert actual == expected
+
+
+def test_golden_is_phase4_plus_phase5_delta():
+    """tools.json is the frozen Phase 4 surface plus exactly the declared Phase 5 delta."""
+    expected = {t["name"]: {p["name"]: p for p in t["params"]}
+                for t in json.loads(PHASE4_BASELINE_PATH.read_text(encoding="utf-8"))}
+    for tool, extras in PHASE5_PARAM_ADDITIONS.items():
+        assert tool in expected, f"{tool} is not a Phase 4 tool"
+        for pname, ptype in extras.items():
+            assert pname not in expected[tool], f"{tool}.{pname} already in the baseline"
+            expected[tool][pname] = {"name": pname, "required": False, "type": ptype}
+    for tool, params in PHASE5_NEW_TOOLS.items():
+        assert tool not in expected, f"{tool} already exists in the baseline"
+        expected[tool] = {
+            pname: {"name": pname, "required": required, "type": ptype}
+            for pname, (ptype, required) in params.items()
+        }
     actual = {t["name"]: {p["name"]: p for p in t["params"]} for t in _load_golden()}
     assert actual == expected
