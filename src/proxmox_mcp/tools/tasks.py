@@ -24,7 +24,7 @@ from typing import Any, Callable, Dict, List, Optional
 from mcp.types import TextContent as Content
 
 from ..utils.redaction import redact
-from ..validators import upid_node, validate_wait_timeout
+from ..validators import InputValidationError, upid_node, validate_wait_timeout
 from .base import ProxmoxTool
 from .pve_compat import TaskFailedError, describe_task_result, is_upid
 
@@ -154,7 +154,16 @@ def task_result_text(
         return text
     if not is_upid(result):
         return text + "\nWait skipped: no task id was returned"
-    outcome = poll_task(api, result, timeout, sleep=sleep, clock=clock)
+    try:
+        outcome = poll_task(api, result, timeout, sleep=sleep, clock=clock)
+    except InputValidationError:
+        raise
+    except Exception as e:
+        # The mutation already started this task: keep the UPID so the caller does not retry.
+        return text + (
+            f"\nWait failed ({_clip(e)}); the task may be running or finished, "
+            "check it with get_task_status"
+        )
     if outcome.timed_out:
         return text + (
             f"\nTask still running after {timeout}s (UPID above); "

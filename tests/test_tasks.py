@@ -295,3 +295,13 @@ def test_path_unsafe_upid_never_reaches_api_path(fake_pve, bad):
     with pytest.raises(ValueError):
         wait_task_stopped(fake_pve, "pve1", bad)
     assert fake_pve.calls == []
+
+
+def test_poll_error_after_mutation_keeps_upid(fake_pve):
+    def boom(*a, **k):
+        raise TimeoutError("read timed out token=abc")
+
+    fake_pve.set("GET", STATUS, boom)
+    text = task_result_text(fake_pve, UPID, True, 5, sleep=lambda s: None)
+    assert text.startswith(describe_task_result(UPID)) and UPID in text
+    assert "Wait failed" in text and "get_task_status" in text
