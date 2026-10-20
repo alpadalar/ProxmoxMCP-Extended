@@ -16,7 +16,7 @@ import requests
 
 from proxmox_mcp.app import build_uvicorn_server
 from proxmox_mcp.auth.apikey import ENV_HASHES
-from proxmox_mcp.server_http import ProxmoxMCPCommand, ProxmoxMCPHTTPServer
+from proxmox_mcp.server_http import ProxmoxMCPHTTPServer, build_parser
 
 KEY = "e2e-secret-key"
 DIGEST = hashlib.sha256(KEY.encode()).hexdigest()
@@ -166,11 +166,7 @@ def test_ports_released_between_runs(mock_env_vars, fake_pve):
 
 
 def test_default_bind_is_loopback():
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    ProxmoxMCPCommand().add_arguments(parser)
-    assert parser.parse_args([]).host == "127.0.0.1"
+    assert build_parser().parse_args([]).host == "127.0.0.1"
 
 
 def _cli(tmp_path, *args):
