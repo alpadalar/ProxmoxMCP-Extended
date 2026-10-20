@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "proxmox-mcp": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/ABSOLUTE/PATH/TO/ProxmoxMCP-Extended",
+        "run",
+        "proxmox-mcp"
+      ],
+      "env": {
+        "PROXMOX_MCP_CONFIG": "/ABSOLUTE/PATH/TO/ProxmoxMCP-Extended/proxmox-config/config.json"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "proxmox-mcp-http": {
+      "type": "streamableHttp",
+      "url": "http://127.0.0.1:8812/proxmox-mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}

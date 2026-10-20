@@ -1,0 +1,30 @@
+{
+  "mcpServers": {
+    "proxmox-mcp": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/ABSOLUTE/PATH/TO/ProxmoxMCP-Extended",
+        "run",
+        "proxmox-mcp"
+      ],
+      "env": {
+        "PROXMOX_MCP_CONFIG": "/ABSOLUTE/PATH/TO/ProxmoxMCP-Extended/proxmox-config/config.json"
+      }
+    },
+    "proxmox-mcp-http": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://127.0.0.1:8812/proxmox-mcp",
+        "--allow-http",
+        "--header",
+        "Authorization:${PROXMOX_MCP_AUTH}"
+      ],
+      "env": {
+        "PROXMOX_MCP_AUTH": "Bearer YOUR_API_KEY"
+      }
+    }
+  }
+}

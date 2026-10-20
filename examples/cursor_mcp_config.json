@@ -1,31 +1,22 @@
 {
   "mcpServers": {
-    "ProxmoxMCP-HTTP": {
-      "command": "curl",
+    "proxmox-mcp": {
+      "command": "uv",
       "args": [
-        "-X", "POST",
-        "-H", "Content-Type: application/json",
-        "-H", "Authorization: Bearer YOUR_TOKEN_HERE",
-        "http://localhost:8812/proxmox-mcp"
+        "--directory",
+        "/ABSOLUTE/PATH/TO/ProxmoxMCP-Extended",
+        "run",
+        "proxmox-mcp"
       ],
       "env": {
-        "MCP_SERVER_URL": "http://localhost:8812/proxmox-mcp",
-        "MCP_TOKEN": "YOUR_TOKEN_HERE"
-      },
-      "disabled": false,
-      "description": "ProxmoxMCP HTTP Server (API key auth)"
+        "PROXMOX_MCP_CONFIG": "/ABSOLUTE/PATH/TO/ProxmoxMCP-Extended/proxmox-config/config.json"
+      }
     },
-    "ProxmoxMCP-HTTP-SSE": {
-      "transport": {
-        "type": "sse",
-        "url": "http://localhost:8812/proxmox-mcp",
-        "headers": {
-          "Authorization": "Bearer YOUR_TOKEN_HERE",
-          "Content-Type": "application/json"
-        }
-      },
-      "description": "ProxmoxMCP via Server-Sent Events",
-      "disabled": false
+    "proxmox-mcp-http": {
+      "url": "http://127.0.0.1:8812/proxmox-mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      }
     }
   }
 }
