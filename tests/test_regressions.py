@@ -12,8 +12,8 @@ test XPASSes, the strict marker fails the suite, and the marker must be removed.
 | fastmcp 4 import path (stdio server)           | test_stdio_server_imports_on_fastmcp4              | FIXED         | Phase 1 / STAB-02   |
 | Dependencies at Risk: FastMCP import fallbacks  | test_middleware_has_no_silent_fallback             | FIXED         | Phase 1 / TECH-01   |
 | Packaging/config drift                          | test_packaging_single_source                       | FIXED         | Phase 1 / STAB-01   |
-| HTTP server runs without authentication         | test_http_auth_not_hardcoded_off                   | PINNED xfail  | Phase 3 / SRV-02    |
-| /health auth status and --no-auth meaningless   | test_health_reports_real_auth_state                | PINNED xfail  | Phase 3 / SRV-03    |
+| HTTP server runs without authentication         | test_http_auth_not_hardcoded_off                   | FIXED         | Interim (SRV-02/03) |
+| /health auth status and --no-auth meaningless   | test_health_reports_real_auth_state                | FIXED         | Interim (SRV-03)    |
 | TLS verification can be silently weakened       | test_verify_ssl_typo_rejected                      | PINNED xfail  | Phase 2 / CONF-01   |
 | Secrets handling and logging (token in repr)    | test_token_value_not_in_repr                       | PINNED xfail  | Phase 2 / CONF-03   |
 | Input validation / injection (node path)        | test_path_traversal_node_rejected                  | PINNED xfail  | Phase 2 / CONF-02   |
@@ -104,14 +104,12 @@ def test_packaging_single_source():
 # Pinned deferred bugs (strict xfail)
 # --------------------------------------------------------------------------
 
-@_pin("CONCERNS: HTTP server runs without authentication; fixed in Phase 3 (SRV-02/SRV-03)")
 def test_http_auth_not_hardcoded_off():
     """CONCERNS Security: server_http must not hardcode use_django_auth = False."""
     text = (SRC / "server_http.py").read_text()
     assert "self.use_django_auth = False" not in text
 
 
-@_pin("CONCERNS: /health auth status misreport; fixed in Phase 3 (SRV-03)")
 def test_health_reports_real_auth_state():
     """CONCERNS Known Bugs: /health 'auth' must not derive from use_django_auth alone."""
     text = (SRC / "server_http.py").read_text()
