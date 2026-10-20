@@ -807,10 +807,8 @@ class VMTools(ProxmoxTool):
                 return [Content(type="text", text=result_text)]
             
             # Check if VM needs to be stopped for changes
-            requires_stop = False
             if current_status == "running":
                 if memory is not None or cpus is not None:
-                    requires_stop = True
                     result_text = f"⚠️ VM {vmid} ({current_name}) is currently running.\n"
                     result_text += f"Resource changes require the VM to be stopped first.\n"
                     result_text += f"Please stop the VM using shutdown_vm or stop_vm before updating.\n\n"
