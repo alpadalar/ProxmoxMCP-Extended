@@ -88,7 +88,7 @@ def test_failed_reads_log_with_limit_and_tail(fake_pve):
     assert outcome.state == "failed" and not outcome.success
     assert outcome.log_tail == [f"line {i}" for i in range(21, 31)]
     log_call = fake_pve.calls[-1]
-    assert log_call.path == f"nodes/pve1/tasks/{UPID}/log" and log_call.params == {"limit": 200}
+    assert log_call.path == f"nodes/pve1/tasks/{UPID}/log" and log_call.params == {"start": 0, "limit": 200}
 
 
 def test_log_failure_is_swallowed_and_long_lines_cut(fake_pve):
@@ -328,3 +328,27 @@ def test_concurrent_wait_cap_fails_fast_and_releases(fake_pve):
     # a failing poll must still release its slot
     for _ in range(t.MAX_CONCURRENT_WAITS + 2):
         poll_task(fake_pve, UPID, 5, sleep=lambda s: None)
+
+
+def test_failed_task_tail_is_the_real_end_of_a_long_log(fake_pve):
+    total = 450
+    fake_pve.set("GET", STATUS, {"status": "stopped", "exitstatus": "boom"})
+
+    def log(params, segments):
+        start, limit = params["start"], params["limit"]
+        return [{"n": i, "t": f"line {i}"} for i in range(start + 1, min(start + limit, total) + 1)]
+
+    fake_pve.set("GET", LOG, log)
+    outcome = fetch_task_outcome(fake_pve, UPID)
+    assert outcome.log_tail == [f"line {i}" for i in range(total - 9, total + 1)]
+    assert [c.params["start"] for c in fake_pve.calls if c.path.endswith("/log")] == [0, 200, 400]
+
+
+def test_log_paging_is_capped_and_marked(fake_pve):
+    from proxmox_mcp.tools import tasks as t
+
+    fake_pve.set("GET", STATUS, {"status": "stopped", "exitstatus": "boom"})
+    fake_pve.set("GET", LOG, lambda params, segments: [{"t": "x"}] * params["limit"])
+    outcome = fetch_task_outcome(fake_pve, UPID)
+    assert len([c for c in fake_pve.calls if c.path.endswith("/log")]) == t.LOG_MAX_PAGES
+    assert outcome.log_tail[0].startswith("[log longer than")

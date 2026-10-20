@@ -18,9 +18,10 @@ truncated before being returned, and are never interpolated into logger calls.
 import json
 import threading
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Deque, Dict, List, Optional
 
 from mcp.types import TextContent as Content
 
@@ -36,6 +37,7 @@ MAX_CONCURRENT_WAITS = 8
 _WAIT_SLOTS = threading.BoundedSemaphore(MAX_CONCURRENT_WAITS)
 
 LOG_LIMIT = 200
+LOG_MAX_PAGES = 50  # at most 10000 log lines are read per failed task
 LOG_TAIL_LINES = 10
 LOG_LINE_MAX = 300
 _STATUS_KEYS = ("status", "exitstatus", "starttime", "type", "id", "user", "node")
@@ -79,15 +81,34 @@ def classify_task(status: Any) -> str:
 
 
 def _log_tail(api: Any, node: str, upid: str) -> List[str]:
-    """Last lines of the task log; best effort (any error yields an empty tail)."""
+    """Last lines of the task log; best effort (any error yields an empty tail).
+
+    The log API returns pages from ``start`` (at most ``LOG_LIMIT`` lines), so the log is
+    read page by page and only the final ``LOG_TAIL_LINES`` lines are kept. Reading stops at
+    the first short or empty page, or after ``LOG_MAX_PAGES`` pages; in the latter case the
+    tail is marked as not being the true end of the log.
+    """
+    tail: Deque[str] = deque(maxlen=LOG_TAIL_LINES)
+    start = 0
+    capped = False
     try:
-        entries = api.nodes(node).tasks(upid).log.get(limit=LOG_LIMIT)
+        for page_no in range(LOG_MAX_PAGES):
+            entries = api.nodes(node).tasks(upid).log.get(start=start, limit=LOG_LIMIT)
+            if not isinstance(entries, list) or not entries:
+                break
+            tail.extend(
+                e["t"] for e in entries if isinstance(e, dict) and isinstance(e.get("t"), str)
+            )
+            start += len(entries)
+            if len(entries) < LOG_LIMIT:
+                break
+            capped = page_no == LOG_MAX_PAGES - 1
     except Exception:
         return []
-    if not isinstance(entries, list):
-        return []
-    lines = [e["t"] for e in entries if isinstance(e, dict) and isinstance(e.get("t"), str)]
-    return [_clip(line) for line in lines[-LOG_TAIL_LINES:]]
+    lines = [_clip(line) for line in tail]
+    if capped and lines:
+        lines.insert(0, f"[log longer than {start} lines; showing lines before that point]")
+    return lines
 
 
 def fetch_task_outcome(api: Any, upid: str) -> TaskOutcome:
