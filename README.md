@@ -823,9 +823,9 @@ When users say **"Can you create a VM with 1 cpu core and 2 GB ram with 10GB of 
 After activating your virtual environment:
 
 - Run tests: `pytest`
-- Format code: `black .`
-- Type checking: `mypy .`
-- Lint: `ruff .`
+- Format code: `ruff format src tests`
+- Type checking: `mypy src`
+- Lint: `ruff check src tests`
 
 ## License
 
