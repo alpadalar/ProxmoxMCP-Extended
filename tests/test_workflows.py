@@ -217,3 +217,11 @@ class TestGuardsHaveTeeth:
         doc = _parse(text)
         assert write_permissions(doc) == []
         assert not bad_triggers(doc)
+
+
+def test_release_smoke_checks_auth_and_tag() -> None:
+    text = (WORKFLOW_DIR / "release.yml").read_text(encoding="utf-8")
+    assert 'test "$code" = "200"' in text  # authenticated request must succeed
+    assert 'test "$code" = "401"' in text
+    assert 'rm -f "${RUNNER_TEMP}/smoke-key"' in text
+    assert 'test "${REF_NAME#v}" = "$version"' in text
