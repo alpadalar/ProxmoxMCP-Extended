@@ -168,6 +168,10 @@ _EFFECTS: Dict[str, List[str]] = {
         "Discards all current VM state since the snapshot was taken.",
         "Changes made after the snapshot cannot be recovered.",
     ],
+    "delete_snapshot": [
+        "Permanently removes the snapshot and the VM state it captured.",
+        "It can no longer be rolled back to; this cannot be undone.",
+    ],
 }
 
 

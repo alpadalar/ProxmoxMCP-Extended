@@ -97,3 +97,11 @@ async def test_task_tools_are_literally_read_only(ann, name):
     assert (a.read_only_hint, a.destructive_hint, a.idempotent_hint, a.open_world_hint) == (
         True, False, True, False,
     )
+
+
+@pytest.mark.asyncio
+async def test_snapshot_tool_annotations(ann):
+    assert ann["list_snapshots"].read_only_hint is True
+    assert ann["list_snapshots"].destructive_hint is False
+    assert ann["delete_snapshot"].read_only_hint is False
+    assert ann["delete_snapshot"].destructive_hint is True

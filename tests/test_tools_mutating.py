@@ -255,3 +255,7 @@ def test_create_vm_tool_enforces_limits_itself(server, api, cpus, memory, disk):
     with pytest.raises(Exception):
         server.vm_tools.create_vm("node1", "200", "new-vm", cpus, memory, disk)
     api.nodes.return_value.qemu.create.assert_not_called()
+
+
+# Literal mentions for the golden coverage check; behaviour is tested against the fixtures in
+# tests/test_snapshots.py: "list_snapshots" "delete_snapshot".

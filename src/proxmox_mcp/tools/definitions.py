@@ -51,6 +51,34 @@ timeout - Seconds to wait when wait=true (optional, default: 30, maximum: 300). 
 Example:
 Rollback VM 100 on node pve to snapshot 'pre-upgrade'"""
 
+LIST_SNAPSHOTS_DESC = """List the snapshots of a QEMU virtual machine (read-only).
+
+The live-state pseudo entry 'current' is not a snapshot and is omitted. Snapshots are sorted by creation time. LXC snapshots are not covered.
+
+Parameters:
+node* - Host node name (e.g. 'pve')
+vmid* - VM ID number (e.g. '100')
+
+Example:
+List the snapshots of VM 100 on node pve"""
+
+DELETE_SNAPSHOT_DESC = """Delete a snapshot of a QEMU virtual machine.
+
+⚠️ WARNING: Deleting a snapshot is permanent; it can no longer be rolled back to!
+
+Parameters:
+node* - Host node name (e.g. 'pve')
+vmid* - VM ID number (e.g. '100')
+name* - Snapshot name to delete (e.g. 'pre-upgrade'); must exist, 'current' is not a snapshot
+confirm - Must be true to actually perform the operation; without it only a preview is returned (default: false)
+wait - Wait for the Proxmox task to finish before returning (optional, default: false). A failed task raises an error naming the task id; a task that finished with warnings is reported as such, not as success
+timeout - Seconds to wait when wait=true (optional, default: 30, maximum: 300). Timing out is not a failure: the task is reported as still running
+
+Only QEMU VMs are supported. Requires policy.allow_destructive.
+
+Example:
+Delete snapshot 'pre-upgrade' of VM 100 on node pve"""
+
 GET_VM_USAGE_DESC = """Get real-time resource usage details for a specific VM.
 
 Parameters:

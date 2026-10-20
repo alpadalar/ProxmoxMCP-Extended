@@ -16,9 +16,11 @@ The tools implement fallback mechanisms for scenarios where
 detailed VM information might be temporarily unavailable.
 """
 import time
+from datetime import datetime, timezone
 from typing import Callable, List, Optional
 from mcp.types import TextContent as Content
 from .base import ProxmoxTool
+from ..utils.redaction import redact
 from .definitions import (
     GET_VMS_DESC,
     EXECUTE_VM_COMMAND_DESC,
@@ -731,6 +733,68 @@ class VMTools(ProxmoxTool):
         except Exception as e:
             self._handle_error(
                 f"rollback VM {vmid} to snapshot {name}", e, privilege_key="rollback_snapshot", node=node, vmid=vmid
+            )
+
+    def list_snapshots(self, node: str, vmid: str) -> List[Content]:
+        """List the snapshots of a QEMU VM (the live-state pseudo entry 'current' is omitted)."""
+        node = validate_node(node)
+        vmid = validate_vmid(vmid)
+        try:
+            require_vm_status(self.proxmox, node, vmid, "list_snapshots")
+            snapshots = self._snapshot_entries(node, vmid)
+            payload = {"node": node, "vmid": vmid, "count": len(snapshots), "snapshots": snapshots}
+            return self._format_response(payload)
+        except Exception as e:
+            self._handle_error(
+                f"list snapshots of VM {vmid}", e, privilege_key="list_snapshots", node=node, vmid=vmid
+            )
+
+    def _snapshot_entries(self, node: str, vmid: str) -> list:
+        """Snapshots of a VM sorted by snaptime; only the exact name 'current' is dropped."""
+        raw = self.proxmox.nodes(node).qemu(vmid).snapshot.get() or []
+        entries = []
+        for item in raw:
+            if not isinstance(item, dict) or item.get("name") == "current":
+                continue
+            snaptime = item.get("snaptime")
+            ok = isinstance(snaptime, int) and not isinstance(snaptime, bool)
+            entry = {
+                "name": item.get("name"),
+                "description": redact(str(item.get("description") or ""))[:300],
+                "snaptime": snaptime if ok else None,
+                "snaptime_utc": (
+                    datetime.fromtimestamp(snaptime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    if ok else None
+                ),
+                "vmstate": bool(item.get("vmstate")),
+                "parent": item.get("parent"),
+            }
+            entries.append(entry)
+        entries.sort(key=lambda e: (e["snaptime"] or 0, str(e["name"])))
+        return entries
+
+    def delete_snapshot(
+        self, node: str, vmid: str, name: str, wait: bool = False, timeout: int = 30
+    ) -> List[Content]:
+        """Delete a snapshot of a QEMU VM (irreversible). The caller enforces confirm."""
+        node = validate_node(node)
+        vmid = validate_vmid(vmid)
+        name = validate_snapshot_name(name)
+        validate_wait_timeout(timeout)
+        try:
+            require_vm_status(self.proxmox, node, vmid, "delete_snapshot")
+            if not any(e["name"] == name for e in self._snapshot_entries(node, vmid)):
+                raise ValueError(f"Snapshot '{name}' not found on VM {vmid}")
+            task_result = self.proxmox.nodes(node).qemu(vmid).snapshot(name).delete()
+            result_text = (
+                f"Snapshot '{name}' deletion initiated for VM {vmid} on node {node}\n"
+                f"🔧 {self._task_text(task_result, wait, timeout)}"
+            )
+            return [Content(type="text", text=result_text)]
+        except Exception as e:
+            self._handle_error(
+                f"delete snapshot {name} of VM {vmid}", e,
+                privilege_key="delete_snapshot", node=node, vmid=vmid,
             )
 
     def get_vm_usage(self, node: str, vmid: str) -> List[Content]:

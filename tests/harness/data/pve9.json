@@ -198,5 +198,6 @@
   "POST nodes/*/qemu/*/snapshot": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmsnapshot:100:monitor@pve!mcp:",
   "POST nodes/*/qemu/*/snapshot/*/rollback": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmrollback:100:monitor@pve!mcp:",
   "PUT nodes/*/qemu/*/config": null,
-  "DELETE nodes/*/qemu/*": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmdestroy:100:monitor@pve!mcp:"
+  "DELETE nodes/*/qemu/*": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmdestroy:100:monitor@pve!mcp:",
+  "DELETE nodes/*/qemu/*/snapshot/*": "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmdelsnapshot:100:monitor@pve!mcp:"
 }

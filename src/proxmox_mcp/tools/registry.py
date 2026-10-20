@@ -20,6 +20,7 @@ from ..policy import build_preview
 from .definitions import (
     CREATE_SNAPSHOT_DESC,
     CREATE_VM_DESC,
+    DELETE_SNAPSHOT_DESC,
     DELETE_VM_DESC,
     EXECUTE_VM_COMMAND_DESC,
     GET_CLUSTER_STATUS_DESC,
@@ -31,6 +32,7 @@ from .definitions import (
     GET_VM_USAGE_DESC,
     GET_VMS_DESC,
     HEALTH_DESC,
+    LIST_SNAPSHOTS_DESC,
     RESET_VM_DESC,
     ROLLBACK_SNAPSHOT_DESC,
     SHUTDOWN_VM_DESC,
@@ -47,11 +49,13 @@ RISK_CLASSES = {
     "read": (
         "get_nodes", "get_node_status", "get_vms", "get_containers", "get_storage",
         "get_cluster_status", "get_vm_usage", "health", "get_task_status", "wait_for_task",
+        "list_snapshots",
     ),
     "write": ("create_vm", "start_vm", "shutdown_vm", "create_snapshot"),
     # update_vm overwrites existing configuration (memory, cores, name), so it is gated by
     # allow_destructive, matching its destructiveHint annotation.
-    "destructive": ("stop_vm", "reset_vm", "delete_vm", "rollback_snapshot", "update_vm"),
+    "destructive": ("stop_vm", "reset_vm", "delete_vm", "rollback_snapshot", "update_vm",
+                    "delete_snapshot"),
     "exec": ("execute_vm_command",),
 }
 _RISK_BY_NAME = {n: r for r, names in RISK_CLASSES.items() for n in names}
@@ -277,6 +281,26 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
         if not confirm:
             return build_preview("rollback_snapshot", node=node, vmid=vmid, name=name)
         return ctx.vm_tools.rollback_snapshot(node, vmid, name, wait, timeout)
+
+    @_tool(LIST_SNAPSHOTS_DESC)
+    def list_snapshots(
+        node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
+        vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
+    ):
+        return ctx.vm_tools.list_snapshots(node, vmid)
+
+    @_tool(DELETE_SNAPSHOT_DESC)
+    def delete_snapshot(
+        node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
+        vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
+        name: Annotated[str, Field(description="Snapshot name to delete")],
+        confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
+        wait: WaitParam = False,
+        timeout: TimeoutParam = 30,
+    ):
+        if not confirm:
+            return build_preview("delete_snapshot", node=node, vmid=vmid, name=name)
+        return ctx.vm_tools.delete_snapshot(node, vmid, name, wait, timeout)
 
     # VM usage tool
     @_tool(GET_VM_USAGE_DESC)

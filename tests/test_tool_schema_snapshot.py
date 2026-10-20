@@ -38,6 +38,12 @@ PHASE4_BASELINE_PATH = Path(__file__).parent / "golden" / "tools_phase4.json"
 PHASE5_NEW_TOOLS: dict[str, dict[str, tuple[str, bool]]] = {
     "get_task_status": {"upid": ("string", True)},
     "wait_for_task": {"upid": ("string", True), "timeout": ("integer", False)},
+    "list_snapshots": {"node": ("string", True), "vmid": ("string", True)},
+    "delete_snapshot": {
+        "node": ("string", True), "vmid": ("string", True), "name": ("string", True),
+        "confirm": ("boolean", False), "wait": ("boolean", False),
+        "timeout": ("integer", False),
+    },
 }
 # Existing tools gaining new OPTIONAL parameters: tool -> param -> simple type.
 _WAIT = {"wait": "boolean", "timeout": "integer"}

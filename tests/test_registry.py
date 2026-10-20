@@ -133,3 +133,12 @@ def test_task_tools_are_literally_read_risk(name):
     spec = next(s for s in build_registry(_ctx()) if s.name == name)
     assert spec.risk == "read"
     assert spec.annotations["readOnlyHint"] is True
+
+
+def test_snapshot_tools_literal_risk():
+    specs = {s.name: s for s in build_registry(_ctx())}
+    assert specs["list_snapshots"].risk == "read"
+    assert specs["list_snapshots"].annotations["readOnlyHint"] is True
+    assert specs["delete_snapshot"].risk == "destructive"
+    assert specs["delete_snapshot"].annotations["readOnlyHint"] is False
+    assert specs["delete_snapshot"].annotations["destructiveHint"] is True

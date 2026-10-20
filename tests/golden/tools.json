@@ -95,6 +95,41 @@
     ]
   },
   {
+    "name": "delete_snapshot",
+    "params": [
+      {
+        "name": "confirm",
+        "required": false,
+        "type": "boolean"
+      },
+      {
+        "name": "name",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "timeout",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "wait",
+        "required": false,
+        "type": "boolean"
+      }
+    ]
+  },
+  {
     "name": "delete_vm",
     "params": [
       {
@@ -212,6 +247,21 @@
   {
     "name": "health",
     "params": []
+  },
+  {
+    "name": "list_snapshots",
+    "params": [
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      }
+    ]
   },
   {
     "name": "reset_vm",

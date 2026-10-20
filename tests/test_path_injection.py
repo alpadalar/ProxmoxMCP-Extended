@@ -26,6 +26,7 @@ GOOD = {
 GOOD_BY_TOOL = {
     ("create_snapshot", "name"): "snap1",
     ("rollback_snapshot", "name"): "snap1",
+    ("delete_snapshot", "name"): "snap1",
 }
 # Required non-identifier params with valid values.
 OTHER = {"cpus": 2, "memory": 2048, "disk_size": 10, "command": "uname -a"}
@@ -37,6 +38,7 @@ EXTRA_BAD = {
     ("create_vm", "ostype"): ["l26,x=1"],
     ("create_snapshot", "name"): ["current"],
     ("rollback_snapshot", "name"): ["current"],
+    ("delete_snapshot", "name"): ["current"],
 }
 
 # Bad task ids (UPID); the generic BAD list does not exercise the UPID grammar.

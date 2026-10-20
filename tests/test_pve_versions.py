@@ -21,6 +21,8 @@ VM_TOOLS = {
     "update_vm": ({"memory": 2048}, "VM.Config"),
     "create_snapshot": ({"name": "s1"}, "VM.Snapshot"),
     "rollback_snapshot": ({"name": "s1", "confirm": True}, "VM.Snapshot.Rollback"),
+    "list_snapshots": ({}, "VM.Audit"),
+    "delete_snapshot": ({"name": "s1", "confirm": True}, "VM.Snapshot"),
 }
 
 
