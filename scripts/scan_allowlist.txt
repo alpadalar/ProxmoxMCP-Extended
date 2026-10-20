@@ -1,7 +1,37 @@
-# Allowlist for scripts/scan_history.py (one entry per line).
+# Allowlist for scripts/scan_history.py (one entry per line). The scanner has NO built-in word
+# lists: every wording-based suppression is listed here and reviewed with the code.
 #   <rule-id>:<path>   accept one rule in one file
 #   sha256:<prefix>    accept a value by the sha256 prefix of its text (value never stored)
-#   anything else      case-insensitive placeholder substring
+#   value:<text>       accept a value that is exactly <text> (case-insensitive)
+#   anything else      case-insensitive placeholder WORD or phrase; matched only as a whole
+#                      delimited word ("fake" matches "fake-key" but not "unfakeable")
+#
+# Placeholder words that appear in documentation, examples and tests as stand-ins.
+your
+example
+placeholder
+changeme
+change-me
+change_me
+fake
+dummy
+sample
+redacted
+replace
+not-a-real
+token_value
+token-value
+secret_value
+# Whole-value placeholders only (a real secret that merely contains these words is still reported).
+value:none
+value:null
+value:nil
+value:true
+value:false
+value:todo
+value:secret
+value:token
+value:password
 #
 # Planning notes that quote the text of a PEM header while describing the scanner tests.
 # No key material is present, only the header words.

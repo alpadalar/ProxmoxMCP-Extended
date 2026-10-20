@@ -20,6 +20,7 @@ from pathlib import Path
 import pytest
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "scan_history.py"
+REPO_ALLOWLIST = Path(__file__).resolve().parents[1] / "scripts" / "scan_allowlist.txt"
 GIT = shutil.which("git")
 
 pytestmark = pytest.mark.skipif(GIT is None, reason="git is required")
@@ -152,9 +153,43 @@ def test_placeholders_are_not_findings(repo: Path):
         'token = "00000000-0000-0000-0000-000000000000"',
     ]
     commit(repo, {"docs.md": "\n".join(lines) + "\n"})
-    proc = scan(repo, "--mode", "secrets")
+    proc = scan(repo, "--mode", "secrets", "--allowlist", str(REPO_ALLOWLIST))
     assert proc.returncode == 0, proc.stdout
     assert rows(proc) == []
+
+
+def test_no_builtin_word_suppression_and_words_match_whole_words_only(repo: Path, tmp_path: Path):
+    real = "ab9K" + alnum(20)
+    # placeholder words inside a longer, secret-looking value must not hide it
+    commit(
+        repo,
+        {
+            "a.json": '{"token_value": "' + real + "example" + alnum(6) + '"}\n',
+            "b.json": '{"token_value": "xfake' + alnum(24) + '"}\n',
+            "c.json": '{"token_value": "example-' + alnum(24) + '"}\n',
+        },
+    )
+    # no allowlist: nothing is suppressed by wording alone
+    assert {r[2] for r in rows(scan(repo, "--mode", "secrets"))} == {"a.json", "b.json", "c.json"}
+    allow = tmp_path / "allow.txt"
+    allow.write_text("fake\nexample\n", encoding="utf-8")
+    got = {r[2] for r in rows(scan(repo, "--mode", "secrets", "--allowlist", str(allow)))}
+    assert got == {"a.json", "b.json"}  # only the delimited word "example-" is suppressed
+
+
+def test_value_entry_matches_the_whole_value_only(repo: Path, tmp_path: Path):
+    word = "pass" + "word"
+    commit(
+        repo,
+        {
+            "a.json": '{"token_value": "' + word + '"}\n',
+            "b.json": '{"token_value": "' + word + "123" + alnum(6) + '"}\n',
+        },
+    )
+    allow = tmp_path / "allow.txt"
+    allow.write_text(f"value:{word}\n", encoding="utf-8")
+    got = {r[2] for r in rows(scan(repo, "--mode", "secrets", "--allowlist", str(allow)))}
+    assert got == {"b.json"}
 
 
 def test_allowlist_file_suppresses_a_substring_and_a_fingerprint(repo: Path, tmp_path: Path):
@@ -216,12 +251,21 @@ def test_aws_key_and_bearer_are_detected_outside_tests_only(repo: Path):
         + "".join(secrets.choice(string.ascii_uppercase + string.digits) for _ in range(16))
     )
     bearer = "Bearer " + alnum(40)
-    commit(repo, {"src/a.py": f'k = "{aws}"\nh = "{bearer}"\n', "tests/t.py": f'h = "{bearer}"\n'})
+    short = "Bearer " + alnum(24)
+    commit(
+        repo,
+        {
+            "src/a.py": f'k = "{aws}"\nh = "{bearer}"\n',
+            "tests/t.py": f'h = "{short}"\n',
+            "tests/long.py": f'h = "{bearer}"\n',
+        },
+    )
     proc = scan(repo, "--mode", "secrets")
     got = {(r[0], r[2]) for r in rows(proc)}
     assert ("aws-access-key", "src/a.py") in got
     assert ("generic-bearer", "src/a.py") in got
-    assert ("generic-bearer", "tests/t.py") not in got
+    assert ("generic-bearer", "tests/t.py") not in got  # short fixture token
+    assert ("generic-bearer", "tests/long.py") in got  # a long credential is reported anywhere
 
 
 def test_sha256_digests_are_informational_only(repo: Path):

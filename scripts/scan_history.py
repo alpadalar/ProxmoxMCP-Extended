@@ -41,30 +41,11 @@ SELF_PATHS = ("scripts/scan_history.py", "tests/test_scan_history.py")
 
 UUID = r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 
-PLACEHOLDER_SUBSTRINGS = (
-    "your",
-    "example",
-    "placeholder",
-    "changeme",
-    "change-me",
-    "change_me",
-    "fake",
-    "dummy",
-    "sample",
-    "redacted",
-    "replace",
-    "not-a-real",
-    "token_value",
-    "token-value",
-    "secret_value",
-    "<",
-    ">",
-    "{",
-    "}",
-    "%s",
-    "xxx",
-)
-PLACEHOLDER_WORDS = {"none", "null", "nil", "true", "false", "todo", "secret", "token", "password"}
+# Placeholder recognition is deliberately narrow. The only built-in rules are structural (empty or
+# symbol-only values, UPPER_CASE identifiers, mask characters, whole-value template markers and
+# low-entropy UUIDs). Every wording-based suppression ("example", "fake", ...) lives in the
+# allowlist file and is matched as a whole delimited word, never as an arbitrary substring.
+TEMPLATE_MARKER = re.compile(r"\$?\{[^{}]*\}|<[^<>]*>|%[sd]")
 
 
 # --------------------------------------------------------------------------------------------
@@ -110,10 +91,17 @@ class Result:
 
 
 class Allowlist:
-    """Placeholder substrings (case-insensitive) and ``sha256:<prefix>`` value fingerprints."""
+    """Explicit suppressions read from the allowlist file; there are no built-in word lists.
+
+    ``word``           case-insensitive, matched only as a whole delimited word or phrase
+    ``value:<text>``   the whole value equals <text> (case-insensitive)
+    ``sha256:<prefix>`` accept a value by the sha256 prefix of its text
+    ``<rule>:<path>``  accept one rule in one file
+    """
 
     def __init__(self, entries: list[str] | None = None) -> None:
-        self.substrings: list[str] = []
+        self.words: list[re.Pattern[str]] = []
+        self.exact: set[str] = set()
         self.fingerprints: list[str] = []
         self.rule_paths: set[tuple[str, str]] = set()
         for entry in entries or []:
@@ -123,10 +111,19 @@ class Allowlist:
             head, _, tail = entry.partition(":")
             if head == "sha256":
                 self.fingerprints.append(tail.lower())
+            elif head == "value" and tail:
+                self.exact.add(tail.lower())
             elif tail and head in RULE_IDS:
                 self.rule_paths.add((head, tail))
             else:
-                self.substrings.append(entry.lower())
+                self.words.append(self._word_pattern(entry))
+
+    @staticmethod
+    def _word_pattern(entry: str) -> re.Pattern[str]:
+        text = entry.lower()
+        before = r"(?<![a-z0-9])" if text[0].isalnum() else ""
+        after = r"(?![a-z0-9])" if text[-1].isalnum() else ""
+        return re.compile(before + re.escape(text) + after)
 
     @classmethod
     def from_file(cls, path: str | None) -> Allowlist:
@@ -139,7 +136,7 @@ class Allowlist:
 
     def allows(self, value: str) -> bool:
         lowered = value.lower()
-        if any(s in lowered for s in self.substrings):
+        if lowered in self.exact or any(w.search(lowered) for w in self.words):
             return True
         digest = hashlib.sha256(value.encode("utf-8", errors="replace")).hexdigest()
         return any(digest.startswith(f) for f in self.fingerprints if f)
@@ -151,12 +148,9 @@ def is_placeholder(value: str, allow: Allowlist) -> bool:
         return True
     if re.fullmatch(r"[A-Z_]+", v):  # TOKEN_VALUE, YOUR_API_KEY
         return True
-    lowered = v.lower()
-    if set(lowered) <= set("x*-._#"):
+    if set(v.lower()) <= set("x*-._#"):
         return True
-    if lowered in PLACEHOLDER_WORDS:
-        return True
-    if any(s in lowered for s in PLACEHOLDER_SUBSTRINGS):
+    if TEMPLATE_MARKER.fullmatch(v):
         return True
     if re.fullmatch(UUID, v) and len(set(v.replace("-", "").lower())) <= 2:
         return True  # 0000..., aaaa...
@@ -221,7 +215,8 @@ def _pveapitoken_secret(m: re.Match[str]) -> str:
 
 
 def _accept_bearer(value: str, path: str, allow: Allowlist) -> bool:
-    if path.startswith("tests/") or "/tests/" in path:
+    # Short bearer-looking strings in tests are fixtures; a long credential is reported anywhere.
+    if (path.startswith("tests/") or "/tests/" in path) and len(value) < 40:
         return False
     return not is_placeholder(value, allow)
 
