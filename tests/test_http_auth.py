@@ -239,3 +239,12 @@ def test_missing_key_error_names_both_sources(mock_env_vars, mock_proxmox):
     with pytest.raises(AuthConfigError) as ei:
         ProxmoxMCPHTTPServer()
     assert ENV_HASHES in str(ei.value) and "http.api_key_digests" in str(ei.value)
+
+
+def test_invalid_digest_error_names_its_source():
+    with pytest.raises(ValueError, match="http.api_key_digests"):
+        resolve_digests(None, ["zz"], {})
+    with pytest.raises(ValueError, match="explicit"):
+        resolve_digests(["zz"], [], {})
+    with pytest.raises(ValueError, match=ENV_HASHES):
+        resolve_digests(None, [], {ENV_HASHES: "zz"})

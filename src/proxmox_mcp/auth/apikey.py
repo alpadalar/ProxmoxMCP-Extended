@@ -37,8 +37,11 @@ def hash_api_key(key: str) -> str:
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
-def normalize_digests(values: Iterable[str]) -> List[str]:
-    """Validate digests (optional ``sha256:`` prefix) and return lowercase hex."""
+def normalize_digests(values: Iterable[str], source: str = "API key digests") -> List[str]:
+    """Validate digests (optional ``sha256:`` prefix) and return lowercase hex.
+
+    ``source`` names where the values came from, for the error message.
+    """
     result: List[str] = []
     for raw in values:
         item = raw.strip().lower()
@@ -47,7 +50,7 @@ def normalize_digests(values: Iterable[str]) -> List[str]:
         item = item.removeprefix("sha256:")
         if not _HEX64.match(item):
             raise ValueError(
-                f"Invalid API key digest in {ENV_HASHES}: expected 64 hex characters "
+                f"Invalid API key digest in {source}: expected 64 hex characters "
                 "(sha256), optionally prefixed with 'sha256:'"
             )
         result.append(item)
@@ -57,7 +60,7 @@ def normalize_digests(values: Iterable[str]) -> List[str]:
 def digests_from_env(environ: Optional[dict] = None) -> List[str]:
     """Read digests from ``PROXMOX_MCP_API_KEY_HASHES`` (comma-separated)."""
     env = os.environ if environ is None else environ
-    return normalize_digests(env.get(ENV_HASHES, "").split(","))
+    return normalize_digests(env.get(ENV_HASHES, "").split(","), ENV_HASHES)
 
 
 def resolve_digests(
@@ -71,11 +74,11 @@ def resolve_digests(
     closed on an empty result. A non-empty env list replaces the config list.
     """
     if explicit is not None:
-        return normalize_digests(explicit)
+        return normalize_digests(explicit, "the explicit api_key_digests argument")
     env_digests = digests_from_env(environ)
     if env_digests:
         return env_digests
-    return normalize_digests(config_digests)
+    return normalize_digests(config_digests, "http.api_key_digests")
 
 
 def is_authorized(headers: List[tuple], digests: Iterable[str]) -> bool:
