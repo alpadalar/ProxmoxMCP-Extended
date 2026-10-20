@@ -1,36 +1,19 @@
-#!/bin/bash
-"""
-Proxmox MCP server startup script
-"""
+#!/usr/bin/env bash
+# Start the ProxmoxMCP server on stdio (for MCP clients that launch it as a subprocess).
+# Configuration: PROXMOX_MCP_CONFIG (default proxmox-config/config.json).
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
-echo "🚀 Starting Proxmox MCP server..."
-echo ""
+CONFIG_FILE="${PROXMOX_MCP_CONFIG:-proxmox-config/config.json}"
 
-# Check virtual environment
-if [ ! -d ".venv" ]; then
-    echo "❌ Virtual environment does not exist, please run installation steps first"
+if ! command -v uv >/dev/null 2>&1; then
+    echo "uv is not installed (https://docs.astral.sh/uv/); run 'uv sync' after installing it" >&2
+    exit 1
+fi
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo "Configuration file not found: $CONFIG_FILE" >&2
+    echo "Copy proxmox-config/config.example.json to proxmox-config/config.json and edit it" >&2
     exit 1
 fi
 
-# Activate virtual environment
-source .venv/bin/activate
-
-# Set environment variables
-export PROXMOX_MCP_CONFIG="proxmox-config/config.json"
-
-# Check configuration file
-if [ ! -f "$PROXMOX_MCP_CONFIG" ]; then
-    echo "❌ Configuration file does not exist: $PROXMOX_MCP_CONFIG"
-    echo "Please ensure the configuration file is properly set up"
-    exit 1
-fi
-
-echo "✅ Configuration file: $PROXMOX_MCP_CONFIG"
-echo "✅ Virtual environment activated"
-echo ""
-echo "🔍 Starting server..."
-echo "Press Ctrl+C to stop the server"
-echo ""
-
-# Start server
-python -m proxmox_mcp.server 
+exec uv run proxmox-mcp --config "$CONFIG_FILE"

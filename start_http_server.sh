@@ -1,53 +1,34 @@
-#!/bin/bash
-# ProxmoxMCP HTTP Server startup script
-# Start MCP server with HTTP transport (streamable)
+#!/usr/bin/env bash
+# Start the ProxmoxMCP HTTP server (streamable HTTP, API-key auth required).
+#
+# Settings (environment): MCP_HTTP_HOST (default 127.0.0.1), MCP_HTTP_PORT (default 8812),
+# MCP_HTTP_PATH (default /proxmox-mcp), PROXMOX_MCP_CONFIG (default proxmox-config/config.json).
+# API key digests come from PROXMOX_MCP_API_KEY_HASHES or `http.api_key_digests` in the config:
+#   echo -n 'my-secret-key' | uv run python -m proxmox_mcp.auth.apikey
+#   export PROXMOX_MCP_API_KEY_HASHES=<digest>
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
-# Get host and port from environment variables or use defaults
-HOST=${MCP_HTTP_HOST:-"127.0.0.1"}
-PORT=${MCP_HTTP_PORT:-"8812"}
-PATH_PREFIX=${MCP_HTTP_PATH:-"/proxmox-mcp"}
-CONFIG_FILE=${PROXMOX_MCP_CONFIG:-"proxmox-config/config.json"}
+HOST="${MCP_HTTP_HOST:-127.0.0.1}"
+PORT="${MCP_HTTP_PORT:-8812}"
+PATH_PREFIX="${MCP_HTTP_PATH:-/proxmox-mcp}"
+CONFIG_FILE="${PROXMOX_MCP_CONFIG:-proxmox-config/config.json}"
 
-echo "🛰️ Starting ProxmoxMCP HTTP Server..."
-echo ""
-
-# Check if virtual environment exists
-if [ ! -d ".venv" ]; then
-    echo "❌ Virtual environment does not exist, please run installation steps first"
+if ! command -v uv >/dev/null 2>&1; then
+    echo "uv is not installed (https://docs.astral.sh/uv/); run 'uv sync' after installing it" >&2
     exit 1
 fi
-
-# Activate virtual environment
-source .venv/bin/activate
-
-# Check configuration file
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "❌ Configuration file does not exist: $CONFIG_FILE"
-    echo "Please ensure the configuration file is properly set up"
+    echo "Configuration file not found: $CONFIG_FILE" >&2
+    echo "Copy proxmox-config/config.example.json to proxmox-config/config.json and edit it" >&2
     exit 1
 fi
 
-echo "✅ Configuration file: $CONFIG_FILE"
-echo "✅ Virtual environment activated"
-echo ""
-echo "🚀 Starting HTTP MCP server..."
-echo "🌐 Service address: http://${HOST}:${PORT}${PATH_PREFIX}"
-echo "📡 Protocol: MCP over HTTP (streamable)"
-echo "🔒 Authentication: API key (PROXMOX_MCP_API_KEY_HASHES)"
-echo ""
-echo "Press Ctrl+C to stop the server"
-echo ""
-echo "💡 Usage with Cursor/VS Code:"
-echo "   Add HTTP MCP server configuration to your editor"
-echo "   URL: http://${HOST}:${PORT}${PATH_PREFIX}"
-echo "   Headers: Authorization: Bearer <your-token>"
-echo ""
+echo "Starting ProxmoxMCP HTTP server on http://${HOST}:${PORT}${PATH_PREFIX}"
+echo "Authentication: API key (Authorization: Bearer <key> or X-API-Key: <key>)"
+echo "Press Ctrl+C to stop"
 
-# Set environment variables
-export PROXMOX_MCP_CONFIG="$(pwd)/$CONFIG_FILE"
-
-# Start HTTP server with Python module
-python -m proxmox_mcp.server_http \
+exec uv run python -m proxmox_mcp.server_http \
     --host "$HOST" \
     --port "$PORT" \
     --path "$PATH_PREFIX" \
