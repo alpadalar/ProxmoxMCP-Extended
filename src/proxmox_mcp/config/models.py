@@ -30,6 +30,24 @@ _FALSE_VALUES = {"0", "false", "no", "off"}
 _LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
 _STRICT = ConfigDict(extra="forbid", hide_input_in_errors=True)
 
+
+def _strict_bool(v: Any, field_name: str) -> bool:
+    """Parse a boolean strictly; typos raise (fail closed) and never echo input."""
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, int) and v in (0, 1):
+        return bool(v)
+    if isinstance(v, str):
+        norm = v.strip().lower()
+        if norm in _TRUE_VALUES:
+            return True
+        if norm in _FALSE_VALUES:
+            return False
+    raise ValueError(
+        f"invalid {field_name} value; accepted: true/false, 1/0, yes/no, on/off"
+    )
+
+
 class NodeStatus(BaseModel):
     """Model for node status query parameters.
     
@@ -78,19 +96,7 @@ class ProxmoxConfig(BaseModel):
     @field_validator("verify_ssl", mode="before")
     @classmethod
     def _parse_verify_ssl(cls, v: Any) -> bool:
-        if isinstance(v, bool):
-            return v
-        if isinstance(v, int) and v in (0, 1):
-            return bool(v)
-        if isinstance(v, str):
-            norm = v.strip().lower()
-            if norm in _TRUE_VALUES:
-                return True
-            if norm in _FALSE_VALUES:
-                return False
-        raise ValueError(
-            "invalid verify_ssl value; accepted: true/false, 1/0, yes/no, on/off"
-        )
+        return _strict_bool(v, "verify_ssl")
 
     @field_validator("ca_bundle")
     @classmethod
@@ -159,6 +165,26 @@ class HttpConfig(BaseModel):
                 "(64 hex chars, optional 'sha256:' prefix)"
             ) from None
 
+class PolicyConfig(BaseModel):
+    """Tool-layer safety policy. All dangerous gates default to closed.
+
+    ``read_only=true`` overrides both ``allow_*`` gates and blocks every
+    write, destructive and exec tool. The gates are enforced at call time
+    (tools stay registered so the MCP surface is stable).
+    """
+    model_config = _STRICT
+
+    read_only: bool = False
+    allow_destructive: bool = False
+    allow_exec: bool = False
+    exec_timeout_seconds: float = Field(default=30.0, gt=0, le=300)
+    exec_max_output_bytes: int = Field(default=65536, ge=1024, le=1_048_576)
+
+    @field_validator("read_only", "allow_destructive", "allow_exec", mode="before")
+    @classmethod
+    def _parse_gates(cls, v: Any, info: Any) -> bool:
+        return _strict_bool(v, info.field_name)
+
 class Config(BaseModel):
     """Root configuration model (proxmox and auth required, logging defaulted)."""
     model_config = _STRICT
@@ -167,3 +193,4 @@ class Config(BaseModel):
     auth: AuthConfig  # Required: Authentication credentials
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     http: HttpConfig = Field(default_factory=HttpConfig)
+    policy: PolicyConfig = Field(default_factory=PolicyConfig)

@@ -30,6 +30,11 @@ _ENV_MAP = {
     "PROXMOX_TOKEN_VALUE": ("auth", "token_value"),
     "LOG_LEVEL": ("logging", "level"),
     "LOG_FILE": ("logging", "file"),
+    "PROXMOX_MCP_READ_ONLY": ("policy", "read_only"),
+    "PROXMOX_MCP_ALLOW_DESTRUCTIVE": ("policy", "allow_destructive"),
+    "PROXMOX_MCP_ALLOW_EXEC": ("policy", "allow_exec"),
+    "PROXMOX_MCP_EXEC_TIMEOUT": ("policy", "exec_timeout_seconds"),
+    "PROXMOX_MCP_EXEC_MAX_OUTPUT": ("policy", "exec_max_output_bytes"),
 }
 
 
@@ -89,7 +94,9 @@ def load_config(
 
     Environment variables: PROXMOX_HOST, PROXMOX_PORT, PROXMOX_USER,
     PROXMOX_TOKEN_NAME, PROXMOX_TOKEN_VALUE, PROXMOX_VERIFY_SSL,
-    PROXMOX_CA_BUNDLE, PROXMOX_SERVICE, PROXMOX_TIMEOUT, LOG_LEVEL, LOG_FILE. An empty
+    PROXMOX_CA_BUNDLE, PROXMOX_SERVICE, PROXMOX_TIMEOUT, LOG_LEVEL, LOG_FILE,
+    PROXMOX_MCP_READ_ONLY, PROXMOX_MCP_ALLOW_DESTRUCTIVE, PROXMOX_MCP_ALLOW_EXEC,
+    PROXMOX_MCP_EXEC_TIMEOUT, PROXMOX_MCP_EXEC_MAX_OUTPUT. An empty
     string is treated as unset.
 
     Args:
