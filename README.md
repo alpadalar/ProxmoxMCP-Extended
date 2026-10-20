@@ -299,7 +299,7 @@ Digests can also be set in the config file as `http.api_key_digests` (list of sh
 digests). Precedence: constructor/CLI > `PROXMOX_MCP_API_KEY_HASHES` > config; sources replace
 each other, they are never merged. The Proxmox request timeout is `proxmox.timeout`
 (seconds, default 30, max 300; env `PROXMOX_TIMEOUT`).
-`/health` is the only unauthenticated endpoint.
+`/health` is the only unauthenticated endpoint and returns only `{"status": "ok"}`; auth mode and Proxmox reachability are returned to callers that send a valid API key (or via the `health` tool).
 
 **Features:**
 - ✅ FastMCP HTTP transport

@@ -71,8 +71,17 @@ def test_valid_x_api_key_200(client):
     assert _post(client, **{"X-API-Key": KEY}).status_code == 200
 
 
-def test_health_open_and_truthful(client):
+def test_health_unauthenticated_is_liveness_only(client):
     r = client.get("/health")
+    assert r.status_code == 200
+    assert r.json() == {"status": "ok"}
+    assert client.get("/health", headers={"Authorization": "Bearer nope"}).json() == {
+        "status": "ok"
+    }
+
+
+def test_health_authenticated_is_truthful(client):
+    r = client.get("/health", headers={"Authorization": f"Bearer {KEY}"})
     assert r.status_code == 200
     assert r.json()["auth"] == "api-key"
 

@@ -15,7 +15,7 @@ from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
-from .auth.apikey import APIKeyAuthMiddleware
+from .auth.apikey import APIKeyAuthMiddleware, is_authorized
 from .auth.hostguard import LoopbackHostGuardMiddleware
 from .auth.policy import resolve_auth_policy
 from .core.proxmox import ProxmoxManager
@@ -162,6 +162,13 @@ def create_app(
 
         @app.mcp.custom_route("/health", methods=["GET"])
         async def health_route(request: Request) -> JSONResponse:
+            # Unauthenticated callers get liveness only; auth mode and Proxmox
+            # reachability are disclosed solely to authenticated callers (or when
+            # auth is disabled, where every tool is already open).
+            if policy.enabled and not is_authorized(
+                request.scope.get("headers", []), policy.digests
+            ):
+                return JSONResponse({"status": "ok"})
             return JSONResponse(app.health_payload())
 
         if policy.enabled:

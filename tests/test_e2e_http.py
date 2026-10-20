@@ -95,9 +95,19 @@ def test_auth_over_real_socket(served):
     assert _post(url, **{"X-API-Key": KEY}).status_code == 200
 
 
-def test_health_open_and_truthful(served):
+AUTH_HDR = {"Authorization": f"Bearer {KEY}"}
+
+
+def test_health_unauthenticated_is_liveness_only(served):
     url, _ = served
     r = requests.get(url + "/health", timeout=10)
+    assert r.status_code == 200
+    assert r.json() == {"status": "ok"}
+
+
+def test_health_authenticated_is_truthful(served):
+    url, _ = served
+    r = requests.get(url + "/health", headers=AUTH_HDR, timeout=10)
     assert r.status_code == 200
     body = r.json()
     assert body["auth"] == "api-key"
@@ -133,16 +143,16 @@ def test_health_connected_after_tool_call(served):
     r = _tool_call(url, "get_nodes", {})
     assert r.status_code == 200, r.text
     assert "error" not in _data(r) or not _data(r)["error"]
-    assert requests.get(url + "/health", timeout=10).json()["proxmox"] == "connected"
+    assert requests.get(url + "/health", headers=AUTH_HDR, timeout=10).json()["proxmox"] == "connected"
 
 
 def test_health_unreachable(mock_env_vars):
     with patch("proxmox_mcp.core.proxmox.ProxmoxAPI", side_effect=ConnectionError("down")):
         server = ProxmoxMCPHTTPServer(api_key_digests=[DIGEST])
         with _serve(server) as url:
-            assert requests.get(url + "/health", timeout=10).json()["proxmox"] == "not_connected"
+            assert requests.get(url + "/health", headers=AUTH_HDR, timeout=10).json()["proxmox"] == "not_connected"
             _tool_call(url, "get_nodes", {})
-            body = requests.get(url + "/health", timeout=10).json()
+            body = requests.get(url + "/health", headers=AUTH_HDR, timeout=10).json()
             assert body["proxmox"] == "unreachable"
             assert "down" not in json.dumps(body)
 

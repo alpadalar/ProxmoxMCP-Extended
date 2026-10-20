@@ -78,6 +78,18 @@ def resolve_digests(
     return normalize_digests(config_digests)
 
 
+def is_authorized(headers: List[tuple], digests: Iterable[str]) -> bool:
+    """True if the raw ASGI ``headers`` carry a key matching one of ``digests``."""
+    key = APIKeyAuthMiddleware._extract_key(headers)
+    if key is None:
+        return False
+    candidate = hash_api_key(key)
+    ok = False
+    for digest in digests:  # no early exit: constant work per configured key
+        ok |= hmac.compare_digest(candidate, digest)
+    return ok
+
+
 class APIKeyAuthMiddleware:
     """Pure ASGI middleware enforcing API-key auth on HTTP requests."""
 
@@ -107,13 +119,6 @@ class APIKeyAuthMiddleware:
                 x_key = value.decode("latin-1").strip()
         return bearer or x_key or None
 
-    def _is_valid(self, key: str) -> bool:
-        candidate = hash_api_key(key)
-        ok = False
-        for digest in self._digests:  # no early exit: constant work per configured key
-            ok |= hmac.compare_digest(candidate, digest)
-        return ok
-
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] == "lifespan":
             await self.app(scope, receive, send)
@@ -129,8 +134,7 @@ class APIKeyAuthMiddleware:
             await self.app(scope, receive, send)
             return
 
-        key = self._extract_key(scope.get("headers", []))
-        if key is not None and self._is_valid(key):
+        if is_authorized(scope.get("headers", []), self._digests):
             await self.app(scope, receive, send)
             return
 

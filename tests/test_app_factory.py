@@ -79,7 +79,8 @@ def test_no_auth_loopback_warns(config, mock_proxmox, caplog):
 def test_health_payload_over_asgi(config, mock_proxmox):
     app = create_app(config, "http", api_key_digests=[DIGEST])
     with TestClient(app.asgi) as c:
-        body = c.get("/health").json()
+        assert c.get("/health").json() == {"status": "ok"}
+        body = c.get("/health", headers={"X-API-Key": "k"}).json()
     assert set(body) == {"status", "server", "transport", "auth", "proxmox", "timestamp"}
     assert body["auth"] == "api-key" and body["transport"] == "http"
     assert body["proxmox"] == "not_connected"
