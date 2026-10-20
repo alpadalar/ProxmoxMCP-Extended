@@ -133,6 +133,9 @@ SMOKE_ARGS = {
     "reset_vm": {"node": "pve1", "vmid": "100"},
     "rollback_snapshot": {"node": "pve1", "vmid": "100", "name": "snap1"},
     "list_backups": {"node": "pve1"},
+    "start_container": {"vmid": "200"},
+    "stop_container": {"vmid": "200", "node": "pve1"},
+    "shutdown_container": {"vmid": "200", "node": "pve1"},
     "list_snapshots": {"node": "pve1", "vmid": "100"},
     "delete_snapshot": {"node": "pve1", "vmid": "100", "name": "snap1"},
     "shutdown_vm": {"node": "pve1", "vmid": "100"},
@@ -143,7 +146,8 @@ SMOKE_ARGS = {
 }
 
 
-CONFIRM_TOOLS = ("delete_vm", "stop_vm", "reset_vm", "rollback_snapshot", "delete_snapshot")
+CONFIRM_TOOLS = ("delete_vm", "stop_vm", "reset_vm", "rollback_snapshot", "delete_snapshot",
+                 "stop_container")
 SMOKE_ARGS_CONFIRMED = {
     n: ({**a, "confirm": True} if n in CONFIRM_TOOLS else a) for n, a in SMOKE_ARGS.items()
 }

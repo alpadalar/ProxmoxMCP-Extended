@@ -111,3 +111,12 @@ async def test_snapshot_tool_annotations(ann):
 async def test_list_backups_annotations(ann):
     assert ann["list_backups"].read_only_hint is True
     assert ann["list_backups"].destructive_hint is False
+
+
+@pytest.mark.asyncio
+async def test_container_tool_annotations(ann):
+    for name in ("start_container", "shutdown_container"):
+        assert ann[name].read_only_hint is False and ann[name].destructive_hint is False
+        assert ann[name].idempotent_hint is True
+    assert ann["stop_container"].destructive_hint is True
+    assert ann["stop_container"].read_only_hint is False

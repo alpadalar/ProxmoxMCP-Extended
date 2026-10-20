@@ -147,3 +147,13 @@ def test_snapshot_tools_literal_risk():
 def test_list_backups_literally_read_risk():
     spec = next(s for s in build_registry(_ctx()) if s.name == "list_backups")
     assert spec.risk == "read" and spec.annotations["readOnlyHint"] is True
+
+
+def test_container_tools_literal_risk():
+    specs = {s.name: s for s in build_registry(_ctx())}
+    for name in ("start_container", "shutdown_container"):
+        assert specs[name].risk == "write"
+        assert specs[name].annotations["idempotentHint"] is True
+        assert specs[name].annotations["destructiveHint"] is False
+    assert specs["stop_container"].risk == "destructive"
+    assert specs["stop_container"].annotations["destructiveHint"] is True

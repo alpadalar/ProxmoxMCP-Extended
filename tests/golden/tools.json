@@ -349,6 +349,31 @@
     ]
   },
   {
+    "name": "shutdown_container",
+    "params": [
+      {
+        "name": "node",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "timeout",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "wait",
+        "required": false,
+        "type": "boolean"
+      }
+    ]
+  },
+  {
     "name": "shutdown_vm",
     "params": [
       {
@@ -374,11 +399,66 @@
     ]
   },
   {
+    "name": "start_container",
+    "params": [
+      {
+        "name": "node",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "timeout",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "wait",
+        "required": false,
+        "type": "boolean"
+      }
+    ]
+  },
+  {
     "name": "start_vm",
     "params": [
       {
         "name": "node",
         "required": true,
+        "type": "string"
+      },
+      {
+        "name": "timeout",
+        "required": false,
+        "type": "integer"
+      },
+      {
+        "name": "vmid",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "wait",
+        "required": false,
+        "type": "boolean"
+      }
+    ]
+  },
+  {
+    "name": "stop_container",
+    "params": [
+      {
+        "name": "confirm",
+        "required": false,
+        "type": "boolean"
+      },
+      {
+        "name": "node",
+        "required": false,
         "type": "string"
       },
       {

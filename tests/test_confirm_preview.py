@@ -70,6 +70,9 @@ async def test_invalid_input_rejected_even_in_preview(policy_app, fake_pve):
         ("reset_vm", {"node": "a b", "vmid": "100"}),
         ("rollback_snapshot", {"node": "pve1", "vmid": "100", "name": "bad name"}),
         ("rollback_snapshot", {"node": "pve1", "vmid": "100", "name": "../x"}),
+        ("stop_container", {"vmid": "200", "node": ""}),
+        ("stop_container", {"vmid": "200", "node": "../x"}),
+        ("stop_container", {"vmid": "x/y"}),
     ]
     for name, args in bad:
         with pytest.raises(ToolError):
@@ -128,16 +131,22 @@ async def test_http_transport_parity(policy_app, fake_pve):
 @pytest.mark.parametrize("name", CONFIRM_TOOLS)
 def test_closure_never_forwards_confirm(name):
     ctx = MagicMock()
-    spec = next(s for s in build_registry(ToolContext(ctx, ctx.vm_tools, ctx, ctx, dict))
-                if s.name == name)
+    spec = next(
+        s for s in build_registry(
+            ToolContext(ctx, ctx.vm_tools, ctx, ctx, dict, container_tools=ctx.container_tools)
+        )
+        if s.name == name
+    )
     args = {k: v for k, v in SMOKE_ARGS[name].items()}
     spec.handler(**args, confirm=True)
-    method = getattr(ctx.vm_tools, name)
+    delegate = ctx.container_tools if name.endswith("_container") else ctx.vm_tools
+    method = getattr(delegate, name)
     method.assert_called_once()
     # Positional arguments forwarded to the VM tool, never including ``confirm``:
     #   delete_vm:           node, vmid (SMOKE_ARGS) + force, wait, timeout: len(args) + 3
     #   stop/reset/rollback: their SMOKE_ARGS (node, vmid[, name]) + wait, timeout: len(args) + 2
-    expected = len(args) + (3 if name == "delete_vm" else 2)
+    #   stop_container:      vmid, node (always forwarded, None when omitted), wait, timeout: 4
+    expected = 4 if name == "stop_container" else len(args) + (3 if name == "delete_vm" else 2)
     assert len(method.call_args.args) == expected and not method.call_args.kwargs
     assert method.call_args.args[-2:] == (False, 30)  # wait, timeout defaults
     assert True not in method.call_args.args[:-2]  # confirm=True was not forwarded

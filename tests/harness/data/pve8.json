@@ -178,6 +178,16 @@
       "id": "node/pve2"
     }
   ],
+  "GET cluster/resources": [
+    {"id": "qemu/100", "type": "qemu", "vmid": 100, "node": "pve1", "status": "running", "name": "web-01", "template": 0},
+    {"id": "qemu/101", "type": "qemu", "vmid": 101, "node": "pve1", "status": "stopped", "name": "db-01", "template": 0},
+    {"id": "lxc/200", "type": "lxc", "vmid": 200, "node": "pve1", "status": "running", "name": "ct-01", "template": 0},
+    {"id": "lxc/201", "type": "lxc", "vmid": 201, "node": "pve2", "status": "stopped", "name": "ct-tpl", "template": 1}
+  ],
+  "GET nodes/*/lxc/*/status/current": {"status": "running", "vmid": 200, "name": "ct-01"},
+  "POST nodes/*/lxc/*/status/start": "UPID:pve1:0000ABCD:00123456:65A1B2C3:vzstart:200:monitor@pve!mcp:",
+  "POST nodes/*/lxc/*/status/stop": "UPID:pve1:0000ABCD:00123456:65A1B2C3:vzstop:200:monitor@pve!mcp:",
+  "POST nodes/*/lxc/*/status/shutdown": "UPID:pve1:0000ABCD:00123456:65A1B2C3:vzshutdown:200:monitor@pve!mcp:",
   "GET nodes/*/tasks/*/status": {
     "status": "stopped",
     "exitstatus": "OK"

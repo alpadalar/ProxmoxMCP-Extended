@@ -39,6 +39,18 @@ PHASE5_NEW_TOOLS: dict[str, dict[str, tuple[str, bool]]] = {
     "get_task_status": {"upid": ("string", True)},
     "wait_for_task": {"upid": ("string", True), "timeout": ("integer", False)},
     "list_snapshots": {"node": ("string", True), "vmid": ("string", True)},
+    "start_container": {
+        "vmid": ("string", True), "node": ("string", False),
+        "wait": ("boolean", False), "timeout": ("integer", False),
+    },
+    "stop_container": {
+        "vmid": ("string", True), "node": ("string", False), "confirm": ("boolean", False),
+        "wait": ("boolean", False), "timeout": ("integer", False),
+    },
+    "shutdown_container": {
+        "vmid": ("string", True), "node": ("string", False),
+        "wait": ("boolean", False), "timeout": ("integer", False),
+    },
     "list_backups": {
         "node": ("string", True), "storage": ("string", False), "vmid": ("string", False),
     },

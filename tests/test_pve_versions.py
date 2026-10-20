@@ -315,3 +315,31 @@ async def test_full_smoke_same_outcome_on_both_versions(app, fake_pve, name):
     with patch("asyncio.sleep", new=AsyncMock()):
         result = await app.mcp.call_tool(name, SMOKE_ARGS_CONFIRMED[name])
     assert tool_text(result).strip()
+
+
+CONTAINER_TOOLS = {
+    "start_container": {},
+    "stop_container": {"confirm": True},
+    "shutdown_container": {},
+}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tool", sorted(CONTAINER_TOOLS))
+async def test_container_403_names_power_privilege(app, fake_pve, tool):
+    fake_pve.fail("GET", "cluster/resources",
+                  ResourceException(403, "Forbidden", "Permission check failed"))
+    fake_pve.reset_calls()
+    with pytest.raises(ToolError) as ei:
+        await app.mcp.call_tool(tool, {"vmid": "200", **CONTAINER_TOOLS[tool]})
+    assert "VM.PowerMgmt" in str(ei.value) and "/vms/200" in str(ei.value)
+    assert fake_pve.mutating_calls() == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tool", sorted(CONTAINER_TOOLS))
+async def test_container_invisible_guest_gets_acl_hint(app, fake_pve, tool):
+    fake_pve.reset_calls()
+    with pytest.raises(ToolError, match="not found in cluster resources.*VM.Audit"):
+        await app.mcp.call_tool(tool, {"vmid": "999", **CONTAINER_TOOLS[tool]})
+    assert fake_pve.mutating_calls() == []

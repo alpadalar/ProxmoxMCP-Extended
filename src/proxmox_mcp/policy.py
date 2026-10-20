@@ -168,11 +168,20 @@ _EFFECTS: Dict[str, List[str]] = {
         "Discards all current VM state since the snapshot was taken.",
         "Changes made after the snapshot cannot be recovered.",
     ],
+    "stop_container": [
+        "Hard stop of the container without a graceful shutdown.",
+        "Processes are killed and unsaved data may be lost.",
+    ],
     "delete_snapshot": [
         "Permanently removes the snapshot and the VM state it captured.",
         "It can no longer be rolled back to; this cannot be undone.",
     ],
 }
+
+
+# Tools whose node is resolved at execution time: the preview shows node null when omitted
+# (only None counts as omitted; an empty string is still rejected by validate_node).
+_NODE_OPTIONAL = frozenset({"stop_container"})
 
 
 def build_preview(tool: str, **target: Any) -> List[Content]:
@@ -183,7 +192,11 @@ def build_preview(tool: str, **target: Any) -> List[Content]:
     if tool not in _EFFECTS:
         raise ValueError(f"No preview defined for tool '{tool}'")
     shown: Dict[str, Any] = {
-        "node": validate_node(target.get("node")),
+        "node": (
+            None
+            if tool in _NODE_OPTIONAL and target.get("node") is None
+            else validate_node(target.get("node"))
+        ),
         "vmid": validate_vmid(target.get("vmid")),
     }
     if "name" in target:

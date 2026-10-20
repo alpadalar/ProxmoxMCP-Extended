@@ -37,7 +37,10 @@ from .definitions import (
     RESET_VM_DESC,
     ROLLBACK_SNAPSHOT_DESC,
     SHUTDOWN_VM_DESC,
+    SHUTDOWN_CONTAINER_DESC,
+    START_CONTAINER_DESC,
     START_VM_DESC,
+    STOP_CONTAINER_DESC,
     STOP_VM_DESC,
     UPDATE_VM_DESC,
     WAIT_FOR_TASK_DESC,
@@ -52,11 +55,14 @@ RISK_CLASSES = {
         "get_cluster_status", "get_vm_usage", "health", "get_task_status", "wait_for_task",
         "list_snapshots", "list_backups",
     ),
-    "write": ("create_vm", "start_vm", "shutdown_vm", "create_snapshot"),
+    "write": (
+        "create_vm", "start_vm", "shutdown_vm", "create_snapshot",
+        "start_container", "shutdown_container",
+    ),
     # update_vm overwrites existing configuration (memory, cores, name), so it is gated by
     # allow_destructive, matching its destructiveHint annotation.
     "destructive": ("stop_vm", "reset_vm", "delete_vm", "rollback_snapshot", "update_vm",
-                    "delete_snapshot"),
+                    "delete_snapshot", "stop_container"),
     "exec": ("execute_vm_command",),
 }
 _RISK_BY_NAME = {n: r for r, names in RISK_CLASSES.items() for n in names}
@@ -83,6 +89,8 @@ _ANNOTATION_DEFAULTS: Dict[str, Dict[str, bool]] = {
 ANNOTATION_OVERRIDES: Dict[str, Dict[str, bool]] = {
     "start_vm": {"idempotentHint": True},
     "shutdown_vm": {"idempotentHint": True},
+    "start_container": {"idempotentHint": True},
+    "shutdown_container": {"idempotentHint": True},
     "execute_vm_command": {"openWorldHint": True},  # runs arbitrary code in a guest
 }
 
@@ -125,6 +133,7 @@ class ToolContext:
     cluster_tools: Any
     health_payload: Callable[[], dict]
     task_tools: Any = None
+    container_tools: Any = None
 
 
 def build_registry(ctx: ToolContext) -> List[ToolSpec]:
@@ -256,6 +265,37 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
         name: Annotated[Optional[str], Field(description="New VM name", default=None)] = None,
     ):
         return ctx.vm_tools.update_vm(node, vmid, memory, cpus, name)
+
+    # LXC container power tools (addressed by vmid; node and type resolved per call)
+    @_tool(START_CONTAINER_DESC)
+    def start_container(
+        vmid: Annotated[str, Field(description="Container ID number (e.g. '200')")],
+        node: Annotated[Optional[str], Field(description="Optional node name; must match the node the container runs on", default=None)] = None,
+        wait: WaitParam = False,
+        timeout: TimeoutParam = 30,
+    ):
+        return ctx.container_tools.start_container(vmid, node, wait, timeout)
+
+    @_tool(STOP_CONTAINER_DESC)
+    def stop_container(
+        vmid: Annotated[str, Field(description="Container ID number (e.g. '200')")],
+        node: Annotated[Optional[str], Field(description="Optional node name; must match the node the container runs on", default=None)] = None,
+        confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
+        wait: WaitParam = False,
+        timeout: TimeoutParam = 30,
+    ):
+        if not confirm:
+            return build_preview("stop_container", node=node, vmid=vmid)
+        return ctx.container_tools.stop_container(vmid, node, wait, timeout)
+
+    @_tool(SHUTDOWN_CONTAINER_DESC)
+    def shutdown_container(
+        vmid: Annotated[str, Field(description="Container ID number (e.g. '200')")],
+        node: Annotated[Optional[str], Field(description="Optional node name; must match the node the container runs on", default=None)] = None,
+        wait: WaitParam = False,
+        timeout: TimeoutParam = 30,
+    ):
+        return ctx.container_tools.shutdown_container(vmid, node, wait, timeout)
 
     # VM snapshot tools
     @_tool(CREATE_SNAPSHOT_DESC)

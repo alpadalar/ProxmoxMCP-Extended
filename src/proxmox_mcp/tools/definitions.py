@@ -93,6 +93,48 @@ The token needs Datastore.Audit on /storage/<id>.
 Example:
 List the backups of VM 100 on node pve"""
 
+START_CONTAINER_DESC = """Start an LXC container.
+
+Parameters:
+vmid* - Container ID number (e.g. '200'); the node and the guest type are looked up in the cluster on every call
+node - Optional consistency check (e.g. 'pve'); must match the node the container currently runs on
+wait - Wait for the Proxmox task to finish before returning (optional, default: false). A failed task raises an error naming the task id; a task that finished with warnings is reported as such, not as success
+timeout - Seconds to wait when wait=true (optional, default: 30, maximum: 300). This is only the MCP wait bound and is NOT forwarded to Proxmox; timing out is not a failure: the task is reported as still running
+
+QEMU VM ids are refused (use start_vm/stop_vm/shutdown_vm); templates and invisible guests are refused too.
+
+Example:
+Start container 200"""
+
+STOP_CONTAINER_DESC = """Stop an LXC container immediately (no graceful shutdown).
+
+⚠️ WARNING: Processes are killed and unsaved data may be lost! Use shutdown_container for a graceful stop.
+
+Parameters:
+vmid* - Container ID number (e.g. '200'); the node and the guest type are looked up in the cluster on every call
+node - Optional consistency check (e.g. 'pve'); must match the node the container currently runs on
+confirm - Must be true to actually perform the operation; without it only a preview is returned and nothing is looked up or changed (default: false)
+wait - Wait for the Proxmox task to finish before returning (optional, default: false). A failed task raises an error naming the task id; a task that finished with warnings is reported as such, not as success
+timeout - Seconds to wait when wait=true (optional, default: 30, maximum: 300). This is only the MCP wait bound and is NOT forwarded to Proxmox; timing out is not a failure: the task is reported as still running
+
+QEMU VM ids are refused (use start_vm/stop_vm/shutdown_vm); templates and invisible guests are refused too.
+
+Example:
+Stop container 200 (confirm=true)"""
+
+SHUTDOWN_CONTAINER_DESC = """Gracefully shut down an LXC container.
+
+Parameters:
+vmid* - Container ID number (e.g. '200'); the node and the guest type are looked up in the cluster on every call
+node - Optional consistency check (e.g. 'pve'); must match the node the container currently runs on
+wait - Wait for the Proxmox task to finish before returning (optional, default: false). A failed task raises an error naming the task id; a task that finished with warnings is reported as such, not as success
+timeout - Seconds to wait when wait=true (optional, default: 30, maximum: 300). This is only the MCP wait bound and is NOT forwarded to Proxmox; timing out is not a failure: the task is reported as still running
+
+QEMU VM ids are refused (use start_vm/stop_vm/shutdown_vm); templates and invisible guests are refused too.
+
+Example:
+Shut down container 200"""
+
 GET_VM_USAGE_DESC = """Get real-time resource usage details for a specific VM.
 
 Parameters:
