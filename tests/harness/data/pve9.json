@@ -177,6 +177,10 @@
     "status": "stopped",
     "exitstatus": "OK"
   },
+  "GET nodes/*/tasks/*/log": [
+    {"n": 1, "t": "starting task"},
+    {"n": 2, "t": "TASK OK"}
+  ],
   "GET nodes/*/qemu/*/agent/exec-status": {
     "exited": 1,
     "exitcode": 0,
