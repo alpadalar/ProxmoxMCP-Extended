@@ -91,4 +91,4 @@ class StorageTools(ProxmoxTool):
                     
             return self._format_response(storage, "storage")
         except Exception as e:
-            self._handle_error("get storage", e)
+            self._handle_error("get storage", e, privilege_key="get_storage")

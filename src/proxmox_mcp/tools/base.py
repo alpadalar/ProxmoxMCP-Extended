@@ -11,11 +11,17 @@ All tool implementations inherit from the ProxmoxTool base class to ensure
 consistent behavior and error handling across the MCP server.
 """
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, List, Optional
+
+import requests
 from mcp.types import TextContent as Content
 from proxmoxer import ProxmoxAPI
+from proxmoxer.core import ResourceException
+
 from ..formatting import ProxmoxTemplates
 from ..utils.redaction import redact
+from .pve_compat import translate_pve_error
+
 
 class ProxmoxTool:
     """Base class for Proxmox MCP tools.
@@ -37,6 +43,7 @@ class ProxmoxTool:
             proxmox_api: Initialized ProxmoxAPI instance
         """
         self.proxmox = proxmox_api
+        self._pve_major: Callable[[], Optional[int]] = lambda: None
         self.logger = logging.getLogger(f"proxmox-mcp.{self.__class__.__name__.lower()}")
 
     def _format_response(self, data: Any, resource_type: Optional[str] = None) -> List[Content]:
@@ -78,17 +85,27 @@ class ProxmoxTool:
 
         return [Content(type="text", text=formatted)]
 
-    def _handle_error(self, operation: str, error: Exception) -> None:
+    def _handle_error(
+        self,
+        operation: str,
+        error: Exception,
+        privilege_key: Optional[str] = None,
+        node: Optional[str] = None,
+        vmid: Optional[str] = None,
+    ) -> None:
         """Handle and log errors from Proxmox operations.
 
-        Provides standardized error handling across all tools by:
-        - Logging errors with appropriate context
-        - Categorizing errors into specific exception types
-        - Converting Proxmox-specific errors into standard Python exceptions
+        ValueError (including validator errors) is re-raised unchanged. Proxmox API
+        errors and connection failures are translated by ``translate_pve_error`` from the
+        HTTP status code (403 names the missing privilege and ACL path). The legacy text
+        based fallback below applies ONLY to other exception types.
 
         Args:
             operation: Description of the operation that failed (e.g., "get node status")
             error: The exception that occurred during the operation
+            privilege_key: Key into ``OPERATION_PRIVILEGES`` for permission hints
+            node: Node name, used in privilege hints
+            vmid: VM id, used in privilege hints
 
         Raises:
             ValueError: For invalid input, missing resources, or permission issues
@@ -96,6 +113,16 @@ class ProxmoxTool:
         """
         error_msg = redact(str(error))
         self.logger.error(f"Failed to {redact(operation)}: {error_msg}")
+
+        if isinstance(error, ValueError):
+            raise error
+        if isinstance(error, ResourceException) or isinstance(
+            error, (requests.exceptions.ConnectionError, requests.exceptions.Timeout)
+        ):
+            raise translate_pve_error(
+                error, operation, node=node, vmid=vmid, privilege_key=privilege_key,
+                major=self._pve_major(),
+            ) from None
 
         if "not found" in error_msg.lower():
             raise ValueError(f"Resource not found: {error_msg}")

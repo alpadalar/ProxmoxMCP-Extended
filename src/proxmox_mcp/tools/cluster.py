@@ -38,7 +38,7 @@ class ClusterTools(ProxmoxTool):
         try:
             nodes = self.proxmox.nodes.get()
         except Exception as e:
-            self._handle_error("list nodes for containers", e)
+            self._handle_error("list nodes for containers", e, privilege_key="get_containers")
         result: List[Dict[str, Any]] = []
         for node in nodes:
             node_name = node.get("node")
@@ -97,4 +97,4 @@ class ClusterTools(ProxmoxTool):
             }
             return self._format_response(status, "cluster")
         except Exception as e:
-            self._handle_error("get cluster status", e)
+            self._handle_error("get cluster status", e, privilege_key="get_cluster_status")
