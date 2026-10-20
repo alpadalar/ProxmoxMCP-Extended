@@ -91,8 +91,17 @@ class ToolSpec:
     handler: Callable[..., Any]
     description: str
     annotations: Optional[Dict[str, Any]] = None
-    risk: str = "read"
+    risk: str = ""  # required: must be one of RISK_CLASSES (checked in __post_init__)
     tags: FrozenSet[str] = field(default_factory=frozenset)
+
+    def __post_init__(self) -> None:
+        # Fail closed: a tool without an explicit, known risk class is never constructed,
+        # so it can not slip through the policy gates as an implicit "read" tool.
+        if self.risk not in RISK_CLASSES:
+            raise ValueError(
+                f"ToolSpec '{self.name}' needs an explicit risk class "
+                f"({', '.join(RISK_CLASSES)}); got {self.risk!r}"
+            )
 
 
 @dataclass

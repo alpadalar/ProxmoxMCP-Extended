@@ -110,3 +110,12 @@ async def test_get_containers_and_health_outputs():
     assert json.loads(res.content[0].text) == [{"vmid": 1}]
     res = await mcp.call_tool("health", {})
     assert json.loads(res.content[0].text) == {"status": "ok"}
+
+
+@pytest.mark.parametrize("risk", ["", "READ", "unclassified"])
+def test_toolspec_requires_known_risk(risk):
+    """A ToolSpec without an explicit known risk class can not be built (fail closed)."""
+    with pytest.raises(ValueError, match="explicit risk class"):
+        ToolSpec("x", lambda: None, "d", None, risk)
+    with pytest.raises(ValueError, match="explicit risk class"):
+        ToolSpec("x", lambda: None, "d")
