@@ -40,6 +40,9 @@ from .definitions import (
     WAIT_FOR_TASK_DESC,
 )
 
+WaitParam = Annotated[bool, Field(description="Wait for the Proxmox task to finish before returning (default: false); a failed task raises an error, a task with warnings is reported as such", default=False)]
+TimeoutParam = Annotated[int, Field(description="Seconds to wait when wait=true (1-300, default 30); timing out reports the task as still running, not as a failure", ge=1, le=300, default=30)]
+
 RISK_CLASSES = {
     "read": (
         "get_nodes", "get_node_status", "get_vms", "get_containers", "get_storage",
@@ -187,36 +190,44 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
     @_tool(START_VM_DESC)
     def start_vm(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-        vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")]
+        vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")],
+        wait: WaitParam = False,
+        timeout: TimeoutParam = 30,
     ):
-        return ctx.vm_tools.start_vm(node, vmid)
+        return ctx.vm_tools.start_vm(node, vmid, wait, timeout)
 
     @_tool(STOP_VM_DESC)
     def stop_vm(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")],
         confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
+        wait: WaitParam = False,
+        timeout: TimeoutParam = 30,
     ):
         if not confirm:
             return build_preview("stop_vm", node=node, vmid=vmid)
-        return ctx.vm_tools.stop_vm(node, vmid)
+        return ctx.vm_tools.stop_vm(node, vmid, wait, timeout)
 
     @_tool(SHUTDOWN_VM_DESC)
     def shutdown_vm(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-        vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")]
+        vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")],
+        wait: WaitParam = False,
+        timeout: TimeoutParam = 30,
     ):
-        return ctx.vm_tools.shutdown_vm(node, vmid)
+        return ctx.vm_tools.shutdown_vm(node, vmid, wait, timeout)
 
     @_tool(RESET_VM_DESC)
     def reset_vm(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")],
         confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
+        wait: WaitParam = False,
+        timeout: TimeoutParam = 30,
     ):
         if not confirm:
             return build_preview("reset_vm", node=node, vmid=vmid)
-        return ctx.vm_tools.reset_vm(node, vmid)
+        return ctx.vm_tools.reset_vm(node, vmid, wait, timeout)
 
     @_tool(DELETE_VM_DESC)
     def delete_vm(
@@ -224,10 +235,12 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
         vmid: Annotated[str, Field(description="VM ID number (e.g. '998')")],
         force: Annotated[bool, Field(description="Force deletion even if VM is running", default=False)] = False,
         confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
+        wait: WaitParam = False,
+        timeout: TimeoutParam = 30,
     ):
         if not confirm:
             return build_preview("delete_vm", node=node, vmid=vmid, force=force)
-        return ctx.vm_tools.delete_vm(node, vmid, force)
+        return ctx.vm_tools.delete_vm(node, vmid, force, wait, timeout)
 
     @_tool(UPDATE_VM_DESC)
     def update_vm(
@@ -247,8 +260,10 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
         name: Annotated[str, Field(description="Snapshot name (e.g. 'pre-upgrade')")],
         description: Annotated[Optional[str], Field(description="Optional description", default=None)] = None,
         vmstate: Annotated[bool, Field(description="Include VM memory state", default=False)] = False,
+        wait: WaitParam = False,
+        timeout: TimeoutParam = 30,
     ):
-        return ctx.vm_tools.create_snapshot(node, vmid, name, description, vmstate)
+        return ctx.vm_tools.create_snapshot(node, vmid, name, description, vmstate, wait, timeout)
 
     @_tool(ROLLBACK_SNAPSHOT_DESC)
     def rollback_snapshot(
@@ -256,10 +271,12 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
         vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
         name: Annotated[str, Field(description="Snapshot name to rollback to")],
         confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
+        wait: WaitParam = False,
+        timeout: TimeoutParam = 30,
     ):
         if not confirm:
             return build_preview("rollback_snapshot", node=node, vmid=vmid, name=name)
-        return ctx.vm_tools.rollback_snapshot(node, vmid, name)
+        return ctx.vm_tools.rollback_snapshot(node, vmid, name, wait, timeout)
 
     # VM usage tool
     @_tool(GET_VM_USAGE_DESC)

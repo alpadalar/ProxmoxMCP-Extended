@@ -27,6 +27,7 @@ from .definitions import (
     GET_VM_USAGE_DESC,
 )
 from .console.manager import VMConsoleManager
+from .tasks import task_result_text
 from .pve_compat import (
     describe_task_result,
     is_upid,
@@ -35,6 +36,7 @@ from .pve_compat import (
     wait_task_stopped,
 )
 from ..validators import (
+    validate_wait_timeout,
     validate_node,
     validate_vmid,
     validate_storage,
@@ -84,10 +86,17 @@ class VMTools(ProxmoxTool):
         """
         super().__init__(proxmox_api)
         self._sleep = time.sleep
+        self._clock = time.monotonic
         self._pve_major = pve_major
         self.console_manager = VMConsoleManager(
             proxmox_api, exec_timeout=exec_timeout, exec_max_output=exec_max_output,
             exec_max_concurrent=exec_max_concurrent, pve_major=pve_major,
+        )
+
+    def _task_text(self, task_result, wait: bool, timeout: int) -> str:
+        """Task line for a mutation result; polls the task when ``wait`` is true."""
+        return task_result_text(
+            self.proxmox, task_result, wait, timeout, sleep=self._sleep, clock=self._clock
         )
 
     STOP_WAIT_SECONDS = 30.0
@@ -355,7 +364,9 @@ class VMTools(ProxmoxTool):
                 f"create VM {vmid}", e, privilege_key="create_vm", node=node, vmid=vmid
             )
 
-    def start_vm(self, node: str, vmid: str) -> List[Content]:
+    def start_vm(
+        self, node: str, vmid: str, wait: bool = False, timeout: int = 30
+    ) -> List[Content]:
         """Start a virtual machine.
         
         Args:
@@ -371,6 +382,7 @@ class VMTools(ProxmoxTool):
         """
         node = validate_node(node)
         vmid = validate_vmid(vmid)
+        validate_wait_timeout(timeout)
         try:
             # Check if VM exists and get current status
             vm_status = require_vm_status(self.proxmox, node, vmid, "start_vm")
@@ -381,7 +393,7 @@ class VMTools(ProxmoxTool):
             else:
                 # Start the VM
                 task_result = self.proxmox.nodes(node).qemu(vmid).status.start.post()
-                result_text = f"🚀 VM {vmid} start initiated successfully\n{describe_task_result(task_result)}"
+                result_text = f"🚀 VM {vmid} start initiated successfully\n{self._task_text(task_result, wait, timeout)}"
                 
             return [Content(type="text", text=result_text)]
             
@@ -390,7 +402,9 @@ class VMTools(ProxmoxTool):
                 f"start VM {vmid}", e, privilege_key="start_vm", node=node, vmid=vmid
             )
 
-    def stop_vm(self, node: str, vmid: str) -> List[Content]:
+    def stop_vm(
+        self, node: str, vmid: str, wait: bool = False, timeout: int = 30
+    ) -> List[Content]:
         """Stop a virtual machine (force stop).
         
         Args:
@@ -406,6 +420,7 @@ class VMTools(ProxmoxTool):
         """
         node = validate_node(node)
         vmid = validate_vmid(vmid)
+        validate_wait_timeout(timeout)
         try:
             # Check if VM exists and get current status
             vm_status = require_vm_status(self.proxmox, node, vmid, "stop_vm")
@@ -416,7 +431,7 @@ class VMTools(ProxmoxTool):
             else:
                 # Stop the VM
                 task_result = self.proxmox.nodes(node).qemu(vmid).status.stop.post()
-                result_text = f"🛑 VM {vmid} stop initiated successfully\n{describe_task_result(task_result)}"
+                result_text = f"🛑 VM {vmid} stop initiated successfully\n{self._task_text(task_result, wait, timeout)}"
                 
             return [Content(type="text", text=result_text)]
             
@@ -425,7 +440,9 @@ class VMTools(ProxmoxTool):
                 f"stop VM {vmid}", e, privilege_key="stop_vm", node=node, vmid=vmid
             )
 
-    def shutdown_vm(self, node: str, vmid: str) -> List[Content]:
+    def shutdown_vm(
+        self, node: str, vmid: str, wait: bool = False, timeout: int = 30
+    ) -> List[Content]:
         """Shutdown a virtual machine gracefully.
         
         Args:
@@ -441,6 +458,7 @@ class VMTools(ProxmoxTool):
         """
         node = validate_node(node)
         vmid = validate_vmid(vmid)
+        validate_wait_timeout(timeout)
         try:
             # Check if VM exists and get current status
             vm_status = require_vm_status(self.proxmox, node, vmid, "shutdown_vm")
@@ -451,7 +469,7 @@ class VMTools(ProxmoxTool):
             else:
                 # Shutdown the VM gracefully
                 task_result = self.proxmox.nodes(node).qemu(vmid).status.shutdown.post()
-                result_text = f"💤 VM {vmid} graceful shutdown initiated\n{describe_task_result(task_result)}"
+                result_text = f"💤 VM {vmid} graceful shutdown initiated\n{self._task_text(task_result, wait, timeout)}"
                 
             return [Content(type="text", text=result_text)]
             
@@ -460,7 +478,9 @@ class VMTools(ProxmoxTool):
                 f"shutdown VM {vmid}", e, privilege_key="shutdown_vm", node=node, vmid=vmid
             )
 
-    def reset_vm(self, node: str, vmid: str) -> List[Content]:
+    def reset_vm(
+        self, node: str, vmid: str, wait: bool = False, timeout: int = 30
+    ) -> List[Content]:
         """Reset (restart) a virtual machine.
         
         Args:
@@ -476,6 +496,7 @@ class VMTools(ProxmoxTool):
         """
         node = validate_node(node)
         vmid = validate_vmid(vmid)
+        validate_wait_timeout(timeout)
         try:
             # Check if VM exists and get current status
             vm_status = require_vm_status(self.proxmox, node, vmid, "reset_vm")
@@ -486,7 +507,7 @@ class VMTools(ProxmoxTool):
             else:
                 # Reset the VM
                 task_result = self.proxmox.nodes(node).qemu(vmid).status.reset.post()
-                result_text = f"🔄 VM {vmid} reset initiated successfully\n{describe_task_result(task_result)}"
+                result_text = f"🔄 VM {vmid} reset initiated successfully\n{self._task_text(task_result, wait, timeout)}"
                 
             return [Content(type="text", text=result_text)]
             
@@ -549,7 +570,9 @@ class VMTools(ProxmoxTool):
                 f"execute command on VM {vmid}", e, privilege_key="execute_vm_command", node=node, vmid=vmid
             )
 
-    def delete_vm(self, node: str, vmid: str, force: bool = False) -> List[Content]:
+    def delete_vm(
+        self, node: str, vmid: str, force: bool = False, wait: bool = False, timeout: int = 30
+    ) -> List[Content]:
         """Delete/remove a virtual machine completely.
         
         This will permanently delete the VM and all its associated data including:
@@ -573,6 +596,7 @@ class VMTools(ProxmoxTool):
         """
         node = validate_node(node)
         vmid = validate_vmid(vmid)
+        validate_wait_timeout(timeout)
         try:
             # Check if VM exists and get current status
             vm_status = require_vm_status(self.proxmox, node, vmid, "delete_vm")
@@ -623,7 +647,7 @@ class VMTools(ProxmoxTool):
   • All snapshots
   • Cannot be undone!
 
-🔧 {describe_task_result(task_result)}
+🔧 {self._task_text(task_result, wait, timeout)}
 
 ✅ VM {vmid} ({vm_name}) is being deleted from node {node}"""
             
@@ -643,6 +667,8 @@ class VMTools(ProxmoxTool):
         name: str,
         description: Optional[str] = None,
         vmstate: bool = False,
+        wait: bool = False,
+        timeout: int = 30,
     ) -> List[Content]:
         """Create a snapshot for a VM.
         
@@ -657,6 +683,7 @@ class VMTools(ProxmoxTool):
         vmid = validate_vmid(vmid)
         name = validate_snapshot_name(name)
         description = validate_optional(validate_description, description)
+        validate_wait_timeout(timeout)
         try:
             # Ensure VM exists
             require_vm_status(self.proxmox, node, vmid, "create_snapshot")
@@ -668,7 +695,7 @@ class VMTools(ProxmoxTool):
             task_result = self.proxmox.nodes(node).qemu(vmid).snapshot.post(**params)
             result_text = (
                 f"📸 Snapshot '{name}' creation initiated for VM {vmid} on node {node}\n"
-                f"🔧 {describe_task_result(task_result)}"
+                f"🔧 {self._task_text(task_result, wait, timeout)}"
             )
             return [Content(type="text", text=result_text)]
         except Exception as e:
@@ -676,7 +703,9 @@ class VMTools(ProxmoxTool):
                 f"create snapshot for VM {vmid}", e, privilege_key="create_snapshot", node=node, vmid=vmid
             )
 
-    def rollback_snapshot(self, node: str, vmid: str, name: str) -> List[Content]:
+    def rollback_snapshot(
+        self, node: str, vmid: str, name: str, wait: bool = False, timeout: int = 30
+    ) -> List[Content]:
         """Rollback a VM to a snapshot.
         
         WARNING: This discards current VM state.
@@ -684,6 +713,7 @@ class VMTools(ProxmoxTool):
         node = validate_node(node)
         vmid = validate_vmid(vmid)
         name = validate_snapshot_name(name)
+        validate_wait_timeout(timeout)
         try:
             # Ensure VM exists
             require_vm_status(self.proxmox, node, vmid, "rollback_snapshot")
@@ -695,7 +725,7 @@ class VMTools(ProxmoxTool):
             )
             result_text = (
                 f"↩️ Rollback to snapshot '{name}' initiated for VM {vmid} on node {node}\n"
-                f"🔧 {describe_task_result(task_result)}"
+                f"🔧 {self._task_text(task_result, wait, timeout)}"
             )
             return [Content(type="text", text=result_text)]
         except Exception as e:

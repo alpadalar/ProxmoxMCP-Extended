@@ -20,7 +20,7 @@ from proxmoxer.core import ResourceException
 
 from ..formatting import ProxmoxTemplates
 from ..utils.redaction import redact
-from .pve_compat import translate_pve_error
+from .pve_compat import TaskFailedError, translate_pve_error
 
 
 class ProxmoxTool:
@@ -95,7 +95,7 @@ class ProxmoxTool:
     ) -> None:
         """Handle and log errors from Proxmox operations.
 
-        ValueError (including validator errors) is re-raised unchanged. Proxmox API
+        ValueError (including validator errors) and TaskFailedError are re-raised unchanged. Proxmox API
         errors and connection failures are translated by ``translate_pve_error`` from the
         HTTP status code (403 names the missing privilege and ACL path). The legacy text
         based fallback below applies ONLY to other exception types.
@@ -114,7 +114,7 @@ class ProxmoxTool:
         error_msg = redact(str(error))
         self.logger.error(f"Failed to {redact(operation)}: {error_msg}")
 
-        if isinstance(error, ValueError):
+        if isinstance(error, (ValueError, TaskFailedError)):
             raise error
         if isinstance(error, ResourceException) or isinstance(
             error, (requests.exceptions.ConnectionError, requests.exceptions.Timeout)

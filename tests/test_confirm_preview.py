@@ -134,5 +134,10 @@ def test_closure_never_forwards_confirm(name):
     spec.handler(**args, confirm=True)
     method = getattr(ctx.vm_tools, name)
     method.assert_called_once()
-    expected = len(args) + (1 if name == "delete_vm" else 0)  # delete_vm forwards force
+    # Positional arguments forwarded to the VM tool, never including ``confirm``:
+    #   delete_vm:           node, vmid (SMOKE_ARGS) + force, wait, timeout: len(args) + 3
+    #   stop/reset/rollback: their SMOKE_ARGS (node, vmid[, name]) + wait, timeout: len(args) + 2
+    expected = len(args) + (3 if name == "delete_vm" else 2)
     assert len(method.call_args.args) == expected and not method.call_args.kwargs
+    assert method.call_args.args[-2:] == (False, 30)  # wait, timeout defaults
+    assert True not in method.call_args.args[:-2]  # confirm=True was not forwarded

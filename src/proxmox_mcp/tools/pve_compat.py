@@ -63,6 +63,10 @@ KNOWN_500_MARKERS: Dict[str, Tuple[str, ...]] = {
     "agent": ("guest agent is not running", "qga is not running"),
 }
 
+class TaskFailedError(RuntimeError):
+    """A waited-for Proxmox task stopped without exitstatus OK (message names UPID/exitstatus)."""
+
+
 def is_upid(value: Any) -> bool:
     """True for a well-formed PVE task id (safe to place into an API path)."""
     return (

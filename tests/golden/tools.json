@@ -18,12 +18,22 @@
         "type": "string"
       },
       {
+        "name": "timeout",
+        "required": false,
+        "type": "integer"
+      },
+      {
         "name": "vmid",
         "required": true,
         "type": "string"
       },
       {
         "name": "vmstate",
+        "required": false,
+        "type": "boolean"
+      },
+      {
+        "name": "wait",
         "required": false,
         "type": "boolean"
       }
@@ -103,9 +113,19 @@
         "type": "string"
       },
       {
+        "name": "timeout",
+        "required": false,
+        "type": "integer"
+      },
+      {
         "name": "vmid",
         "required": true,
         "type": "string"
+      },
+      {
+        "name": "wait",
+        "required": false,
+        "type": "boolean"
       }
     ]
   },
@@ -207,9 +227,19 @@
         "type": "string"
       },
       {
+        "name": "timeout",
+        "required": false,
+        "type": "integer"
+      },
+      {
         "name": "vmid",
         "required": true,
         "type": "string"
+      },
+      {
+        "name": "wait",
+        "required": false,
+        "type": "boolean"
       }
     ]
   },
@@ -232,9 +262,19 @@
         "type": "string"
       },
       {
+        "name": "timeout",
+        "required": false,
+        "type": "integer"
+      },
+      {
         "name": "vmid",
         "required": true,
         "type": "string"
+      },
+      {
+        "name": "wait",
+        "required": false,
+        "type": "boolean"
       }
     ]
   },
@@ -247,9 +287,19 @@
         "type": "string"
       },
       {
+        "name": "timeout",
+        "required": false,
+        "type": "integer"
+      },
+      {
         "name": "vmid",
         "required": true,
         "type": "string"
+      },
+      {
+        "name": "wait",
+        "required": false,
+        "type": "boolean"
       }
     ]
   },
@@ -262,9 +312,19 @@
         "type": "string"
       },
       {
+        "name": "timeout",
+        "required": false,
+        "type": "integer"
+      },
+      {
         "name": "vmid",
         "required": true,
         "type": "string"
+      },
+      {
+        "name": "wait",
+        "required": false,
+        "type": "boolean"
       }
     ]
   },
@@ -282,9 +342,19 @@
         "type": "string"
       },
       {
+        "name": "timeout",
+        "required": false,
+        "type": "integer"
+      },
+      {
         "name": "vmid",
         "required": true,
         "type": "string"
+      },
+      {
+        "name": "wait",
+        "required": false,
+        "type": "boolean"
       }
     ]
   },

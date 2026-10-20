@@ -26,7 +26,7 @@ from mcp.types import TextContent as Content
 from ..utils.redaction import redact
 from ..validators import upid_node, validate_upid, validate_wait_timeout
 from .base import ProxmoxTool
-from .pve_compat import describe_task_result, is_upid
+from .pve_compat import TaskFailedError, describe_task_result, is_upid
 
 LOG_LIMIT = 200
 LOG_TAIL_LINES = 10
@@ -172,7 +172,7 @@ def task_result_text(
     detail = f"Task {outcome.upid} failed (exitstatus: {outcome.exitstatus})"
     if outcome.log_tail:
         detail += "\nLast log lines:\n" + "\n".join(outcome.log_tail)
-    raise RuntimeError(detail)
+    raise TaskFailedError(detail)
 
 
 def _starttime(upid: str, status: Dict[str, Any]) -> Optional[int]:

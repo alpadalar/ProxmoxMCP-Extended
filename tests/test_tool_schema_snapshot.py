@@ -40,7 +40,14 @@ PHASE5_NEW_TOOLS: dict[str, dict[str, tuple[str, bool]]] = {
     "wait_for_task": {"upid": ("string", True), "timeout": ("integer", False)},
 }
 # Existing tools gaining new OPTIONAL parameters: tool -> param -> simple type.
-PHASE5_PARAM_ADDITIONS: dict[str, dict[str, str]] = {}
+_WAIT = {"wait": "boolean", "timeout": "integer"}
+PHASE5_PARAM_ADDITIONS: dict[str, dict[str, str]] = {
+    name: dict(_WAIT)
+    for name in (
+        "start_vm", "stop_vm", "shutdown_vm", "reset_vm", "delete_vm",
+        "create_snapshot", "rollback_snapshot",
+    )
+}
 PHASE4_TOOL_COUNT = 18
 EXPECTED_TOOL_COUNT = PHASE4_TOOL_COUNT + len(PHASE5_NEW_TOOLS)
 SIMPLE_TYPES = {"string", "integer", "number", "boolean", "array", "object"}

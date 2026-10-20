@@ -30,6 +30,8 @@ vmid* - VM ID number (e.g. '100')
 name* - Snapshot name (e.g. 'pre-upgrade')
 description - Optional description for the snapshot
 vmstate - Include VM memory state (optional, default: false)
+wait - Wait for the Proxmox task to finish before returning (optional, default: false). A failed task raises an error naming the task id; a task that finished with warnings is reported as such, not as success
+timeout - Seconds to wait when wait=true (optional, default: 30, maximum: 300). Timing out is not a failure: the task is reported as still running
 
 Example:
 Create snapshot 'pre-upgrade' for VM 100 on node pve"""
@@ -43,6 +45,8 @@ node* - Host node name (e.g. 'pve')
 vmid* - VM ID number (e.g. '100')
 name* - Snapshot name to rollback to (e.g. 'pre-upgrade')
 confirm - Must be true to actually perform the operation; without it only a preview is returned (default: false)
+wait - Wait for the Proxmox task to finish before returning (optional, default: false). A failed task raises an error naming the task id; a task that finished with warnings is reported as such, not as success
+timeout - Seconds to wait when wait=true (optional, default: 30, maximum: 300). Timing out is not a failure: the task is reported as still running
 
 Example:
 Rollback VM 100 on node pve to snapshot 'pre-upgrade'"""
@@ -99,6 +103,8 @@ START_VM_DESC = """Start a virtual machine.
 Parameters:
 node* - Host node name (e.g. 'pve')
 vmid* - VM ID number (e.g. '101')
+wait - Wait for the Proxmox task to finish before returning (optional, default: false). A failed task raises an error naming the task id; a task that finished with warnings is reported as such, not as success
+timeout - Seconds to wait when wait=true (optional, default: 30, maximum: 300). Timing out is not a failure: the task is reported as still running
 
 Example:
 Power on VPN-Server with ID 101 on node pve"""
@@ -109,6 +115,8 @@ Parameters:
 node* - Host node name (e.g. 'pve')  
 vmid* - VM ID number (e.g. '101')
 confirm - Must be true to actually perform the operation; without it only a preview is returned (default: false)
+wait - Wait for the Proxmox task to finish before returning (optional, default: false). A failed task raises an error naming the task id; a task that finished with warnings is reported as such, not as success
+timeout - Seconds to wait when wait=true (optional, default: 30, maximum: 300). Timing out is not a failure: the task is reported as still running
 
 Example:
 Force stop VPN-Server with ID 101 on node pve"""
@@ -118,6 +126,8 @@ SHUTDOWN_VM_DESC = """Shutdown a virtual machine gracefully.
 Parameters:
 node* - Host node name (e.g. 'pve')
 vmid* - VM ID number (e.g. '101')
+wait - Wait for the Proxmox task to finish before returning (optional, default: false). A failed task raises an error naming the task id; a task that finished with warnings is reported as such, not as success
+timeout - Seconds to wait when wait=true (optional, default: 30, maximum: 300). Timing out is not a failure: the task is reported as still running
 
 Example:
 Gracefully shutdown VPN-Server with ID 101 on node pve"""
@@ -128,6 +138,8 @@ Parameters:
 node* - Host node name (e.g. 'pve')
 vmid* - VM ID number (e.g. '101')
 confirm - Must be true to actually perform the operation; without it only a preview is returned (default: false)
+wait - Wait for the Proxmox task to finish before returning (optional, default: false). A failed task raises an error naming the task id; a task that finished with warnings is reported as such, not as success
+timeout - Seconds to wait when wait=true (optional, default: 30, maximum: 300). Timing out is not a failure: the task is reported as still running
 
 Example:
 Reset VPN-Server with ID 101 on node pve"""
@@ -141,6 +153,8 @@ node* - Host node name (e.g. 'pve')
 vmid* - VM ID number (e.g. '998')
 force - Force deletion even if VM is running (optional, default: false)
 confirm - Must be true to actually perform the operation; without it only a preview is returned (default: false)
+wait - Wait for the Proxmox task to finish before returning (optional, default: false). A failed task raises an error naming the task id; a task that finished with warnings is reported as such, not as success
+timeout - Seconds to wait when wait=true (optional, default: 30, maximum: 300). Timing out is not a failure: the task is reported as still running
 
 This will permanently remove:
 - VM configuration
