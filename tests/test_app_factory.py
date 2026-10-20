@@ -81,7 +81,7 @@ def test_health_payload_over_asgi(config, mock_proxmox):
     with TestClient(app.asgi) as c:
         assert c.get("/health").json() == {"status": "ok"}
         body = c.get("/health", headers={"X-API-Key": "k"}).json()
-    assert set(body) == {"status", "server", "transport", "auth", "proxmox", "timestamp"}
+    assert set(body) == {"status", "server", "transport", "auth", "policy", "proxmox", "timestamp"}
     assert body["auth"] == "api-key" and body["transport"] == "http"
     assert body["proxmox"] == "not_connected"
     mock_proxmox.assert_not_called()

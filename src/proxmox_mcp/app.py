@@ -19,6 +19,7 @@ from .auth.apikey import APIKeyAuthMiddleware, is_authorized
 from .auth.hostguard import LoopbackHostGuardMiddleware
 from .auth.policy import LOOPBACK_HOSTS, resolve_auth_policy
 from .core.proxmox import ProxmoxManager
+from .policy import ToolPolicy, compose_wraps, make_policy_wrap
 from .tools.cluster import ClusterTools
 from .tools.node import NodeTools
 from .tools.registry import ToolContext, ToolSpec, build_registry, register_tools
@@ -55,10 +56,14 @@ class ProxmoxApp:
     path: str = "/proxmox-mcp"
     tests_passed: Optional[bool] = None
     specs: List[ToolSpec] = field(default_factory=list)
+    policy: Optional[ToolPolicy] = None
     node_tools: Any = None
     vm_tools: Any = None
     storage_tools: Any = None
     cluster_tools: Any = None
+
+    def _policy_summary(self) -> Dict[str, bool]:
+        return self.policy.summary() if self.policy else {}
 
     def health_payload(self) -> Dict[str, Any]:
         """Health information; performs no network I/O."""
@@ -68,6 +73,7 @@ class ProxmoxApp:
                 "server": "ProxmoxMCP-HTTP",
                 "transport": "http",
                 "auth": self.auth_state,
+                "policy": self._policy_summary(),
                 "proxmox": self.manager.connection_state(),
                 "timestamp": datetime.now().isoformat(),
             }
@@ -80,6 +86,7 @@ class ProxmoxApp:
         return {
             "status": status,
             "tests_passed": self.tests_passed,
+            "policy": self._policy_summary(),
             "details": (
                 "Startup tests passed"
                 if self.tests_passed
@@ -163,7 +170,17 @@ def create_app(
         health_payload=app.health_payload,
     )
     app.specs = build_registry(ctx)
-    register_tools(app.mcp, app.specs, wrap=wrap)
+    tool_policy = ToolPolicy(config.policy)
+    app.policy = tool_policy
+    logger.info(
+        "policy: read_only=%s allow_destructive=%s allow_exec=%s",
+        *(tool_policy.summary()[k] for k in ("read_only", "allow_destructive", "allow_exec")),
+    )
+    if config.policy.allow_destructive:
+        logger.warning("policy: allow_destructive is ON (stop/reset/delete/rollback enabled)")
+    if config.policy.allow_exec:
+        logger.warning("policy: allow_exec is ON (execute_vm_command enabled)")
+    register_tools(app.mcp, app.specs, wrap=compose_wraps(make_policy_wrap(tool_policy), wrap))
 
     if transport == "http":
         assert policy is not None

@@ -18,6 +18,9 @@ def mock_env_vars():
         "PROXMOX_TOKEN_NAME": "test_token",
         "PROXMOX_TOKEN_VALUE": "test_value",
         "LOG_LEVEL": "DEBUG",
+        # Tests default permissive; policy behaviour is covered in tests/test_policy_matrix.py
+        "PROXMOX_MCP_ALLOW_DESTRUCTIVE": "true",
+        "PROXMOX_MCP_ALLOW_EXEC": "true",
     }
     with patch.dict(os.environ, env_vars):
         yield env_vars
