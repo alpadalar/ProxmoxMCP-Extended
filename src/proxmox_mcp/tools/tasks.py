@@ -19,9 +19,10 @@ import json
 import threading
 import time
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Callable, Deque, Dict, List, Optional
+from typing import Any
 
 from mcp.types import TextContent as Content
 
@@ -54,9 +55,9 @@ class TaskOutcome:
     upid: str
     node: str
     state: str  # "ok" | "warnings" | "failed" | "running"
-    exitstatus: Optional[str] = None
-    status: Dict[str, Any] = field(default_factory=dict)
-    log_tail: List[str] = field(default_factory=list)
+    exitstatus: str | None = None
+    status: dict[str, Any] = field(default_factory=dict)
+    log_tail: list[str] = field(default_factory=list)
     timed_out: bool = False
 
     @property
@@ -80,7 +81,7 @@ def classify_task(status: Any) -> str:
     return "failed"
 
 
-def _log_tail(api: Any, node: str, upid: str) -> List[str]:
+def _log_tail(api: Any, node: str, upid: str) -> list[str]:
     """Last lines of the task log; best effort (any error yields an empty tail).
 
     The log API returns pages from ``start`` (at most ``LOG_LIMIT`` lines), so the log is
@@ -88,7 +89,7 @@ def _log_tail(api: Any, node: str, upid: str) -> List[str]:
     the first short or empty page, or after ``LOG_MAX_PAGES`` pages; in the latter case the
     tail is marked as not being the true end of the log.
     """
-    tail: Deque[str] = deque(maxlen=LOG_TAIL_LINES)
+    tail: deque[str] = deque(maxlen=LOG_TAIL_LINES)
     start = 0
     capped = False
     try:
@@ -118,7 +119,7 @@ def fetch_task_outcome(api: Any, upid: str) -> TaskOutcome:
     if not isinstance(status, dict):
         raise RuntimeError("unexpected task status response")
     state = classify_task(status)
-    subset: Dict[str, Any] = {}
+    subset: dict[str, Any] = {}
     for key in _STATUS_KEYS:
         if key in status:
             value = status[key]
@@ -235,7 +236,7 @@ def task_result_text(
     raise TaskFailedError(detail)
 
 
-def _starttime(upid: str, status: Dict[str, Any]) -> Optional[int]:
+def _starttime(upid: str, status: dict[str, Any]) -> int | None:
     value = status.get("starttime")
     if isinstance(value, int) and not isinstance(value, bool):
         return value
@@ -245,10 +246,10 @@ def _starttime(upid: str, status: Dict[str, Any]) -> Optional[int]:
         return None
 
 
-def _payload(outcome: TaskOutcome) -> Dict[str, Any]:
+def _payload(outcome: TaskOutcome) -> dict[str, Any]:
     parts = outcome.upid.split(":")
     started = _starttime(outcome.upid, outcome.status)
-    data: Dict[str, Any] = {
+    data: dict[str, Any] = {
         "upid": outcome.upid,
         "node": outcome.node,
         "type": parts[5],
@@ -276,9 +277,9 @@ class TaskTools(ProxmoxTool):
         self._sleep: Callable[[float], None] = time.sleep
         self._clock: Callable[[], float] = time.monotonic
 
-    def get_task_status(self, upid: str) -> List[Content]:
+    def get_task_status(self, upid: str) -> list[Content]:
         """Return the current status of a task; success only when exitstatus is OK."""
-        node: Optional[str] = None
+        node: str | None = None
         try:
             node = upid_node(upid)
             outcome = fetch_task_outcome(self.proxmox, upid)
@@ -287,9 +288,9 @@ class TaskTools(ProxmoxTool):
             self._handle_error("get task status", e, "get_task_status", node=node)
             return []
 
-    def wait_for_task(self, upid: str, timeout: int = 30) -> List[Content]:
+    def wait_for_task(self, upid: str, timeout: int = 30) -> list[Content]:
         """Wait (bounded, 1..300 s) for a task; a timeout reports state running."""
-        node: Optional[str] = None
+        node: str | None = None
         try:
             node = upid_node(upid)
             validate_wait_timeout(timeout)

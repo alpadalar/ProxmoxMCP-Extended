@@ -10,8 +10,9 @@ import functools
 import inspect
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 from fastmcp.exceptions import ToolError
 from mcp.types import TextContent as Content
@@ -21,7 +22,7 @@ from .validators import validate_node, validate_snapshot_name, validate_vmid
 logger = logging.getLogger("proxmox-mcp.policy")
 
 # risk class -> ordered config flags that block it (first match denies)
-GATES: Dict[str, tuple] = {
+GATES: dict[str, tuple] = {
     "read": (),
     "write": ("read_only",),
     "destructive": ("read_only", "allow_destructive"),
@@ -61,7 +62,7 @@ class ToolPolicy:
     def __init__(self, policy_config: Any):
         self._cfg = policy_config
 
-    def check(self, spec: Any) -> Optional[Denial]:
+    def check(self, spec: Any) -> Denial | None:
         for flag in GATES.get(spec.risk, ("read_only", "allow_destructive", "allow_exec")):
             value = bool(getattr(self._cfg, flag))
             blocked = value if flag == "read_only" else not value
@@ -75,7 +76,7 @@ class ToolPolicy:
                 )
         return None
 
-    def summary(self) -> Dict[str, bool]:
+    def summary(self) -> dict[str, bool]:
         return {
             "read_only": bool(self._cfg.read_only),
             "allow_destructive": bool(self._cfg.allow_destructive),
@@ -135,7 +136,7 @@ def make_policy_wrap(policy: ToolPolicy) -> Callable[[Any, Callable[..., Any]], 
     return wrap
 
 
-def compose_wraps(*wraps: Optional[Callable[..., Any]]) -> Callable[[Any, Callable[..., Any]], Any]:
+def compose_wraps(*wraps: Callable[..., Any] | None) -> Callable[[Any, Callable[..., Any]], Any]:
     """Compose wraps; the first non-None wrap is outermost.
 
     ``compose_wraps(make_policy_wrap(p), user_wrap)`` therefore runs the policy check
@@ -151,7 +152,7 @@ def compose_wraps(*wraps: Optional[Callable[..., Any]]) -> Callable[[Any, Callab
     return composed
 
 
-_EFFECTS: Dict[str, List[str]] = {
+_EFFECTS: dict[str, list[str]] = {
     "stop_vm": [
         "Hard power-off of the VM without a guest shutdown.",
         "Unsaved guest data may be lost and filesystems may need recovery.",
@@ -184,14 +185,14 @@ _EFFECTS: Dict[str, List[str]] = {
 _NODE_OPTIONAL = frozenset({"stop_container"})
 
 
-def build_preview(tool: str, **target: Any) -> List[Content]:
+def build_preview(tool: str, **target: Any) -> list[Content]:
     """Return a confirmation preview for a destructive tool; performs no I/O.
 
     Inputs are validated (rejected, never sanitized) with the central validators first.
     """
     if tool not in _EFFECTS:
         raise ValueError(f"No preview defined for tool '{tool}'")
-    shown: Dict[str, Any] = {
+    shown: dict[str, Any] = {
         "node": (
             None
             if tool in _NODE_OPTIONAL and target.get("node") is None

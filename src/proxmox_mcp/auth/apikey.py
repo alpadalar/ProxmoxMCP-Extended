@@ -22,7 +22,7 @@ import logging
 import os
 import re
 import sys
-from typing import Iterable, List, Optional, Set
+from collections.abc import Iterable
 
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -37,12 +37,12 @@ def hash_api_key(key: str) -> str:
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
-def normalize_digests(values: Iterable[str], source: str = "API key digests") -> List[str]:
+def normalize_digests(values: Iterable[str], source: str = "API key digests") -> list[str]:
     """Validate digests (optional ``sha256:`` prefix) and return lowercase hex.
 
     ``source`` names where the values came from, for the error message.
     """
-    result: List[str] = []
+    result: list[str] = []
     for raw in values:
         item = raw.strip().lower()
         if not item:
@@ -57,17 +57,17 @@ def normalize_digests(values: Iterable[str], source: str = "API key digests") ->
     return result
 
 
-def digests_from_env(environ: Optional[dict] = None) -> List[str]:
+def digests_from_env(environ: dict | None = None) -> list[str]:
     """Read digests from ``PROXMOX_MCP_API_KEY_HASHES`` (comma-separated)."""
     env = os.environ if environ is None else environ
     return normalize_digests(env.get(ENV_HASHES, "").split(","), ENV_HASHES)
 
 
 def resolve_digests(
-    explicit: Optional[Iterable[str]],
+    explicit: Iterable[str] | None,
     config_digests: Iterable[str] = (),
-    environ: Optional[dict] = None,
-) -> List[str]:
+    environ: dict | None = None,
+) -> list[str]:
     """Resolve API key digests: explicit > env > config (replacement, not union).
 
     An explicit value (even an empty list) wins outright; the caller then fails
@@ -81,7 +81,7 @@ def resolve_digests(
     return normalize_digests(config_digests, "http.api_key_digests")
 
 
-def is_authorized(headers: List[tuple], digests: Iterable[str]) -> bool:
+def is_authorized(headers: list[tuple], digests: Iterable[str]) -> bool:
     """True if the raw ASGI ``headers`` carry a key matching one of ``digests``."""
     key = APIKeyAuthMiddleware._extract_key(headers)
     if key is None:
@@ -100,7 +100,7 @@ class APIKeyAuthMiddleware:
         self,
         app: ASGIApp,
         digests: Iterable[str],
-        exempt_paths: Optional[Set[str]] = None,
+        exempt_paths: set[str] | None = None,
     ) -> None:
         self.app = app
         self._digests = normalize_digests(digests)
@@ -109,7 +109,7 @@ class APIKeyAuthMiddleware:
         self.exempt_paths = set(exempt_paths) if exempt_paths is not None else {"/health"}
 
     @staticmethod
-    def _extract_key(headers: List[tuple]) -> Optional[str]:
+    def _extract_key(headers: list[tuple]) -> str | None:
         bearer = None
         x_key = None
         for name, value in headers:

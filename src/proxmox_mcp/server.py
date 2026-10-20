@@ -8,7 +8,8 @@ logging and runs the stdio transport.  All tools come from the shared registry
 import argparse
 import os
 import sys
-from typing import Any, Dict, List, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from .app import create_app
 from .config.loader import add_policy_flags, load_config, policy_cli_overrides
@@ -21,8 +22,8 @@ class ProxmoxMCPServer:
 
     def __init__(
         self,
-        config_path: Optional[str] = None,
-        cli_overrides: Optional[Mapping[str, Any]] = None,
+        config_path: str | None = None,
+        cli_overrides: Mapping[str, Any] | None = None,
     ):
         """Initialize the server.
 
@@ -43,11 +44,11 @@ class ProxmoxMCPServer:
         self.cluster_tools = self.app.cluster_tools
 
     @property
-    def _tests_passed(self) -> Optional[bool]:
+    def _tests_passed(self) -> bool | None:
         return self.app.tests_passed
 
     @_tests_passed.setter
-    def _tests_passed(self, value: Optional[bool]) -> None:
+    def _tests_passed(self, value: bool | None) -> None:
         self.app.tests_passed = value
 
     def start(self) -> None:
@@ -89,7 +90,7 @@ class ProxmoxMCPServer:
             self.logger.error(f"Server error: {e}")
             sys.exit(1)
 
-def main(argv: Optional[List[str]] = None) -> None:
+def main(argv: list[str] | None = None) -> None:
     """Console script entry point for ``proxmox-mcp``."""
     parser = argparse.ArgumentParser(
         prog="proxmox-mcp",
@@ -110,7 +111,7 @@ def main(argv: Optional[List[str]] = None) -> None:
     add_policy_flags(parser)
     args = parser.parse_args(argv)
 
-    cli_overrides: Dict[str, Any] = {}
+    cli_overrides: dict[str, Any] = {}
     for section, key, value in (
         ("logging", "level", args.log_level),
         ("logging", "file", args.log_file),

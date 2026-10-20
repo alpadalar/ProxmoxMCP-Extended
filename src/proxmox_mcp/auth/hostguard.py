@@ -5,13 +5,13 @@ rebinding or cross-origin requests. With auth disabled, only loopback Host heade
 loopback (or absent) Origin headers are served.
 """
 import json
-from typing import Iterable, Optional
+from collections.abc import Iterable
 from urllib.parse import urlsplit
 
 LOOPBACK_NAMES = frozenset({"localhost", "127.0.0.1", "::1"})
 
 
-def _host_only(value: str) -> Optional[str]:
+def _host_only(value: str) -> str | None:
     """Hostname part of a Host header value (port stripped, IPv6 brackets removed)."""
     value = value.strip().lower()
     if value.startswith("["):

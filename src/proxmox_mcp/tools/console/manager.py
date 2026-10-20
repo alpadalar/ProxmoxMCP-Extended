@@ -18,8 +18,9 @@ import asyncio
 import logging
 import shlex
 import time
+from collections.abc import Callable
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import requests
 from proxmoxer.core import ResourceException
@@ -62,7 +63,7 @@ class VMConsoleManager:
         exec_timeout: float = 30.0,
         exec_max_output: int = 65536,
         exec_max_concurrent: int = 2,
-        pve_major: Callable[[], Optional[int]] = lambda: None,
+        pve_major: Callable[[], int | None] = lambda: None,
     ):
         """Initialize the VM console manager.
 
@@ -96,7 +97,7 @@ class VMConsoleManager:
             ) from None
 
     def _raise_translated(
-        self, exc: BaseException, node: str, vmid: str, command: str, argv: List[str]
+        self, exc: BaseException, node: str, vmid: str, command: str, argv: list[str]
     ) -> None:
         """Raise the status-code based translation for PVE / connection errors (else return).
 
@@ -114,7 +115,7 @@ class VMConsoleManager:
         raise clean from None
 
     @classmethod
-    def _build_argv(cls, command: str, args: Optional[List[str]] = None) -> List[str]:
+    def _build_argv(cls, command: str, args: list[str] | None = None) -> list[str]:
         """Build and validate the argv list sent to the guest agent (no shell).
 
         With ``args`` the command is the program and ``args`` its arguments; otherwise the
@@ -170,8 +171,8 @@ class VMConsoleManager:
         node: str,
         vmid: str,
         command: str,
-        args: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        args: list[str] | None = None,
+    ) -> dict[str, Any]:
         """Execute a command in a VM via the guest agent, at most N at a time.
 
         At most ``exec_max_concurrent`` commands run through the start/poll cycle at once;
@@ -196,8 +197,8 @@ class VMConsoleManager:
         node: str,
         vmid: str,
         command: str,
-        args: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        args: list[str] | None = None,
+    ) -> dict[str, Any]:
         """Execute a command in a VM's console via QEMU guest agent.
 
         Implements a two-phase command execution process:

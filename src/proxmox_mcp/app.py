@@ -5,9 +5,10 @@ the tool registry, the ``/health`` route and the auth middleware.  For HTTP the 
 application is built exactly once and ``serve_asgi`` serves that same object.
 """
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import uvicorn
 from fastmcp import FastMCP
@@ -21,10 +22,10 @@ from .auth.policy import LOOPBACK_HOSTS, resolve_auth_policy
 from .core.proxmox import ProxmoxManager
 from .policy import ToolPolicy, compose_wraps, make_policy_wrap
 from .tools.cluster import ClusterTools
+from .tools.container import ContainerTools
 from .tools.node import NodeTools
 from .tools.registry import ToolContext, ToolSpec, build_registry, register_tools
 from .tools.storage import StorageTools
-from .tools.container import ContainerTools
 from .tools.tasks import TaskTools
 from .tools.vm import VMTools
 
@@ -51,14 +52,14 @@ class ProxmoxApp:
     manager: ProxmoxManager
     mcp: FastMCP
     transport: str
-    asgi: Optional[Any] = None
+    asgi: Any | None = None
     auth_state: str = "n/a"
     host: str = "127.0.0.1"
     port: int = 8812
     path: str = "/proxmox-mcp"
-    tests_passed: Optional[bool] = None
-    specs: List[ToolSpec] = field(default_factory=list)
-    policy: Optional[ToolPolicy] = None
+    tests_passed: bool | None = None
+    specs: list[ToolSpec] = field(default_factory=list)
+    policy: ToolPolicy | None = None
     node_tools: Any = None
     vm_tools: Any = None
     storage_tools: Any = None
@@ -66,16 +67,16 @@ class ProxmoxApp:
     task_tools: Any = None
     container_tools: Any = None
 
-    def _policy_summary(self) -> Dict[str, bool]:
+    def _policy_summary(self) -> dict[str, bool]:
         return self.policy.summary() if self.policy else {}
 
-    def _pve_summary(self) -> Optional[Dict[str, Any]]:
+    def _pve_summary(self) -> dict[str, Any] | None:
         info = self.manager.version_info()
         if info is None:
             return None
         return {"version": info.version, "release": info.release, "major": info.major}
 
-    def health_payload(self) -> Dict[str, Any]:
+    def health_payload(self) -> dict[str, Any]:
         """Health information; performs no network I/O."""
         if self.transport == "http":
             return {
@@ -121,9 +122,9 @@ def create_app(
     host: str = "127.0.0.1",
     port: int = 8812,
     path: str = "/proxmox-mcp",
-    api_key_digests: Optional[List[str]] = None,
+    api_key_digests: list[str] | None = None,
     insecure_no_auth: bool = False,
-    wrap: Optional[Callable[[ToolSpec, Callable[..., Any]], Callable[..., Any]]] = None,
+    wrap: Callable[[ToolSpec, Callable[..., Any]], Callable[..., Any]] | None = None,
 ) -> ProxmoxApp:
     """Build a ProxmoxApp for ``transport`` ("stdio" or "http")."""
     if transport not in ("stdio", "http"):

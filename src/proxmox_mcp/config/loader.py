@@ -11,7 +11,8 @@ messages, never from input values, so secrets cannot leak through them.
 """
 import json
 import os
-from typing import Any, Dict, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from pydantic import ValidationError
 
@@ -39,7 +40,7 @@ _ENV_MAP = {
 }
 
 
-def _overlay(base: Dict[str, Any], top: Mapping[str, Any]) -> None:
+def _overlay(base: dict[str, Any], top: Mapping[str, Any]) -> None:
     """Recursively overlay ``top`` onto ``base`` in place."""
     for key, value in top.items():
         if isinstance(value, Mapping) and isinstance(base.get(key), dict):
@@ -51,7 +52,7 @@ def _overlay(base: Dict[str, Any], top: Mapping[str, Any]) -> None:
             base[key] = value
 
 
-def _read_json(config_path: str) -> Dict[str, Any]:
+def _read_json(config_path: str) -> dict[str, Any]:
     try:
         with open(config_path) as f:
             data = json.load(f)
@@ -66,8 +67,8 @@ def _read_json(config_path: str) -> Dict[str, Any]:
     return data
 
 
-def _env_layer() -> Dict[str, Any]:
-    layer: Dict[str, Any] = {}
+def _env_layer() -> dict[str, Any]:
+    layer: dict[str, Any] = {}
     for name, (section, key) in _ENV_MAP.items():
         value = os.environ.get(name)
         if value is None or value == "":
@@ -85,8 +86,8 @@ def _format_errors(exc: ValidationError) -> str:
 
 
 def load_config(
-    config_path: Optional[str] = None,
-    cli_overrides: Optional[Mapping[str, Any]] = None,
+    config_path: str | None = None,
+    cli_overrides: Mapping[str, Any] | None = None,
 ) -> Config:
     """Load and validate configuration.
 
@@ -112,7 +113,7 @@ def load_config(
             invalid values. Messages never contain secret values.
     """
     # Seed required sections so missing fields are reported as e.g. "proxmox.host"
-    data: Dict[str, Any] = {"proxmox": {}, "auth": {}}
+    data: dict[str, Any] = {"proxmox": {}, "auth": {}}
     if config_path:
         _overlay(data, _read_json(config_path))
     _overlay(data, _env_layer())
@@ -146,7 +147,7 @@ def add_policy_flags(parser: Any) -> None:
     )
 
 
-def policy_cli_overrides(args: Any) -> Dict[str, Any]:
+def policy_cli_overrides(args: Any) -> dict[str, Any]:
     """Build the ``cli_overrides`` policy section from parsed args (empty if no flags)."""
     policy = {
         key: getattr(args, key)

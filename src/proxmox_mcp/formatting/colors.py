@@ -1,8 +1,9 @@
 """
 Color utilities for Proxmox MCP output styling.
 """
-from typing import Optional
+
 from .theme import ProxmoxTheme
+
 
 class ProxmoxColors:
     """ANSI color definitions and utilities for terminal output."""
@@ -41,7 +42,7 @@ class ProxmoxColors:
     RESET = '\033[0m'
     
     @classmethod
-    def colorize(cls, text: str, color: str, style: Optional[str] = None) -> str:
+    def colorize(cls, text: str, color: str, style: str | None = None) -> str:
         """Add color and optional style to text with theme awareness.
         
         Args:

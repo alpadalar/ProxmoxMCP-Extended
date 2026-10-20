@@ -10,7 +10,8 @@ explicitly run with ``--no-auth`` on a loopback address.
 import logging
 import os
 import sys
-from typing import Any, List, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from .app import create_app
 from .auth.apikey import ENV_HASHES
@@ -34,13 +35,13 @@ class ProxmoxMCPHTTPServer:
     """
 
     def __init__(self,
-                 config_path: Optional[str] = None,
+                 config_path: str | None = None,
                  host: str = "127.0.0.1",
                  port: int = 8812,
                  path: str = "/proxmox-mcp",
-                 api_key_digests: Optional[List[str]] = None,
+                 api_key_digests: list[str] | None = None,
                  insecure_no_auth: bool = False,
-                 cli_overrides: Optional[Mapping[str, Any]] = None):
+                 cli_overrides: Mapping[str, Any] | None = None):
         """
         Initialize the HTTP MCP server.
 

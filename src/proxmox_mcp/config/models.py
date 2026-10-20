@@ -15,7 +15,7 @@ The models provide:
 """
 import os
 import re
-from typing import Annotated, Any, List, Optional
+from typing import Annotated, Any
 
 from pydantic import (
     BaseModel,
@@ -83,7 +83,7 @@ class ProxmoxConfig(BaseModel):
     host: str  # Required: Proxmox host address
     port: int = Field(default=8006, ge=1, le=65535)  # API port
     verify_ssl: bool = True  # SSL verification (default: True)
-    ca_bundle: Optional[str] = None  # Optional CA bundle file for private CAs
+    ca_bundle: str | None = None  # Optional CA bundle file for private CAs
     service: str = Field(default="PVE", pattern=r"^(PVE|PMG|PBS)$")
     timeout: float = Field(default=30.0, gt=0, le=300)  # request timeout in seconds
 
@@ -106,7 +106,7 @@ class ProxmoxConfig(BaseModel):
 
     @field_validator("ca_bundle")
     @classmethod
-    def _check_ca_bundle(cls, v: Optional[str]) -> Optional[str]:
+    def _check_ca_bundle(cls, v: str | None) -> str | None:
         if v is None:
             return v
         if not os.path.isfile(v):
@@ -136,7 +136,7 @@ class LoggingConfig(BaseModel):
 
     level: str = "INFO"  # Optional: Log level (default: INFO)
     format: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"  # Optional: Log format
-    file: Optional[str] = None  # Optional: Log file path (default: None for console logging)
+    file: str | None = None  # Optional: Log file path (default: None for console logging)
 
     @field_validator("level")
     @classmethod
@@ -154,7 +154,7 @@ class HttpConfig(BaseModel):
     """
     model_config = _STRICT
 
-    api_key_digests: List[str] = Field(default_factory=list)
+    api_key_digests: list[str] = Field(default_factory=list)
 
     @field_validator("api_key_digests", mode="before")
     @classmethod

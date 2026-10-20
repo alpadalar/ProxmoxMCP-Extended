@@ -9,7 +9,8 @@ intentionally tighter than the limits here and are unchanged.
 from __future__ import annotations
 
 import re
-from typing import Callable, Optional, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 __all__ = [
     "InputValidationError",
@@ -68,7 +69,7 @@ def _fail(field: str, rule: str, value: object) -> InputValidationError:
     return InputValidationError(f"Invalid {field}: {rule} (got {shown})")
 
 
-def _match(value: object, pattern: "re.Pattern[str]", field: str, rule: str) -> str:
+def _match(value: object, pattern: re.Pattern[str], field: str, rule: str) -> str:
     if not isinstance(value, str) or not value.isascii() or not pattern.fullmatch(value):
         raise _fail(field, rule, value)
     return value
@@ -170,7 +171,7 @@ def validate_disk_gb(value: object, field: str = "disk_size", lo: int = 1, hi: i
     return _int_range(value, lo, hi, field)
 
 
-def validate_optional(fn: Callable[..., T], value: object, *args: object) -> Optional[T]:
+def validate_optional(fn: Callable[..., T], value: object, *args: object) -> T | None:
     """Return None for None, otherwise delegate to ``fn(value, *args)``."""
     if value is None:
         return None

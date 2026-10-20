@@ -5,7 +5,7 @@ migrate between nodes. Node and type used for API paths therefore come from the 
 from raw tool input.
 """
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from ..validators import validate_node, validate_vmid
 
@@ -17,8 +17,8 @@ class Guest:
     node: str
     vmid: str
     type: str  # "qemu" | "lxc"
-    status: Optional[str]
-    name: Optional[str]
+    status: str | None
+    name: str | None
     template: bool
 
 
@@ -26,7 +26,7 @@ _KIND = {"qemu": "a qemu VM", "lxc": "an LXC container"}
 
 
 def resolve_guest(
-    api: Any, vmid: Any, expected_type: Optional[str] = None, node: Optional[str] = None
+    api: Any, vmid: Any, expected_type: str | None = None, node: str | None = None
 ) -> Guest:
     """Resolve ``vmid`` through ``cluster/resources`` (uncached); raise ValueError if unusable."""
     vmid = validate_vmid(vmid)

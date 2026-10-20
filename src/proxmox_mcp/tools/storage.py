@@ -13,13 +13,14 @@ The tools implement fallback mechanisms for scenarios where
 detailed storage information might be temporarily unavailable.
 """
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from mcp.types import TextContent as Content
-from .base import ProxmoxTool
-from .definitions import GET_STORAGE_DESC
+
 from ..formatting import ProxmoxFormatters
 from ..utils.redaction import redact
 from ..validators import validate_node, validate_optional, validate_storage, validate_vmid
+from .base import ProxmoxTool
 
 NOTES_MAX = 300
 
@@ -36,7 +37,7 @@ class StorageTools(ProxmoxTool):
     storage information might be temporarily unavailable.
     """
 
-    def get_storage(self) -> List[Content]:
+    def get_storage(self) -> list[Content]:
         """List storage pools across the cluster with detailed status.
 
         Retrieves comprehensive information for each storage pool including:
@@ -108,7 +109,7 @@ class StorageTools(ProxmoxTool):
         return isinstance(value, (list, tuple)) and "backup" in value
 
     @staticmethod
-    def _backup_entry(storage: str, item: Dict[str, Any]) -> Dict[str, Any]:
+    def _backup_entry(storage: str, item: dict[str, Any]) -> dict[str, Any]:
         size = item.get("size")
         size = size if isinstance(size, int) and not isinstance(size, bool) else 0
         ctime = item.get("ctime")
@@ -130,9 +131,9 @@ class StorageTools(ProxmoxTool):
         }
 
     def _storage_backups(
-        self, node: str, storage: str, vmid: Optional[str]
-    ) -> List[Dict[str, Any]]:
-        params: Dict[str, Any] = {"content": "backup"}
+        self, node: str, storage: str, vmid: str | None
+    ) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {"content": "backup"}
         if vmid is not None:
             params["vmid"] = vmid
         raw = self.proxmox.nodes(node).storage(storage).content.get(**params) or []
@@ -146,15 +147,15 @@ class StorageTools(ProxmoxTool):
         return found
 
     def list_backups(
-        self, node: str, storage: Optional[str] = None, vmid: Optional[str] = None
-    ) -> List[Content]:
+        self, node: str, storage: str | None = None, vmid: str | None = None
+    ) -> list[Content]:
         """List backup volumes (read-only inventory) of one storage or all backup storages."""
         node = validate_node(node)
         storage = validate_optional(validate_storage, storage)
         vmid = validate_optional(validate_vmid, vmid)
         try:
-            skipped: List[Dict[str, str]] = []
-            backups: List[Dict[str, Any]] = []
+            skipped: list[dict[str, str]] = []
+            backups: list[dict[str, Any]] = []
             if storage is not None:
                 backups = self._storage_backups(node, storage, vmid)
             else:

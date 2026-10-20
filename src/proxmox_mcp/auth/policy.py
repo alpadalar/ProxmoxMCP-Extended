@@ -1,6 +1,7 @@
 """Fail-closed authentication policy for the HTTP transport."""
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, List, Mapping, Optional
+from typing import Any
 
 from .apikey import ENV_HASHES, resolve_digests
 
@@ -15,7 +16,7 @@ class AuthConfigError(ValueError):
 class AuthPolicy:
     """Resolved authentication policy."""
 
-    digests: List[str]
+    digests: list[str]
     enabled: bool
     insecure: bool
 
@@ -28,9 +29,9 @@ def resolve_auth_policy(
     config: Any,
     *,
     host: str,
-    explicit_digests: Optional[List[str]] = None,
+    explicit_digests: list[str] | None = None,
     insecure_no_auth: bool = False,
-    environ: Optional[Mapping[str, str]] = None,
+    environ: Mapping[str, str] | None = None,
 ) -> AuthPolicy:
     """Resolve digests (explicit > env > config) and enforce the fail-closed rules.
 

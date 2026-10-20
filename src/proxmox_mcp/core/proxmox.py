@@ -15,7 +15,8 @@ cached briefly (a few seconds) so bursts fail fast, then the next access retries
 import logging
 import threading
 import time
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 from proxmoxer import ProxmoxAPI
 
@@ -36,10 +37,10 @@ class LazyProxmoxAPI:
     def __init__(self, connect: Callable[[], Any]):
         self._connect = connect
         self._lock = threading.Lock()
-        self._inflight: Optional[threading.Event] = None
-        self._last_error: Optional[str] = None
+        self._inflight: threading.Event | None = None
+        self._last_error: str | None = None
         self._retry_at = 0.0
-        self._api: Optional[Any] = None
+        self._api: Any | None = None
         self._state = NOT_CONNECTED
 
     @property
@@ -105,12 +106,12 @@ class ProxmoxManager:
         self.logger = logging.getLogger("proxmox-mcp.proxmox")
         register_secret(auth_config.token_value.get_secret_value())
         self.config = self._create_config(proxmox_config, auth_config)
-        self._pve_version: Optional[PveVersion] = None
+        self._pve_version: PveVersion | None = None
         self.api = LazyProxmoxAPI(self._connect)
 
     def _create_config(
         self, proxmox_config: ProxmoxConfig, auth_config: AuthConfig
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a configuration dictionary for ProxmoxAPI.
 
         Args:
@@ -158,11 +159,11 @@ class ProxmoxManager:
         """Get the lazy Proxmox API proxy (connects on first attribute access)."""
         return self.api
 
-    def version_info(self) -> Optional[PveVersion]:
+    def version_info(self) -> PveVersion | None:
         """PVE version seen by the first successful connect, else None; never performs I/O."""
         return self._pve_version
 
-    def pve_major(self) -> Optional[int]:
+    def pve_major(self) -> int | None:
         """Major PVE version (8, 9, ...) or None before the first successful connect."""
         info = self._pve_version
         return info.major if info else None

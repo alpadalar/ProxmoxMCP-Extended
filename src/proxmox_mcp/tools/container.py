@@ -4,7 +4,6 @@ Node and type come from :func:`resolve_guest` on every call. Mutating calls retu
 id (UPID) and support the optional ``wait`` / ``timeout`` semantics of the VM tools.
 """
 import time
-from typing import List, Optional
 
 from mcp.types import TextContent as Content
 
@@ -51,8 +50,8 @@ class ContainerTools(ProxmoxTool):
             )
 
     def start_container(
-        self, vmid: str, node: Optional[str] = None, wait: bool = False, timeout: int = 30
-    ) -> List[Content]:
+        self, vmid: str, node: str | None = None, wait: bool = False, timeout: int = 30
+    ) -> list[Content]:
         """Start an LXC container."""
         return self._run(
             "start", vmid, node, wait, timeout, "running",
@@ -61,8 +60,8 @@ class ContainerTools(ProxmoxTool):
         )
 
     def stop_container(
-        self, vmid: str, node: Optional[str] = None, wait: bool = False, timeout: int = 30
-    ) -> List[Content]:
+        self, vmid: str, node: str | None = None, wait: bool = False, timeout: int = 30
+    ) -> list[Content]:
         """Hard-stop an LXC container (the caller enforces confirm)."""
         return self._run(
             "stop", vmid, node, wait, timeout, "stopped",
@@ -71,8 +70,8 @@ class ContainerTools(ProxmoxTool):
         )
 
     def shutdown_container(
-        self, vmid: str, node: Optional[str] = None, wait: bool = False, timeout: int = 30
-    ) -> List[Content]:
+        self, vmid: str, node: str | None = None, wait: bool = False, timeout: int = 30
+    ) -> list[Content]:
         """Gracefully shut down an LXC container (no PVE-side timeout is sent)."""
         return self._run(
             "shutdown", vmid, node, wait, timeout, "stopped",

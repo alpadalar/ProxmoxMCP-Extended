@@ -11,7 +11,8 @@ All tool implementations inherit from the ProxmoxTool base class to ensure
 consistent behavior and error handling across the MCP server.
 """
 import logging
-from typing import Any, Callable, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 import requests
 from mcp.types import TextContent as Content
@@ -43,10 +44,10 @@ class ProxmoxTool:
             proxmox_api: Initialized ProxmoxAPI instance
         """
         self.proxmox = proxmox_api
-        self._pve_major: Callable[[], Optional[int]] = lambda: None
+        self._pve_major: Callable[[], int | None] = lambda: None
         self.logger = logging.getLogger(f"proxmox-mcp.{self.__class__.__name__.lower()}")
 
-    def _format_response(self, data: Any, resource_type: Optional[str] = None) -> List[Content]:
+    def _format_response(self, data: Any, resource_type: str | None = None) -> list[Content]:
         """Format response data into MCP content using templates.
 
         This method handles formatting of various Proxmox resource types into
@@ -89,9 +90,9 @@ class ProxmoxTool:
         self,
         operation: str,
         error: Exception,
-        privilege_key: Optional[str] = None,
-        node: Optional[str] = None,
-        vmid: Optional[str] = None,
+        privilege_key: str | None = None,
+        node: str | None = None,
+        vmid: str | None = None,
     ) -> None:
         """Handle and log errors from Proxmox operations.
 

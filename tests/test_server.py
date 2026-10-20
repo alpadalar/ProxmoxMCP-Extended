@@ -2,13 +2,13 @@
 Tests for the Proxmox MCP server.
 """
 
-import os
-import json
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock
 
+import pytest
 from fastmcp.exceptions import ToolError, ValidationError
+
 from tests.helpers import tool_text
+
 
 def test_server_initialization(server, mock_proxmox):
     """Test server initialization with environment variables."""

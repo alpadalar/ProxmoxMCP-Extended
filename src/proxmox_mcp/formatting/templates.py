@@ -1,17 +1,17 @@
 """
 Output templates for Proxmox MCP resource types.
 """
-from typing import Dict, List, Any
+from typing import Any
+
 from .formatters import ProxmoxFormatters
 from .theme import ProxmoxTheme
-from .colors import ProxmoxColors
-from .components import ProxmoxComponents
+
 
 class ProxmoxTemplates:
     """Output templates for different Proxmox resource types."""
     
     @staticmethod
-    def node_list(nodes: List[Dict[str, Any]]) -> str:
+    def node_list(nodes: list[dict[str, Any]]) -> str:
         """Template for node list output.
         
         Args:
@@ -57,7 +57,7 @@ class ProxmoxTemplates:
         return "\n".join(result)
     
     @staticmethod
-    def node_status(node: str, status: Dict[str, Any]) -> str:
+    def node_status(node: str, status: dict[str, Any]) -> str:
         """Template for detailed node status output.
         
         Args:
@@ -95,7 +95,7 @@ class ProxmoxTemplates:
         return "\n".join(result)
     
     @staticmethod
-    def vm_list(vms: List[Dict[str, Any]]) -> str:
+    def vm_list(vms: list[dict[str, Any]]) -> str:
         """Template for VM list output.
         
         Args:
@@ -125,7 +125,7 @@ class ProxmoxTemplates:
         return "\n".join(result)
     
     @staticmethod
-    def storage_list(storage: List[Dict[str, Any]]) -> str:
+    def storage_list(storage: list[dict[str, Any]]) -> str:
         """Template for storage list output.
         
         Args:
@@ -153,7 +153,7 @@ class ProxmoxTemplates:
         return "\n".join(result)
     
     @staticmethod
-    def container_list(containers: List[Dict[str, Any]]) -> str:
+    def container_list(containers: list[dict[str, Any]]) -> str:
         """Template for container list output.
         
         Args:
@@ -186,7 +186,7 @@ class ProxmoxTemplates:
         return "\n".join(result)
 
     @staticmethod
-    def cluster_status(status: Dict[str, Any]) -> str:
+    def cluster_status(status: dict[str, Any]) -> str:
         """Template for cluster status output.
         
         Args:

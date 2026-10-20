@@ -2,12 +2,13 @@
 Tests for VM console operations.
 """
 
-import pytest
 from unittest.mock import MagicMock
 
+import pytest
 from proxmoxer.core import ResourceException
 
 from proxmox_mcp.tools.console import VMConsoleManager
+
 
 @pytest.fixture
 def mock_proxmox():

@@ -1,15 +1,16 @@
 """
 Reusable UI components for Proxmox MCP output.
 """
-from typing import List, Optional
+
 from .colors import ProxmoxColors
 from .theme import ProxmoxTheme
+
 
 class ProxmoxComponents:
     """Reusable UI components for formatted output."""
     
     @staticmethod
-    def create_table(headers: List[str], rows: List[List[str]], title: Optional[str] = None) -> str:
+    def create_table(headers: list[str], rows: list[list[str]], title: str | None = None) -> str:
         """Create an ASCII table with optional title.
         
         Args:

@@ -1,9 +1,11 @@
 """
 Core formatting functions for Proxmox MCP output.
 """
-from typing import List, Union, Dict, Any
-from .theme import ProxmoxTheme
+from typing import Any
+
 from .colors import ProxmoxColors
+from .theme import ProxmoxTheme
+
 
 class ProxmoxFormatters:
     """Core formatting functions for Proxmox data."""

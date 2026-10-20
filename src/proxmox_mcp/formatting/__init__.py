@@ -2,11 +2,11 @@
 Proxmox MCP formatting package for styled output.
 """
 
-from .theme import ProxmoxTheme
 from .colors import ProxmoxColors
+from .components import ProxmoxComponents
 from .formatters import ProxmoxFormatters
 from .templates import ProxmoxTemplates
-from .components import ProxmoxComponents
+from .theme import ProxmoxTheme
 
 __all__ = [
     'ProxmoxTheme',

@@ -9,8 +9,9 @@ FastMCP instance.  Phase 4 attaches policy gates through ``wrap`` (called as
 (readOnlyHint/destructiveHint) through ``ToolSpec.annotations``.
 """
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Annotated, Any, Callable, Dict, FrozenSet, List, Optional
+from typing import Annotated, Any
 
 from fastmcp import FastMCP
 from mcp.types import TextContent as Content
@@ -37,8 +38,8 @@ from .definitions import (
     LIST_SNAPSHOTS_DESC,
     RESET_VM_DESC,
     ROLLBACK_SNAPSHOT_DESC,
-    SHUTDOWN_VM_DESC,
     SHUTDOWN_CONTAINER_DESC,
+    SHUTDOWN_VM_DESC,
     START_CONTAINER_DESC,
     START_VM_DESC,
     STOP_CONTAINER_DESC,
@@ -69,7 +70,7 @@ RISK_CLASSES = {
 _RISK_BY_NAME = {n: r for r, names in RISK_CLASSES.items() for n in names}
 
 # MCP tool annotations (camelCase keys, accepted by fastmcp 4.x as a dict).
-_ANNOTATION_DEFAULTS: Dict[str, Dict[str, bool]] = {
+_ANNOTATION_DEFAULTS: dict[str, dict[str, bool]] = {
     "read": {
         "readOnlyHint": True, "destructiveHint": False,
         "idempotentHint": True, "openWorldHint": False,
@@ -87,7 +88,7 @@ _ANNOTATION_DEFAULTS: Dict[str, Dict[str, bool]] = {
         "idempotentHint": False, "openWorldHint": False,
     },
 }
-ANNOTATION_OVERRIDES: Dict[str, Dict[str, bool]] = {
+ANNOTATION_OVERRIDES: dict[str, dict[str, bool]] = {
     "start_vm": {"idempotentHint": True},
     "shutdown_vm": {"idempotentHint": True},
     "start_container": {"idempotentHint": True},
@@ -96,7 +97,7 @@ ANNOTATION_OVERRIDES: Dict[str, Dict[str, bool]] = {
 }
 
 
-def annotations_for(name: str, risk: str) -> Dict[str, bool]:
+def annotations_for(name: str, risk: str) -> dict[str, bool]:
     """MCP annotations for tool ``name`` derived from its risk class."""
     annotations = dict(_ANNOTATION_DEFAULTS[risk])
     annotations.update(ANNOTATION_OVERRIDES.get(name, {}))
@@ -110,9 +111,9 @@ class ToolSpec:
     name: str
     handler: Callable[..., Any]
     description: str
-    annotations: Optional[Dict[str, Any]] = None
+    annotations: dict[str, Any] | None = None
     risk: str = ""  # required: must be one of RISK_CLASSES (checked in __post_init__)
-    tags: FrozenSet[str] = field(default_factory=frozenset)
+    tags: frozenset[str] = field(default_factory=frozenset)
 
     def __post_init__(self) -> None:
         # Fail closed: a tool without an explicit, known risk class is never constructed,
@@ -137,9 +138,9 @@ class ToolContext:
     container_tools: Any = None
 
 
-def build_registry(ctx: ToolContext) -> List[ToolSpec]:
+def build_registry(ctx: ToolContext) -> list[ToolSpec]:
     """Build the tool specs bound to ``ctx``."""
-    specs: List[ToolSpec] = []
+    specs: list[ToolSpec] = []
 
     def _tool(description: str):
         def deco(fn):
@@ -185,10 +186,10 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
         cpus: Annotated[int, Field(description="Number of CPU cores (e.g. 1, 2, 4)", ge=1, le=32)],
         memory: Annotated[int, Field(description="Memory size in MB (e.g. 2048 for 2GB)", ge=512, le=131072)],
         disk_size: Annotated[int, Field(description="Disk size in GB (e.g. 10, 20, 50)", ge=5, le=1000)],
-        storage: Annotated[Optional[str], Field(description="Storage name (optional, will auto-detect)", default=None)] = None,
-        ostype: Annotated[Optional[str], Field(description="OS type (optional, default: 'l26' for Linux)", default=None)] = None,
-        iso_name: Annotated[Optional[str], Field(description="ISO file name to mount (optional)", default=None)] = None,
-        iso_storage: Annotated[Optional[str], Field(description="Storage containing the ISO (optional)", default=None)] = None,
+        storage: Annotated[str | None, Field(description="Storage name (optional, will auto-detect)", default=None)] = None,
+        ostype: Annotated[str | None, Field(description="OS type (optional, default: 'l26' for Linux)", default=None)] = None,
+        iso_name: Annotated[str | None, Field(description="ISO file name to mount (optional)", default=None)] = None,
+        iso_storage: Annotated[str | None, Field(description="Storage containing the ISO (optional)", default=None)] = None,
     ):
         return ctx.vm_tools.create_vm(node, vmid, name, cpus, memory, disk_size, storage, ostype, iso_name, iso_storage)
 
@@ -197,7 +198,7 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
         node: Annotated[str, Field(description="Host node name (e.g. 'pve1', 'proxmox-node2')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '100', '101')")],
         command: Annotated[str, Field(description="Shell command to run (e.g. 'uname -a', 'systemctl status nginx')")],
-        args: Annotated[Optional[List[str]], Field(description="Optional argument list. When given, the command is the program and args its arguments (no shell is involved). When omitted, command is split into words with shlex rules (no shell).", default=None)] = None,
+        args: Annotated[list[str] | None, Field(description="Optional argument list. When given, the command is the program and args its arguments (no shell is involved). When omitted, command is split into words with shlex rules (no shell).", default=None)] = None,
     ):
         return await ctx.vm_tools.execute_command(node, vmid, command, args)
 
@@ -261,9 +262,9 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
     def update_vm(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
-        memory: Annotated[Optional[int], Field(description="New memory size in MB (e.g. 4096 for 4GB, 6144 for 6GB)", default=None)] = None,
-        cpus: Annotated[Optional[int], Field(description="New number of CPU cores (e.g. 1, 2, 4)", default=None)] = None,
-        name: Annotated[Optional[str], Field(description="New VM name", default=None)] = None,
+        memory: Annotated[int | None, Field(description="New memory size in MB (e.g. 4096 for 4GB, 6144 for 6GB)", default=None)] = None,
+        cpus: Annotated[int | None, Field(description="New number of CPU cores (e.g. 1, 2, 4)", default=None)] = None,
+        name: Annotated[str | None, Field(description="New VM name", default=None)] = None,
     ):
         return ctx.vm_tools.update_vm(node, vmid, memory, cpus, name)
 
@@ -271,7 +272,7 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
     @_tool(START_CONTAINER_DESC)
     def start_container(
         vmid: Annotated[str, Field(description="Container ID number (e.g. '200')")],
-        node: Annotated[Optional[str], Field(description="Optional node name; must match the node the container runs on", default=None)] = None,
+        node: Annotated[str | None, Field(description="Optional node name; must match the node the container runs on", default=None)] = None,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
     ):
@@ -280,7 +281,7 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
     @_tool(STOP_CONTAINER_DESC)
     def stop_container(
         vmid: Annotated[str, Field(description="Container ID number (e.g. '200')")],
-        node: Annotated[Optional[str], Field(description="Optional node name; must match the node the container runs on", default=None)] = None,
+        node: Annotated[str | None, Field(description="Optional node name; must match the node the container runs on", default=None)] = None,
         confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
@@ -292,7 +293,7 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
     @_tool(SHUTDOWN_CONTAINER_DESC)
     def shutdown_container(
         vmid: Annotated[str, Field(description="Container ID number (e.g. '200')")],
-        node: Annotated[Optional[str], Field(description="Optional node name; must match the node the container runs on", default=None)] = None,
+        node: Annotated[str | None, Field(description="Optional node name; must match the node the container runs on", default=None)] = None,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
     ):
@@ -304,7 +305,7 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
         name: Annotated[str, Field(description="Snapshot name (e.g. 'pre-upgrade')")],
-        description: Annotated[Optional[str], Field(description="Optional description", default=None)] = None,
+        description: Annotated[str | None, Field(description="Optional description", default=None)] = None,
         vmstate: Annotated[bool, Field(description="Include VM memory state", default=False)] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
@@ -360,8 +361,8 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
     @_tool(LIST_BACKUPS_DESC)
     def list_backups(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-        storage: Annotated[Optional[str], Field(description="Storage name to list (optional, default: all backup-capable storages on the node)", default=None)] = None,
-        vmid: Annotated[Optional[str], Field(description="Only backups of this VM/CT ID (optional, e.g. '100')", default=None)] = None,
+        storage: Annotated[str | None, Field(description="Storage name to list (optional, default: all backup-capable storages on the node)", default=None)] = None,
+        vmid: Annotated[str | None, Field(description="Only backups of this VM/CT ID (optional, e.g. '100')", default=None)] = None,
     ):
         return ctx.storage_tools.list_backups(node, storage, vmid)
 
@@ -398,8 +399,8 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
 
 def register_tools(
     mcp: FastMCP,
-    specs: List[ToolSpec],
-    wrap: Optional[Callable[[ToolSpec, Callable[..., Any]], Callable[..., Any]]] = None,
+    specs: list[ToolSpec],
+    wrap: Callable[[ToolSpec, Callable[..., Any]], Callable[..., Any]] | None = None,
 ) -> None:
     """Register ``specs`` on ``mcp`` (optionally wrapping each handler)."""
     names = [spec.name for spec in specs]

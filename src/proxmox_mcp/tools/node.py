@@ -12,11 +12,12 @@ This module provides tools for managing and monitoring Proxmox nodes:
 The tools handle both basic and detailed node information retrieval,
 with fallback mechanisms for partial data availability.
 """
-from typing import List
+
 from mcp.types import TextContent as Content
-from .base import ProxmoxTool
+
 from ..validators import validate_node
-from .definitions import GET_NODES_DESC, GET_NODE_STATUS_DESC
+from .base import ProxmoxTool
+
 
 class NodeTools(ProxmoxTool):
     """Tools for managing Proxmox nodes.
@@ -31,7 +32,7 @@ class NodeTools(ProxmoxTool):
     node information might be temporarily unavailable.
     """
 
-    def get_nodes(self) -> List[Content]:
+    def get_nodes(self) -> list[Content]:
         """List all nodes in the Proxmox cluster with detailed status.
 
         Retrieves comprehensive information for each node including:
@@ -100,7 +101,7 @@ class NodeTools(ProxmoxTool):
         except Exception as e:
             self._handle_error("get nodes", e, privilege_key="get_nodes")
 
-    def get_node_status(self, node: str) -> List[Content]:
+    def get_node_status(self, node: str) -> list[Content]:
         """Get detailed status information for a specific node.
 
         Retrieves comprehensive status information including:

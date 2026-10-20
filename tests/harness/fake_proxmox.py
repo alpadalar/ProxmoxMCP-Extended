@@ -14,9 +14,10 @@ Unlike MagicMock, an unmatched route raises ``UnmockedCallError``; every call is
 (before any error is raised) so tests can prove which requests did or did not happen.
 """
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
 DATA_DIR = Path(__file__).parent / "data"
 
@@ -33,10 +34,10 @@ class UnmockedCallError(AssertionError):
 class Call:
     method: str
     path: str
-    params: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
 
 
-def load_fixture(name: str) -> Dict[str, Any]:
+def load_fixture(name: str) -> dict[str, Any]:
     """Load ``tests/harness/data/<name>.json``."""
     with open(DATA_DIR / f"{name}.json", encoding="utf-8") as fh:
         return json.load(fh)
@@ -45,7 +46,7 @@ def load_fixture(name: str) -> Dict[str, Any]:
 class FakeResource:
     """One node in a proxmoxer-style call chain."""
 
-    def __init__(self, fake: "FakeProxmox", segments: Tuple[str, ...]):
+    def __init__(self, fake: "FakeProxmox", segments: tuple[str, ...]):
         self._fake = fake
         self._segments = segments
 
@@ -57,7 +58,7 @@ class FakeResource:
     def __call__(self, arg: Any) -> "FakeResource":
         return FakeResource(self._fake, self._segments + (str(arg),))
 
-    def _do(self, method: str, params: Dict[str, Any]) -> Any:
+    def _do(self, method: str, params: dict[str, Any]) -> Any:
         return self._fake._dispatch(method, "/".join(self._segments), params)
 
     def get(self, **params: Any) -> Any:
@@ -79,10 +80,10 @@ class FakeResource:
 class FakeProxmox:
     """Canned, recording stand-in for ``ProxmoxAPI``."""
 
-    def __init__(self, routes: Optional[Dict[str, Any]] = None):
-        self._routes: Dict[str, Any] = dict(routes or {})
-        self._errors: Dict[str, BaseException] = {}
-        self.calls: List[Call] = []
+    def __init__(self, routes: dict[str, Any] | None = None):
+        self._routes: dict[str, Any] = dict(routes or {})
+        self._errors: dict[str, BaseException] = {}
+        self.calls: list[Call] = []
 
     def __getattr__(self, name: str) -> FakeResource:
         if name in _TOP_LEVEL:
@@ -100,7 +101,7 @@ class FakeProxmox:
         self._errors[f"{method.upper()} {path}"] = exc
 
     # -- recording -----------------------------------------------------
-    def mutating_calls(self) -> List[Call]:
+    def mutating_calls(self) -> list[Call]:
         return [c for c in self.calls if c.method in _MUTATING]
 
     def reset_calls(self) -> None:
@@ -113,12 +114,12 @@ class FakeProxmox:
 
     # -- routing -------------------------------------------------------
     @staticmethod
-    def _match(table: Dict[str, Any], method: str, path: str) -> Optional[Tuple[str, Any]]:
+    def _match(table: dict[str, Any], method: str, path: str) -> tuple[str, Any] | None:
         key = f"{method} {path}"
         if key in table:
             return key, table[key]
         segs = path.split("/")
-        best: Optional[Tuple[int, str]] = None
+        best: tuple[int, str] | None = None
         for k in table:
             m, _, pattern = k.partition(" ")
             if m != method:
@@ -134,7 +135,7 @@ class FakeProxmox:
             return None
         return best[1], table[best[1]]
 
-    def _dispatch(self, method: str, path: str, params: Dict[str, Any]) -> Any:
+    def _dispatch(self, method: str, path: str, params: dict[str, Any]) -> Any:
         method = _METHOD_ALIASES.get(method.lower(), method.upper())
         self.calls.append(Call(method, path, dict(params)))
         err = self._match(self._errors, method, path)
@@ -149,5 +150,5 @@ class FakeProxmox:
         return json.loads(json.dumps(value))  # deep copy so tests cannot mutate fixtures
 
 
-def _call(fn: Callable[..., Any], params: Dict[str, Any], segments: List[str]) -> Any:
+def _call(fn: Callable[..., Any], params: dict[str, Any], segments: list[str]) -> Any:
     return fn(params, segments)

@@ -11,8 +11,9 @@ This module must not import from tools/vm.py or tools/console/manager.py (both i
 """
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any
 
 import requests
 from proxmoxer.core import ResourceException
@@ -21,7 +22,7 @@ from ..utils.redaction import redact
 from ..validators import InputValidationError, validate_upid
 
 # (privilege text, ACL path template) per operation key; PVE admin guide (pveum) privileges.
-OPERATION_PRIVILEGES: Dict[str, Tuple[str, str]] = {
+OPERATION_PRIVILEGES: dict[str, tuple[str, str]] = {
     "start_vm": ("VM.PowerMgmt", "/vms/{vmid}"),
     "stop_vm": ("VM.PowerMgmt", "/vms/{vmid}"),
     "shutdown_vm": ("VM.PowerMgmt", "/vms/{vmid}"),
@@ -57,7 +58,7 @@ OPERATION_PRIVILEGES: Dict[str, Tuple[str, str]] = {
 }
 
 # The ONLY place error text is consulted: classification of HTTP 500 bodies (case-insensitive).
-KNOWN_500_MARKERS: Dict[str, Tuple[str, ...]] = {
+KNOWN_500_MARKERS: dict[str, tuple[str, ...]] = {
     "permission": ("permission check failed",),
     "lock": ("can't lock file", "cannot lock", "is locked", "got lock timeout"),
     "agent": ("guest agent is not running", "qga is not running"),
@@ -76,7 +77,7 @@ def is_upid(value: Any) -> bool:
     return True
 
 
-def _status_code(exc: BaseException) -> Optional[int]:
+def _status_code(exc: BaseException) -> int | None:
     code = getattr(exc, "status_code", None)
     return code if isinstance(code, int) else None
 
@@ -105,7 +106,7 @@ def is_agent_not_running(exc: BaseException) -> bool:
     return _has_marker(exc, "agent")
 
 
-def _privilege_text(key: str, node: Optional[str], vmid: Optional[str]) -> Optional[str]:
+def _privilege_text(key: str, node: str | None, vmid: str | None) -> str | None:
     if key not in OPERATION_PRIVILEGES:
         return None
     priv, path = OPERATION_PRIVILEGES[key]
@@ -118,10 +119,10 @@ def translate_pve_error(
     exc: BaseException,
     operation: str,
     *,
-    node: Optional[str] = None,
-    vmid: Optional[str] = None,
-    major: Optional[int] = None,
-    privilege_key: Optional[str] = None,
+    node: str | None = None,
+    vmid: str | None = None,
+    major: int | None = None,
+    privilege_key: str | None = None,
 ) -> Exception:
     """Map a proxmoxer / connection error to an actionable exception (caller raises it).
 
@@ -174,7 +175,7 @@ def vm_listed(api: Any, node: str, vmid: Any) -> bool:
     return any(isinstance(item, dict) and str(item.get("vmid")) == str(vmid) for item in listing)
 
 
-def require_vm_status(api: Any, node: str, vmid: Any, operation: str) -> Dict[str, Any]:
+def require_vm_status(api: Any, node: str, vmid: Any, operation: str) -> dict[str, Any]:
     """Return ``status/current`` of the VM or raise a precise error.
 
     403 -> permission error; 404 -> not found; 500 -> not found only when the VM is absent
@@ -213,12 +214,12 @@ def describe_task_result(result: Any) -> str:
 @dataclass(frozen=True)
 class PveVersion:
     version: str
-    release: Optional[str]
+    release: str | None
     major: int
     minor: int
 
 
-def parse_pve_version(payload: Any) -> Optional[PveVersion]:
+def parse_pve_version(payload: Any) -> PveVersion | None:
     """Parse ``GET /version``; never raises, None for anything unexpected."""
     if not isinstance(payload, dict):
         return None
@@ -237,7 +238,7 @@ def parse_pve_version(payload: Any) -> Optional[PveVersion]:
     )
 
 
-def guest_agent_privilege_message(vmid: Any, major: Optional[int]) -> str:
+def guest_agent_privilege_message(vmid: Any, major: int | None) -> str:
     """Version-aware permission hint for ``agent/exec`` (built from vmid and version only)."""
     base = f"Permission denied: the API token may not run guest-agent commands on VM {vmid} "
     path = f"(ACL path /vms/{vmid}). "
@@ -263,7 +264,7 @@ def wait_task_stopped(
     interval: float = 1.0,
     sleep: Callable[[float], None] = time.sleep,
     clock: Callable[[], float] = time.monotonic,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Poll a task until it stops; only exitstatus OK is success (WARNINGS is not).
 
     Bounded by a monotonic deadline. An invalid UPID raises before any API call.

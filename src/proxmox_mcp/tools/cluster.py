@@ -10,11 +10,12 @@ This module provides tools for monitoring and managing Proxmox clusters:
 The tools provide essential information for maintaining
 cluster health and ensuring proper operation.
 """
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 from mcp.types import TextContent as Content
+
 from ..utils.redaction import redact
 from .base import ProxmoxTool
-from .definitions import GET_CLUSTER_STATUS_DESC
 
 TEXT_MAX = 300
 _SERVICE_KEYS = ('sid', 'node', 'state', 'request_state', 'crm_state')
@@ -24,9 +25,9 @@ _RESOURCE_KEYS = (
 _TEXT_KEYS = ('status', 'comment', 'group')
 
 
-def _clean(item: Dict[str, Any], keys: Any) -> Dict[str, Any]:
+def _clean(item: dict[str, Any], keys: Any) -> dict[str, Any]:
     """Whitelist ``keys`` that are present; free text is redacted and capped."""
-    out: Dict[str, Any] = {}
+    out: dict[str, Any] = {}
     for key in keys:
         if key not in item:
             continue
@@ -39,7 +40,7 @@ def _clean(item: Dict[str, Any], keys: Any) -> Dict[str, Any]:
     return out
 
 
-def _as_quorate(value: Any) -> Optional[bool]:
+def _as_quorate(value: Any) -> bool | None:
     """Strict quorum flag: only 1/"1"/True is quorate; the string "0" must not become True."""
     if value is None:
         return None
@@ -59,7 +60,7 @@ class ClusterTools(ProxmoxTool):
     proper operation of the Proxmox environment.
     """
 
-    def list_containers(self) -> List[Dict[str, Any]]:
+    def list_containers(self) -> list[dict[str, Any]]:
         """Aggregate LXC containers across nodes.
 
         A node whose listing fails is skipped with a redacted warning; failure to list
@@ -69,7 +70,7 @@ class ClusterTools(ProxmoxTool):
             nodes = self.proxmox.nodes.get()
         except Exception as e:
             self._handle_error("list nodes for containers", e, privilege_key="get_containers")
-        result: List[Dict[str, Any]] = []
+        result: list[dict[str, Any]] = []
         for node in nodes:
             node_name = node.get("node")
             try:
@@ -80,7 +81,7 @@ class ClusterTools(ProxmoxTool):
                 )
         return result
 
-    def get_cluster_status(self) -> List[Content]:
+    def get_cluster_status(self) -> list[Content]:
         """Get overall Proxmox cluster health and configuration status.
 
         Retrieves comprehensive cluster information including:
@@ -129,7 +130,7 @@ class ClusterTools(ProxmoxTool):
         except Exception as e:
             self._handle_error("get cluster status", e, privilege_key="get_cluster_status")
 
-    def get_ha_status(self) -> List[Content]:
+    def get_ha_status(self) -> list[Content]:
         """Read-only HA overview: quorum, master, LRMs, services and configured resources.
 
         Issues exactly two GET calls (cluster/ha/status/current and cluster/ha/resources);
@@ -140,8 +141,8 @@ class ClusterTools(ProxmoxTool):
             resource_items = self.proxmox.cluster.ha.resources.get() or []
             quorate = None
             master = None
-            lrm: List[Dict[str, Any]] = []
-            services: List[Dict[str, Any]] = []
+            lrm: list[dict[str, Any]] = []
+            services: list[dict[str, Any]] = []
             for item in status_items:
                 if not isinstance(item, dict):
                     continue
