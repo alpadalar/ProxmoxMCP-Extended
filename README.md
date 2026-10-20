@@ -62,8 +62,8 @@ startup with an error that never includes secret values.
 |---|---|---|---|
 | Host | `proxmox.host` | `PROXMOX_HOST` | |
 | Port (default 8006) | `proxmox.port` | `PROXMOX_PORT` | |
-| TLS verification (default `true`) | `proxmox.verify_ssl` | `PROXMOX_VERIFY_SSL` | `--verify-ssl` |
-| CA bundle file (private CA) | `proxmox.ca_bundle` | `PROXMOX_CA_BUNDLE` | `--ca-bundle` |
+| TLS verification (default `true`) | `proxmox.verify_ssl` | `PROXMOX_VERIFY_SSL` | `--verify-ssl` (stdio only) |
+| CA bundle file (private CA) | `proxmox.ca_bundle` | `PROXMOX_CA_BUNDLE` | `--ca-bundle` (stdio only) |
 | Service (`PVE`/`PMG`/`PBS`) | `proxmox.service` | `PROXMOX_SERVICE` | |
 | Request timeout, seconds (default 30, max 300) | `proxmox.timeout` | `PROXMOX_TIMEOUT` | |
 | API user | `auth.user` | `PROXMOX_USER` | |
@@ -76,8 +76,10 @@ startup with an error that never includes secret values.
 | Exec timeout seconds (default 30) | `policy.exec_timeout_seconds` | `PROXMOX_MCP_EXEC_TIMEOUT` | |
 | Exec output cap per stream, bytes (default 65536) | `policy.exec_max_output_bytes` | `PROXMOX_MCP_EXEC_MAX_OUTPUT` | |
 | Concurrent exec calls (default 2) | `policy.exec_max_concurrent` | `PROXMOX_MCP_EXEC_MAX_CONCURRENT` | |
-| Log level (default `INFO`) | `logging.level` | `LOG_LEVEL` | `--log-level` |
-| Log file | `logging.file` | `LOG_FILE` | `--log-file` |
+| Log level (default `INFO`) | `logging.level` | `LOG_LEVEL` | `--log-level` (stdio only) |
+| Log file | `logging.file` | `LOG_FILE` | `--log-file` (stdio only) |
+
+The four rows marked "(stdio only)" are flags of `proxmox-mcp` only; `python -m proxmox_mcp.server_http` (and therefore the Docker image) does not accept them, so use the environment variables or the JSON file there.
 
 Booleans accept `true/false`, `1/0`, `yes/no`, `on/off`. Empty environment variables are treated as
 unset. `ca_bundle` cannot be combined with `verify_ssl=false`, and disabling verification logs a

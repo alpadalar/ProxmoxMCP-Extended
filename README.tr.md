@@ -63,8 +63,8 @@ değerler, gizli değer içermeyen bir hata ile başlangıçta başarısız olur
 |---|---|---|---|
 | Host | `proxmox.host` | `PROXMOX_HOST` | |
 | Port (varsayılan 8006) | `proxmox.port` | `PROXMOX_PORT` | |
-| TLS doğrulaması (varsayılan `true`) | `proxmox.verify_ssl` | `PROXMOX_VERIFY_SSL` | `--verify-ssl` |
-| CA bundle dosyası (özel CA) | `proxmox.ca_bundle` | `PROXMOX_CA_BUNDLE` | `--ca-bundle` |
+| TLS doğrulaması (varsayılan `true`) | `proxmox.verify_ssl` | `PROXMOX_VERIFY_SSL` | `--verify-ssl` (yalnızca stdio) |
+| CA bundle dosyası (özel CA) | `proxmox.ca_bundle` | `PROXMOX_CA_BUNDLE` | `--ca-bundle` (yalnızca stdio) |
 | Servis (`PVE`/`PMG`/`PBS`) | `proxmox.service` | `PROXMOX_SERVICE` | |
 | İstek zaman aşımı, saniye (varsayılan 30, en çok 300) | `proxmox.timeout` | `PROXMOX_TIMEOUT` | |
 | API kullanıcısı | `auth.user` | `PROXMOX_USER` | |
@@ -77,8 +77,10 @@ değerler, gizli değer içermeyen bir hata ile başlangıçta başarısız olur
 | Exec zaman aşımı, saniye (varsayılan 30) | `policy.exec_timeout_seconds` | `PROXMOX_MCP_EXEC_TIMEOUT` | |
 | Akış başına exec çıktı sınırı, bayt (varsayılan 65536) | `policy.exec_max_output_bytes` | `PROXMOX_MCP_EXEC_MAX_OUTPUT` | |
 | Eşzamanlı exec çağrısı (varsayılan 2) | `policy.exec_max_concurrent` | `PROXMOX_MCP_EXEC_MAX_CONCURRENT` | |
-| Log seviyesi (varsayılan `INFO`) | `logging.level` | `LOG_LEVEL` | `--log-level` |
-| Log dosyası | `logging.file` | `LOG_FILE` | `--log-file` |
+| Log seviyesi (varsayılan `INFO`) | `logging.level` | `LOG_LEVEL` | `--log-level` (yalnızca stdio) |
+| Log dosyası | `logging.file` | `LOG_FILE` | `--log-file` (yalnızca stdio) |
+
+"(yalnızca stdio)" işaretli dört satır yalnızca `proxmox-mcp` bayraklarıdır; `python -m proxmox_mcp.server_http` (ve dolayısıyla Docker imajı) bunları kabul etmez, orada ortam değişkenlerini veya JSON dosyasını kullanın.
 
 Boolean'lar `true/false`, `1/0`, `yes/no`, `on/off` kabul eder. Boş ortam değişkenleri tanımsız
 sayılır. `ca_bundle`, `verify_ssl=false` ile birlikte kullanılamaz; doğrulamayı kapatmak bir uyarı
