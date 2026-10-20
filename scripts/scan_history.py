@@ -468,7 +468,10 @@ MESSAGE_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("claude-code", re.compile(r"(?i)\bclaude[ -]code\b")),
     (
         "ai-branch-name",
-        re.compile(r"(?i)\b(?:codex|copilot|claude|cursor|devin|gemini|aider|openai)/[\w.-]+"),
+        re.compile(
+            r"(?i)(?:\bfrom\s+\S*?|\bbranch\s+'?)\b"
+            r"(?:codex|copilot|claude|cursor|devin|gemini|aider|openai)/[\w.-]+"
+        ),
     ),
     ("noreply-anthropic", re.compile(r"(?i)noreply@anthropic\.com")),
     ("robot-emoji", re.compile("\U0001f916")),

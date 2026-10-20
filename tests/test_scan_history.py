@@ -288,7 +288,7 @@ def test_normal_commit_message_is_not_an_ai_label(repo: Path):
 
 
 def test_mcp_client_names_in_messages_are_not_labels(repo: Path):
-    commit(repo, {"a.txt": "a\n"}, "docs: examples for Cla" + "ude Desktop and Cur" + "sor")
+    commit(repo, {"a.txt": "a\n"}, "docs: examples for Cla" + "ude Desktop/Cur" + "sor/Cline")
     proc = scan(repo, "--mode", "labels")
     assert proc.returncode == 0, proc.stdout
     assert "ai-tool-name-mention-in-message=1" in proc.stdout
