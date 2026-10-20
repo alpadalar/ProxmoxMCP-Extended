@@ -86,3 +86,14 @@ async def test_403_names_sys_audit(app, fake_pve):
     with pytest.raises(ToolError) as ei:
         await app.mcp.call_tool("get_ha_status", {})
     assert "Sys.Audit" in str(ei.value) and "Permission denied" in str(ei.value)
+
+
+@pytest.mark.parametrize(
+    "raw,expected",
+    [(1, True), ("1", True), (True, True), (0, False), ("0", False), (False, False),
+     ("", False), (None, None)],
+)
+def test_quorate_is_strict(raw, expected):
+    from proxmox_mcp.tools.cluster import _as_quorate
+
+    assert _as_quorate(raw) is expected

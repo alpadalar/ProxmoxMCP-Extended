@@ -10,7 +10,7 @@ This module provides tools for monitoring and managing Proxmox clusters:
 The tools provide essential information for maintaining
 cluster health and ensuring proper operation.
 """
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from mcp.types import TextContent as Content
 from ..utils.redaction import redact
 from .base import ProxmoxTool
@@ -37,6 +37,13 @@ def _clean(item: Dict[str, Any], keys: Any) -> Dict[str, Any]:
             value = value[:TEXT_MAX]
         out[key] = value
     return out
+
+
+def _as_quorate(value: Any) -> Optional[bool]:
+    """Strict quorum flag: only 1/"1"/True is quorate; the string "0" must not become True."""
+    if value is None:
+        return None
+    return value is True or str(value) == "1"
 
 
 class ClusterTools(ProxmoxTool):
@@ -140,7 +147,7 @@ class ClusterTools(ProxmoxTool):
                     continue
                 kind = item.get("type")
                 if kind == "quorum":
-                    quorate = bool(item["quorate"]) if "quorate" in item else None
+                    quorate = _as_quorate(item.get("quorate"))
                 elif kind == "master":
                     master = _clean(item, ("node", "status"))
                 elif kind == "lrm":
