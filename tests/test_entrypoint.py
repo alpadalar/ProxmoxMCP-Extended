@@ -1,4 +1,5 @@
 """Entry point and import smoke tests (fastmcp 4 / mcp 2 migration)."""
+
 import ast
 import importlib
 from pathlib import Path

@@ -1,4 +1,5 @@
 """Tool policy (SEC-01): engine, wrapper and zero-traffic denial."""
+
 import inspect
 import itertools
 import logging
@@ -63,8 +64,12 @@ def test_denied_message_is_actionable():
     msg = str(ei.value)
     assert msg.startswith("policy_denied:")
     for needle in (
-        "execute_vm_command", "exec", "policy.allow_exec", "PROXMOX_MCP_ALLOW_EXEC",
-        "--allow-exec", "No request was sent to Proxmox.",
+        "execute_vm_command",
+        "exec",
+        "policy.allow_exec",
+        "PROXMOX_MCP_ALLOW_EXEC",
+        "--allow-exec",
+        "No request was sent to Proxmox.",
     ):
         assert needle in msg
 
@@ -77,7 +82,9 @@ def test_compose_puts_policy_outermost():
             def inner():
                 order.append(tag)
                 return handler()
+
             return inner
+
         return wrap
 
     composed = compose_wraps(mk("policy"), None, mk("user"))
@@ -129,7 +136,8 @@ async def test_policy_matrix(policy_app, fake_pve, name, combo):
     )
     if name == "create_vm":
         fake_pve.fail(
-            "GET", "nodes/*/qemu/200/config",
+            "GET",
+            "nodes/*/qemu/200/config",
             ResourceException(500, "Internal Server Error", "Configuration file does not exist"),
         )
     fake_pve.reset_calls()
@@ -181,9 +189,14 @@ async def test_denial_log_never_contains_arguments(policy_app, caplog):
     app = policy_app()
     with caplog.at_level(logging.DEBUG):
         with pytest.raises(ToolError) as ei:
-            await app.mcp.call_tool("execute_vm_command", {
-                "node": "pve1", "vmid": "100", "command": "SENTINEL-do-not-log",
-            })
+            await app.mcp.call_tool(
+                "execute_vm_command",
+                {
+                    "node": "pve1",
+                    "vmid": "100",
+                    "command": "SENTINEL-do-not-log",
+                },
+            )
     assert "SENTINEL-do-not-log" not in caplog.text
     assert "SENTINEL-do-not-log" not in str(ei.value)
     assert "policy denied tool=execute_vm_command" in caplog.text

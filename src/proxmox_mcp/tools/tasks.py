@@ -15,6 +15,7 @@ monotonic deadline and returns a ``running`` outcome (``timed_out=True``) instea
 Task log lines and exitstatus text are untrusted external data: they are redacted and
 truncated before being returned, and are never interpolated into logger calls.
 """
+
 import json
 import threading
 import time
@@ -182,9 +183,13 @@ def _poll_loop(
         remaining = deadline - clock()
         if remaining <= 0:
             return TaskOutcome(
-                upid=outcome.upid, node=outcome.node, state="running",
-                exitstatus=outcome.exitstatus, status=outcome.status,
-                log_tail=outcome.log_tail, timed_out=True,
+                upid=outcome.upid,
+                node=outcome.node,
+                state="running",
+                exitstatus=outcome.exitstatus,
+                status=outcome.status,
+                log_tail=outcome.log_tail,
+                timed_out=True,
             )
         attempt += 1
         delay = min(interval * attempt, max_interval) if attempt <= 3 else max_interval

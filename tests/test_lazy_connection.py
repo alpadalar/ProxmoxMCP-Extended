@@ -1,4 +1,5 @@
 """Lazy, timeout-bounded Proxmox connection (SRV-04)."""
+
 import hashlib
 import logging
 import threading

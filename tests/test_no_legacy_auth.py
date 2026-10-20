@@ -3,6 +3,7 @@
 Forbidden words are assembled at runtime so this file does not match itself;
 tests/ is deliberately not part of the scan set.
 """
+
 import re
 from pathlib import Path
 

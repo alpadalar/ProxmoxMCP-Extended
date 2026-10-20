@@ -13,6 +13,7 @@ Surface history: ``tools_phase3.json`` (frozen) + DOCUMENTED_ADDITIONS = ``tools
 PHASE5_NEW_TOOLS and PHASE5_PARAM_ADDITIONS. Each Phase 5 plan extends those two dicts in the
 same commit that regenerates ``tools.json`` (then rerun the tests without UPDATE_GOLDEN).
 """
+
 import copy
 import difflib
 import json
@@ -41,23 +42,35 @@ PHASE5_NEW_TOOLS: dict[str, dict[str, tuple[str, bool]]] = {
     "list_snapshots": {"node": ("string", True), "vmid": ("string", True)},
     "get_ha_status": {},
     "start_container": {
-        "vmid": ("string", True), "node": ("string", False),
-        "wait": ("boolean", False), "timeout": ("integer", False),
+        "vmid": ("string", True),
+        "node": ("string", False),
+        "wait": ("boolean", False),
+        "timeout": ("integer", False),
     },
     "stop_container": {
-        "vmid": ("string", True), "node": ("string", False), "confirm": ("boolean", False),
-        "wait": ("boolean", False), "timeout": ("integer", False),
+        "vmid": ("string", True),
+        "node": ("string", False),
+        "confirm": ("boolean", False),
+        "wait": ("boolean", False),
+        "timeout": ("integer", False),
     },
     "shutdown_container": {
-        "vmid": ("string", True), "node": ("string", False),
-        "wait": ("boolean", False), "timeout": ("integer", False),
+        "vmid": ("string", True),
+        "node": ("string", False),
+        "wait": ("boolean", False),
+        "timeout": ("integer", False),
     },
     "list_backups": {
-        "node": ("string", True), "storage": ("string", False), "vmid": ("string", False),
+        "node": ("string", True),
+        "storage": ("string", False),
+        "vmid": ("string", False),
     },
     "delete_snapshot": {
-        "node": ("string", True), "vmid": ("string", True), "name": ("string", True),
-        "confirm": ("boolean", False), "wait": ("boolean", False),
+        "node": ("string", True),
+        "vmid": ("string", True),
+        "name": ("string", True),
+        "confirm": ("boolean", False),
+        "wait": ("boolean", False),
         "timeout": ("integer", False),
     },
 }
@@ -66,8 +79,13 @@ _WAIT = {"wait": "boolean", "timeout": "integer"}
 PHASE5_PARAM_ADDITIONS: dict[str, dict[str, str]] = {
     name: dict(_WAIT)
     for name in (
-        "start_vm", "stop_vm", "shutdown_vm", "reset_vm", "delete_vm",
-        "create_snapshot", "rollback_snapshot",
+        "start_vm",
+        "stop_vm",
+        "shutdown_vm",
+        "reset_vm",
+        "delete_vm",
+        "create_snapshot",
+        "rollback_snapshot",
     )
 }
 PHASE4_TOOL_COUNT = 18
@@ -130,9 +148,7 @@ async def snapshot(server):
     snap = await build_snapshot(server)
     if os.environ.get("UPDATE_GOLDEN") == "1":
         GOLDEN_PATH.parent.mkdir(parents=True, exist_ok=True)
-        GOLDEN_PATH.write_text(
-            json.dumps(snap, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-        )
+        GOLDEN_PATH.write_text(json.dumps(snap, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return snap
 
 
@@ -152,15 +168,16 @@ async def test_tool_params_match_golden(snapshot):
     """Every tool's normalized parameter list equals the golden entry."""
     golden = {t["name"]: t for t in _load_golden()}
     for tool in snapshot:
-        assert tool == golden[tool["name"]], diff_snapshots(
-            [golden[tool["name"]]], [tool]
-        )
+        assert tool == golden[tool["name"]], diff_snapshots([golden[tool["name"]]], [tool])
 
 
 def test_snapshot_normalizer_ignores_anyOf_shape():
     """anyOf-with-null and a plain type normalize to the same simple type."""
-    nullable = {"properties": {"a": {"anyOf": [{"type": "string"}, {"type": "null"}],
-                                     "default": None, "title": "A"}}}
+    nullable = {
+        "properties": {
+            "a": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": None, "title": "A"}
+        }
+    }
     plain = {"properties": {"a": {"type": "string", "description": "x"}}}
     assert normalize_schema("t", nullable)["params"][0]["type"] == "string"
     assert normalize_schema("t", plain)["params"][0]["type"] == "string"
@@ -179,21 +196,27 @@ def test_mismatch_is_reported():
 
 def test_golden_phase4_is_phase3_plus_documented_additions():
     """The current surface is the frozen Phase 3 baseline plus exactly the documented extras."""
-    expected = {t["name"]: {p["name"]: p for p in t["params"]}
-                for t in json.loads(BASELINE_PATH.read_text(encoding="utf-8"))}
+    expected = {
+        t["name"]: {p["name"]: p for p in t["params"]}
+        for t in json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+    }
     for tool, extras in DOCUMENTED_ADDITIONS.items():
         for pname, ptype in extras.items():
             assert pname not in expected[tool], f"{tool}.{pname} already in baseline"
             expected[tool][pname] = {"name": pname, "required": False, "type": ptype}
-    actual = {t["name"]: {p["name"]: p for p in t["params"]}
-              for t in json.loads(PHASE4_BASELINE_PATH.read_text(encoding="utf-8"))}
+    actual = {
+        t["name"]: {p["name"]: p for p in t["params"]}
+        for t in json.loads(PHASE4_BASELINE_PATH.read_text(encoding="utf-8"))
+    }
     assert actual == expected
 
 
 def test_golden_is_phase4_plus_phase5_delta():
     """tools.json is the frozen Phase 4 surface plus exactly the declared Phase 5 delta."""
-    expected = {t["name"]: {p["name"]: p for p in t["params"]}
-                for t in json.loads(PHASE4_BASELINE_PATH.read_text(encoding="utf-8"))}
+    expected = {
+        t["name"]: {p["name"]: p for p in t["params"]}
+        for t in json.loads(PHASE4_BASELINE_PATH.read_text(encoding="utf-8"))
+    }
     for tool, extras in PHASE5_PARAM_ADDITIONS.items():
         assert tool in expected, f"{tool} is not a Phase 4 tool"
         for pname, ptype in extras.items():

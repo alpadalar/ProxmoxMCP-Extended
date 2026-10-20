@@ -10,6 +10,7 @@ This module provides tools for monitoring and managing Proxmox clusters:
 The tools provide essential information for maintaining
 cluster health and ensuring proper operation.
 """
+
 from typing import Any
 
 from mcp.types import TextContent as Content
@@ -18,11 +19,18 @@ from ..utils.redaction import redact
 from .base import ProxmoxTool
 
 TEXT_MAX = 300
-_SERVICE_KEYS = ('sid', 'node', 'state', 'request_state', 'crm_state')
+_SERVICE_KEYS = ("sid", "node", "state", "request_state", "crm_state")
 _RESOURCE_KEYS = (
-    'sid', 'type', 'state', 'group', 'max_relocate', 'max_restart', 'failback', 'comment',
+    "sid",
+    "type",
+    "state",
+    "group",
+    "max_relocate",
+    "max_restart",
+    "failback",
+    "comment",
 )
-_TEXT_KEYS = ('status', 'comment', 'group')
+_TEXT_KEYS = ("status", "comment", "group")
 
 
 def _clean(item: dict[str, Any], keys: Any) -> dict[str, Any]:
@@ -49,13 +57,13 @@ def _as_quorate(value: Any) -> bool | None:
 
 class ClusterTools(ProxmoxTool):
     """Tools for managing Proxmox cluster.
-    
+
     Provides functionality for:
     - Monitoring cluster health and status
     - Tracking quorum and node membership
     - Managing cluster-wide resources
     - Verifying cluster configuration
-    
+
     Essential for maintaining cluster health and ensuring
     proper operation of the Proxmox environment.
     """
@@ -89,7 +97,7 @@ class ClusterTools(ProxmoxTool):
         - Quorum status (essential for cluster operations)
         - Active node count and health
         - Resource distribution and status
-        
+
         This information is critical for:
         - Ensuring cluster stability
         - Monitoring node membership
@@ -118,13 +126,17 @@ class ClusterTools(ProxmoxTool):
         """
         try:
             result = self.proxmox.cluster.status.get()
-        
+
             first_item = result[0] if result and len(result) > 0 else {}
             status = {
                 "name": first_item.get("name") if first_item else None,
                 "quorum": first_item.get("quorate") if first_item else None,
-                "nodes": len([node for node in result if node.get("type") == "node"]) if result else 0,
-                "resources": [res for res in result if res.get("type") == "resource"] if result else []
+                "nodes": len([node for node in result if node.get("type") == "node"])
+                if result
+                else 0,
+                "resources": [res for res in result if res.get("type") == "resource"]
+                if result
+                else [],
             }
             return self._format_response(status, "cluster")
         except Exception as e:

@@ -1,4 +1,5 @@
 """Fail-closed authentication policy for the HTTP transport."""
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any

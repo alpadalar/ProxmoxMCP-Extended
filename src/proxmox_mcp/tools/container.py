@@ -3,6 +3,7 @@
 Node and type come from :func:`resolve_guest` on every call. Mutating calls return the task
 id (UPID) and support the optional ``wait`` / ``timeout`` semantics of the VM tools.
 """
+
 import time
 
 from mcp.types import TextContent as Content
@@ -39,14 +40,15 @@ class ContainerTools(ProxmoxTool):
             if current == skip_state:
                 return [Content(type="text", text=skip_text.format(vmid=vmid))]
             task_result = getattr(lxc.status, action).post()
-            message = (
-                f"{text.format(vmid=vmid)}\n🔧 {self._task_text(task_result, wait, timeout)}"
-            )
+            message = f"{text.format(vmid=vmid)}\n🔧 {self._task_text(task_result, wait, timeout)}"
             return [Content(type="text", text=message)]
         except Exception as e:
             self._handle_error(
-                f"{op} container {vmid}", e, privilege_key=f"{op}_container",
-                node=resolved.node if resolved else node, vmid=vmid,
+                f"{op} container {vmid}",
+                e,
+                privilege_key=f"{op}_container",
+                node=resolved.node if resolved else node,
+                vmid=vmid,
             )
 
     def start_container(
@@ -54,8 +56,14 @@ class ContainerTools(ProxmoxTool):
     ) -> list[Content]:
         """Start an LXC container."""
         return self._run(
-            "start", vmid, node, wait, timeout, "running",
-            "🟢 Container {vmid} is already running", "start",
+            "start",
+            vmid,
+            node,
+            wait,
+            timeout,
+            "running",
+            "🟢 Container {vmid} is already running",
+            "start",
             "🚀 Container {vmid} start initiated successfully",
         )
 
@@ -64,8 +72,14 @@ class ContainerTools(ProxmoxTool):
     ) -> list[Content]:
         """Hard-stop an LXC container (the caller enforces confirm)."""
         return self._run(
-            "stop", vmid, node, wait, timeout, "stopped",
-            "🔴 Container {vmid} is already stopped", "stop",
+            "stop",
+            vmid,
+            node,
+            wait,
+            timeout,
+            "stopped",
+            "🔴 Container {vmid} is already stopped",
+            "stop",
             "🛑 Container {vmid} stop initiated successfully",
         )
 
@@ -74,7 +88,13 @@ class ContainerTools(ProxmoxTool):
     ) -> list[Content]:
         """Gracefully shut down an LXC container (no PVE-side timeout is sent)."""
         return self._run(
-            "shutdown", vmid, node, wait, timeout, "stopped",
-            "🔴 Container {vmid} is already stopped", "shutdown",
+            "shutdown",
+            vmid,
+            node,
+            wait,
+            timeout,
+            "stopped",
+            "🔴 Container {vmid} is already stopped",
+            "shutdown",
             "💤 Container {vmid} graceful shutdown initiated",
         )

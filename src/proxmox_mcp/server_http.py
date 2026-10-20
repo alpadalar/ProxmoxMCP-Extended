@@ -34,14 +34,16 @@ class ProxmoxMCPHTTPServer:
     ``AuthConfigError``, unless ``insecure_no_auth=True`` on a loopback host.
     """
 
-    def __init__(self,
-                 config_path: str | None = None,
-                 host: str = "127.0.0.1",
-                 port: int = 8812,
-                 path: str = "/proxmox-mcp",
-                 api_key_digests: list[str] | None = None,
-                 insecure_no_auth: bool = False,
-                 cli_overrides: Mapping[str, Any] | None = None):
+    def __init__(
+        self,
+        config_path: str | None = None,
+        host: str = "127.0.0.1",
+        port: int = 8812,
+        path: str = "/proxmox-mcp",
+        api_key_digests: list[str] | None = None,
+        insecure_no_auth: bool = False,
+        cli_overrides: Mapping[str, Any] | None = None,
+    ):
         """
         Initialize the HTTP MCP server.
 
@@ -106,17 +108,20 @@ def build_parser():
     """Command line parser for the standalone HTTP server."""
     import argparse
 
-    parser = argparse.ArgumentParser(description='ProxmoxMCP HTTP Server')
-    parser.add_argument('--host', type=str, default='127.0.0.1',
-                        help='Server host (default: 127.0.0.1)')
-    parser.add_argument('--port', type=int, default=8812,
-                        help='Server port (default: 8812)')
-    parser.add_argument('--path', type=str, default='/proxmox-mcp',
-                        help='HTTP path (default: /proxmox-mcp)')
-    parser.add_argument('--config', type=str, help='Configuration file path')
+    parser = argparse.ArgumentParser(description="ProxmoxMCP HTTP Server")
     parser.add_argument(
-        '--no-auth', action='store_true',
-        help=f'Disable authentication (loopback only; otherwise set {ENV_HASHES})')
+        "--host", type=str, default="127.0.0.1", help="Server host (default: 127.0.0.1)"
+    )
+    parser.add_argument("--port", type=int, default=8812, help="Server port (default: 8812)")
+    parser.add_argument(
+        "--path", type=str, default="/proxmox-mcp", help="HTTP path (default: /proxmox-mcp)"
+    )
+    parser.add_argument("--config", type=str, help="Configuration file path")
+    parser.add_argument(
+        "--no-auth",
+        action="store_true",
+        help=f"Disable authentication (loopback only; otherwise set {ENV_HASHES})",
+    )
     add_policy_flags(parser)
     return parser
 
@@ -127,7 +132,7 @@ def main():
 
     try:
         server = ProxmoxMCPHTTPServer(
-            config_path=args.config or os.getenv('PROXMOX_MCP_CONFIG'),
+            config_path=args.config or os.getenv("PROXMOX_MCP_CONFIG"),
             host=args.host,
             port=args.port,
             path=args.path,

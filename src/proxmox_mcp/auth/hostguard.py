@@ -4,6 +4,7 @@ Loopback is not a trust boundary for browsers: a web page can reach 127.0.0.1 vi
 rebinding or cross-origin requests. With auth disabled, only loopback Host headers and
 loopback (or absent) Origin headers are served.
 """
+
 import json
 from collections.abc import Iterable
 from urllib.parse import urlsplit
@@ -56,12 +57,14 @@ class LoopbackHostGuardMiddleware:
             await send({"type": "websocket.close", "code": 1008})
             return
         body = json.dumps({"error": "forbidden", "message": "Host or Origin not allowed"}).encode()
-        await send({
-            "type": "http.response.start",
-            "status": 403,
-            "headers": [
-                (b"content-type", b"application/json"),
-                (b"content-length", str(len(body)).encode()),
-            ],
-        })
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 403,
+                "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"content-length", str(len(body)).encode()),
+                ],
+            }
+        )
         await send({"type": "http.response.body", "body": body})

@@ -9,6 +9,7 @@ cases. Precedence, highest wins:
 Errors raised here are built only from field locations and validation
 messages, never from input values, so secrets cannot leak through them.
 """
+
 import json
 import os
 from collections.abc import Mapping
@@ -133,16 +134,27 @@ def add_policy_flags(parser: Any) -> None:
     value from env/JSON/default. Values flow through the strict bool parser.
     """
     parser.add_argument(
-        "--read-only", dest="read_only", action="store_const", const="true", default=None,
+        "--read-only",
+        dest="read_only",
+        action="store_const",
+        const="true",
+        default=None,
         help="Block all write, destructive and exec tools (overrides the allow flags)",
     )
     parser.add_argument(
-        "--allow-destructive", dest="allow_destructive", action="store_const",
-        const="true", default=None,
+        "--allow-destructive",
+        dest="allow_destructive",
+        action="store_const",
+        const="true",
+        default=None,
         help="Enable destructive tools: stop/reset/delete VM, rollback snapshot (default: off)",
     )
     parser.add_argument(
-        "--allow-exec", dest="allow_exec", action="store_const", const="true", default=None,
+        "--allow-exec",
+        dest="allow_exec",
+        action="store_const",
+        const="true",
+        default=None,
         help="Enable execute_vm_command (default: off)",
     )
 

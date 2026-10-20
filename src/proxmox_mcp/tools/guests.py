@@ -4,6 +4,7 @@ The lookup goes to ``cluster/resources`` on EVERY call and is never cached, beca
 migrate between nodes. Node and type used for API paths therefore come from the cluster, not
 from raw tool input.
 """
+
 from dataclasses import dataclass
 from typing import Any
 
@@ -34,7 +35,8 @@ def resolve_guest(
     resources = api.cluster.resources.get(type="vm") or []
     item = next(
         (
-            r for r in resources
+            r
+            for r in resources
             if isinstance(r, dict) and r.get("type") in _KIND and str(r.get("vmid")) == vmid
         ),
         None,
@@ -48,8 +50,7 @@ def resolve_guest(
     if expected_type is not None and gtype != expected_type:
         if expected_type == "lxc":
             raise ValueError(
-                f"Guest {vmid} is a qemu VM, not an LXC container; "
-                "use start_vm/stop_vm/shutdown_vm"
+                f"Guest {vmid} is a qemu VM, not an LXC container; use start_vm/stop_vm/shutdown_vm"
             )
         raise ValueError(f"Guest {vmid} is an LXC container, not a qemu VM")
     resolved_node = validate_node(item.get("node"))

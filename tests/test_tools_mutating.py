@@ -2,6 +2,7 @@
 
 These document current behavior (no gating yet); error paths must not reach the mutation.
 """
+
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -36,8 +37,14 @@ async def test_create_vm_calls_qemu_create(server, api):
         {"storage": "local-lvm", "type": "lvmthin", "content": "images,rootdir"},
     ]
     node.qemu.create.return_value = "UPID:task"
-    args = {"node": "node1", "vmid": "200", "name": "new-vm", "cpus": 2,
-            "memory": 2048, "disk_size": 10}
+    args = {
+        "node": "node1",
+        "vmid": "200",
+        "name": "new-vm",
+        "cpus": 2,
+        "memory": 2048,
+        "disk_size": 10,
+    }
     text = tool_text(await server.mcp.call_tool("create_vm", args))
     node.qemu.create.assert_called_once()
     kwargs = node.qemu.create.call_args.kwargs
@@ -49,20 +56,29 @@ async def test_create_vm_calls_qemu_create(server, api):
 @pytest.mark.asyncio
 async def test_create_vm_rejects_out_of_range_cpus(server, api):
     """cpus=64 is rejected by parameter validation before any API call."""
-    args = {"node": "node1", "vmid": "200", "name": "new-vm", "cpus": 64,
-            "memory": 2048, "disk_size": 10}
+    args = {
+        "node": "node1",
+        "vmid": "200",
+        "name": "new-vm",
+        "cpus": 64,
+        "memory": 2048,
+        "disk_size": 10,
+    }
     with pytest.raises((ToolError, ValidationError)):
         await server.mcp.call_tool("create_vm", args)
     api.nodes.return_value.qemu.create.assert_not_called()
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("tool,action,state", [
-    ("start_vm", "start", "stopped"),
-    ("stop_vm", "stop", "running"),
-    ("shutdown_vm", "shutdown", "running"),
-    ("reset_vm", "reset", "running"),
-])
+@pytest.mark.parametrize(
+    "tool,action,state",
+    [
+        ("start_vm", "start", "stopped"),
+        ("stop_vm", "stop", "running"),
+        ("shutdown_vm", "shutdown", "running"),
+        ("reset_vm", "reset", "running"),
+    ],
+)
 async def test_power_tools_post_once(server, vm, tool, action, state):
     """Each power tool posts to the matching status endpoint exactly once."""
     _set_status(vm, state)
@@ -74,14 +90,21 @@ async def test_power_tools_post_once(server, vm, tool, action, state):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("tool,action", [
-    ("start_vm", "start"), ("stop_vm", "stop"),
-    ("shutdown_vm", "shutdown"), ("reset_vm", "reset"),
-])
+@pytest.mark.parametrize(
+    "tool,action",
+    [
+        ("start_vm", "start"),
+        ("stop_vm", "stop"),
+        ("shutdown_vm", "shutdown"),
+        ("reset_vm", "reset"),
+    ],
+)
 async def test_power_tools_missing_vm_does_not_post(server, api, vm, tool, action):
     """A nonexistent VM yields an error and never posts the action."""
     vm.status.current.get.side_effect = ResourceException(
-        500, "Internal Server Error", "Configuration file 'nodes/node1/qemu-server/100.conf' does not exist"
+        500,
+        "Internal Server Error",
+        "Configuration file 'nodes/node1/qemu-server/100.conf' does not exist",
     )
     api.nodes.return_value.qemu.get.return_value = []
     args = {**NODE_ARGS, "confirm": True} if tool in ("stop_vm", "reset_vm") else NODE_ARGS
@@ -128,17 +151,20 @@ async def test_delete_vm_force_stops_then_deletes(server, vm):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("after,match", [
-    ({"status": "running", "name": "web01"}, "not stopped after the stop wait"),
-    ({"status": "stopped", "name": "other"}, "changed identity"),
-])
+@pytest.mark.parametrize(
+    "after,match",
+    [
+        ({"status": "running", "name": "web01"}, "not stopped after the stop wait"),
+        ({"status": "stopped", "name": "other"}, "changed identity"),
+    ],
+)
 async def test_delete_vm_force_rechecks_before_delete(server, vm, after, match):
     """The delete is aborted if the VM is running again or is a different VM."""
     server.vm_tools._sleep = lambda s: None
     vm.status.current.get.side_effect = [
         {"status": "running", "name": "web01"},  # lookup
         {"status": "stopped", "name": "web01"},  # stop wait
-        after,                                    # re-check
+        after,  # re-check
     ]
     with pytest.raises(ToolError, match=match):
         await server.mcp.call_tool("delete_vm", {**NODE_ARGS, "force": True, "confirm": True})
@@ -166,7 +192,9 @@ async def test_update_vm_applies_config(server, vm):
     _set_status(vm, "stopped")
     vm.config.get.return_value = {"memory": 1024, "cores": 1}
     vm.config.put.return_value = "UPID:cfg"
-    await server.mcp.call_tool("update_vm", {**NODE_ARGS, "memory": 2048, "cpus": 4, "name": "renamed"})
+    await server.mcp.call_tool(
+        "update_vm", {**NODE_ARGS, "memory": 2048, "cpus": 4, "name": "renamed"}
+    )
     vm.config.put.assert_called_once_with(memory=2048, cores=4, name="renamed")
 
 
@@ -185,7 +213,8 @@ async def test_create_snapshot_posts_snapname(server, vm):
     """create_snapshot posts snapname plus description and vmstate when supplied."""
     vm.snapshot.post.return_value = "UPID:snap"
     await server.mcp.call_tool(
-        "create_snapshot", {**NODE_ARGS, "name": "pre", "description": "d", "vmstate": True})
+        "create_snapshot", {**NODE_ARGS, "name": "pre", "description": "d", "vmstate": True}
+    )
     vm.snapshot.post.assert_called_once_with(snapname="pre", description="d", vmstate=1)
 
 
@@ -200,7 +229,11 @@ async def test_create_snapshot_minimal(server, vm):
 async def test_rollback_snapshot_posts_rollback(server, vm):
     """rollback_snapshot posts snapshot(name).rollback."""
     vm.snapshot.return_value.rollback.post.return_value = "UPID:rb"
-    text = tool_text(await server.mcp.call_tool("rollback_snapshot", {**NODE_ARGS, "name": "pre", "confirm": True}))
+    text = tool_text(
+        await server.mcp.call_tool(
+            "rollback_snapshot", {**NODE_ARGS, "name": "pre", "confirm": True}
+        )
+    )
     vm.snapshot.assert_called_with("pre")
     vm.snapshot.return_value.rollback.post.assert_called_once_with()
     assert "UPID:rb" in text
@@ -220,8 +253,9 @@ async def test_execute_vm_command_returns_output(server, vm):
     """execute_vm_command starts exec on the guest agent and returns its output."""
     exec_ep, status_ep = _agent(vm, "hello-from-guest")
     with patch("asyncio.sleep", new=AsyncMock()):
-        text = tool_text(await server.mcp.call_tool(
-            "execute_vm_command", {**NODE_ARGS, "command": "echo hi"}))
+        text = tool_text(
+            await server.mcp.call_tool("execute_vm_command", {**NODE_ARGS, "command": "echo hi"})
+        )
     exec_ep.post.assert_called_once_with(command=["echo", "hi"])
     status_ep.get.assert_called_once_with(pid=7)
     assert "hello-from-guest" in text
@@ -241,15 +275,25 @@ def test_every_tool_has_a_mock_test():
     """Each golden tool name appears as a string literal in a mock test module."""
     here = Path(__file__).parent
     golden = json.loads((here / "golden" / "tools.json").read_text(encoding="utf-8"))
-    corpus = (here / "test_tools_read.py").read_text() + (here / "test_tools_mutating.py").read_text()
+    corpus = (here / "test_tools_read.py").read_text() + (
+        here / "test_tools_mutating.py"
+    ).read_text()
     missing = [t["name"] for t in golden if f'"{t["name"]}"' not in corpus]
     assert not missing, f"tools without a mock test: {missing}"
 
 
-@pytest.mark.parametrize("cpus,memory,disk", [
-    (-1, 2048, 10), (64, 2048, 10), (2, 10**12, 10), (2, 256, 10),
-    (2, 2048, 10**9), (2, 2048, 1), (True, 2048, 10),
-])
+@pytest.mark.parametrize(
+    "cpus,memory,disk",
+    [
+        (-1, 2048, 10),
+        (64, 2048, 10),
+        (2, 10**12, 10),
+        (2, 256, 10),
+        (2, 2048, 10**9),
+        (2, 2048, 1),
+        (True, 2048, 10),
+    ],
+)
 def test_create_vm_tool_enforces_limits_itself(server, api, cpus, memory, disk):
     """Limits live in VMTools.create_vm so the HTTP transport (bare ints) is covered."""
     with pytest.raises(Exception):

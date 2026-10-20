@@ -1,4 +1,5 @@
 """MCP tool annotations (SEC-04), verified through a live fastmcp list_tools()."""
+
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -21,8 +22,11 @@ DIGEST = "0" * 64
 
 def _ctx():
     return ToolContext(
-        node_tools=MagicMock(), vm_tools=MagicMock(), storage_tools=MagicMock(),
-        cluster_tools=MagicMock(), health_payload=lambda: {"status": "ok"},
+        node_tools=MagicMock(),
+        vm_tools=MagicMock(),
+        storage_tools=MagicMock(),
+        cluster_tools=MagicMock(),
+        health_payload=lambda: {"status": "ok"},
     )
 
 
@@ -54,7 +58,10 @@ async def test_read_tools(ann):
     for name in RISK_CLASSES["read"]:
         a = ann[name]
         assert (a.read_only_hint, a.destructive_hint, a.idempotent_hint, a.open_world_hint) == (
-            True, False, True, False,
+            True,
+            False,
+            True,
+            False,
         )
 
 
@@ -95,7 +102,10 @@ async def test_table_consistency(ann):
 async def test_task_tools_are_literally_read_only(ann, name):
     a = ann[name]
     assert (a.read_only_hint, a.destructive_hint, a.idempotent_hint, a.open_world_hint) == (
-        True, False, True, False,
+        True,
+        False,
+        True,
+        False,
     )
 
 

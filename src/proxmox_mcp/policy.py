@@ -6,6 +6,7 @@ gate their classes (default closed). Enforcement is a wrapper applied through
 ``register_tools(wrap=...)``: tools stay registered (the MCP surface is frozen) and a
 denied call fails with ``policy_denied`` before any Proxmox call is made.
 """
+
 import functools
 import inspect
 import json

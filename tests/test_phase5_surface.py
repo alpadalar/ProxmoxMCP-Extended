@@ -1,4 +1,5 @@
 """Independent literal expectations for the final Phase 5 surface (27 tools)."""
+
 import json
 
 import pytest
@@ -14,8 +15,15 @@ from tests.test_tool_schema_snapshot import (
 )
 
 NEW_TOOLS = (
-    "get_task_status", "wait_for_task", "list_snapshots", "delete_snapshot", "list_backups",
-    "start_container", "stop_container", "shutdown_container", "get_ha_status",
+    "get_task_status",
+    "wait_for_task",
+    "list_snapshots",
+    "delete_snapshot",
+    "list_backups",
+    "start_container",
+    "stop_container",
+    "shutdown_container",
+    "get_ha_status",
 )
 # tool -> (risk class, readOnlyHint, destructiveHint, idempotentHint); stated independently of
 # RISK_CLASSES and ToolPolicy.
@@ -55,7 +63,10 @@ async def test_risk_and_annotation_table(policy_app):
         assert specs[name].risk == risk, name
         ann = tools[name].annotations
         assert (ann.read_only_hint, ann.destructive_hint, ann.idempotent_hint) == (
-            read_only, destructive, idempotent), name
+            read_only,
+            destructive,
+            idempotent,
+        ), name
 
 
 @pytest.mark.asyncio
@@ -109,7 +120,10 @@ async def test_health_pve_null_then_populated_after_first_new_tool_call(policy_a
         app.health_payload(),
     ):
         assert payload["pve"] == {
-            "version": expected["version"], "release": expected["release"], "major": major}
+            "version": expected["version"],
+            "release": expected["release"],
+            "major": major,
+        }
 
 
 def test_http_health_route_reports_pve_after_first_call(policy_app, fake_pve):
@@ -124,5 +138,7 @@ def test_http_health_route_reports_pve_after_first_call(policy_app, fake_pve):
         body = client.get("/health", headers=headers).json()
     expected = fake_pve.version.get()
     assert body["pve"] == {
-        "version": expected["version"], "release": expected["release"],
-        "major": int(expected["release"].split(".")[0])}
+        "version": expected["version"],
+        "release": expected["release"],
+        "major": int(expected["release"].split(".")[0]),
+    }

@@ -1,4 +1,5 @@
 """End-to-end tests of the served HTTP app over a real 127.0.0.1 socket."""
+
 import hashlib
 import json
 import logging
@@ -143,14 +144,19 @@ def test_health_connected_after_tool_call(served):
     r = _tool_call(url, "get_nodes", {})
     assert r.status_code == 200, r.text
     assert "error" not in _data(r) or not _data(r)["error"]
-    assert requests.get(url + "/health", headers=AUTH_HDR, timeout=10).json()["proxmox"] == "connected"
+    assert (
+        requests.get(url + "/health", headers=AUTH_HDR, timeout=10).json()["proxmox"] == "connected"
+    )
 
 
 def test_health_unreachable(mock_env_vars):
     with patch("proxmox_mcp.core.proxmox.ProxmoxAPI", side_effect=ConnectionError("down")):
         server = ProxmoxMCPHTTPServer(api_key_digests=[DIGEST])
         with _serve(server) as url:
-            assert requests.get(url + "/health", headers=AUTH_HDR, timeout=10).json()["proxmox"] == "not_connected"
+            assert (
+                requests.get(url + "/health", headers=AUTH_HDR, timeout=10).json()["proxmox"]
+                == "not_connected"
+            )
             _tool_call(url, "get_nodes", {})
             body = requests.get(url + "/health", headers=AUTH_HDR, timeout=10).json()
             assert body["proxmox"] == "unreachable"
@@ -176,13 +182,13 @@ def _cli(tmp_path, *args):
     }
     path = tmp_path / "c.json"
     path.write_text(json.dumps(cfg))
-    env = {
-        k: v for k, v in os.environ.items()
-        if k != ENV_HASHES and not k.startswith("PROXMOX_")
-    }
+    env = {k: v for k, v in os.environ.items() if k != ENV_HASHES and not k.startswith("PROXMOX_")}
     return subprocess.run(
         [sys.executable, "-I", "-m", "proxmox_mcp.server_http", "--config", str(path), *args],
-        env=env, capture_output=True, text=True, timeout=60,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=60,
     )
 
 

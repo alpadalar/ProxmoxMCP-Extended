@@ -147,9 +147,7 @@ class APIKeyAuthMiddleware:
             str(scope.get("method"))[:16],
             str(scope.get("path"))[:200],
         )
-        body = json.dumps(
-            {"error": "unauthorized", "message": "Valid API key required"}
-        ).encode()
+        body = json.dumps({"error": "unauthorized", "message": "Valid API key required"}).encode()
         await send(
             {
                 "type": "http.response.start",

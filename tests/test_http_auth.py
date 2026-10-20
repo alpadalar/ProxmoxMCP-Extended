@@ -1,4 +1,5 @@
 """API-key authentication of the HTTP transport (served ASGI app, mocked Proxmox)."""
+
 import hashlib
 import logging
 import subprocess
@@ -141,7 +142,10 @@ def test_key_never_logged(mock_env_vars, mock_proxmox, caplog):
 def test_cli_prints_digest():
     out = subprocess.run(
         [sys.executable, "-m", "proxmox_mcp.auth.apikey"],
-        input="abc\n", capture_output=True, text=True, timeout=60,
+        input="abc\n",
+        capture_output=True,
+        text=True,
+        timeout=60,
     )
     assert out.stdout.strip() == hashlib.sha256(b"abc").hexdigest()
 
@@ -194,7 +198,9 @@ def test_noauth_rejects_unknown_host(noauth_app, base):
         assert c.get("/health").status_code == 403
 
 
-@pytest.mark.parametrize("origin", ["http://evil.example.com", "null", "https://localhost.evil.com"])
+@pytest.mark.parametrize(
+    "origin", ["http://evil.example.com", "null", "https://localhost.evil.com"]
+)
 def test_noauth_rejects_foreign_origin(noauth_app, origin):
     with TestClient(noauth_app, base_url="http://localhost") as c:
         assert _post(c, Origin=origin).status_code == 403

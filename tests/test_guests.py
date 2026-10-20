@@ -1,4 +1,5 @@
 """Guest resolver (cluster/resources based, uncached)."""
+
 import pytest
 from proxmoxer.core import ResourceException
 
@@ -9,7 +10,8 @@ def test_found_returns_guest(fake_pve):
     guest = resolve_guest(fake_pve, "200", expected_type="lxc")
     assert guest == Guest("pve1", "200", "lxc", "running", "ct-01", False)
     assert [(c.method, c.path, c.params) for c in fake_pve.calls] == [
-        ("GET", "cluster/resources", {"type": "vm"})]
+        ("GET", "cluster/resources", {"type": "vm"})
+    ]
 
 
 def test_expected_type_none_accepts_both(fake_pve):
@@ -49,8 +51,11 @@ def test_invalid_input_makes_no_call(fake_pve):
 
 def test_no_cache_between_calls(fake_pve):
     assert resolve_guest(fake_pve, "200").node == "pve1"
-    fake_pve.set("GET", "cluster/resources", [
-        {"type": "lxc", "vmid": 200, "node": "pve2", "status": "running", "name": "ct-01"}])
+    fake_pve.set(
+        "GET",
+        "cluster/resources",
+        [{"type": "lxc", "vmid": 200, "node": "pve2", "status": "running", "name": "ct-01"}],
+    )
     assert resolve_guest(fake_pve, "200").node == "pve2"  # migrated between calls
     assert [c.path for c in fake_pve.calls] == ["cluster/resources", "cluster/resources"]
 

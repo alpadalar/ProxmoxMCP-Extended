@@ -8,6 +8,7 @@ FastMCP instance.  Phase 4 attaches policy gates through ``wrap`` (called as
 ``functools.wraps``, so ``tests/golden/tools.json`` stays valid) and MCP annotations
 (readOnlyHint/destructiveHint) through ``ToolSpec.annotations``.
 """
+
 import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -48,23 +49,58 @@ from .definitions import (
     WAIT_FOR_TASK_DESC,
 )
 
-WaitParam = Annotated[bool, Field(description="Wait for the Proxmox task to finish before returning (default: false); a failed task raises an error, a task with warnings is reported as such", default=False)]
-TimeoutParam = Annotated[int, Field(description="Seconds to wait when wait=true (1-300, default 30); timing out reports the task as still running, not as a failure", ge=1, le=300, default=30)]
+WaitParam = Annotated[
+    bool,
+    Field(
+        description="Wait for the Proxmox task to finish before returning (default: false); a failed task raises an error, a task with warnings is reported as such",
+        default=False,
+    ),
+]
+TimeoutParam = Annotated[
+    int,
+    Field(
+        description="Seconds to wait when wait=true (1-300, default 30); timing out reports the task as still running, not as a failure",
+        ge=1,
+        le=300,
+        default=30,
+    ),
+]
 
 RISK_CLASSES = {
     "read": (
-        "get_nodes", "get_node_status", "get_vms", "get_containers", "get_storage",
-        "get_cluster_status", "get_vm_usage", "health", "get_task_status", "wait_for_task",
-        "list_snapshots", "list_backups", "get_ha_status",
+        "get_nodes",
+        "get_node_status",
+        "get_vms",
+        "get_containers",
+        "get_storage",
+        "get_cluster_status",
+        "get_vm_usage",
+        "health",
+        "get_task_status",
+        "wait_for_task",
+        "list_snapshots",
+        "list_backups",
+        "get_ha_status",
     ),
     "write": (
-        "create_vm", "start_vm", "shutdown_vm", "create_snapshot",
-        "start_container", "shutdown_container",
+        "create_vm",
+        "start_vm",
+        "shutdown_vm",
+        "create_snapshot",
+        "start_container",
+        "shutdown_container",
     ),
     # update_vm overwrites existing configuration (memory, cores, name), so it is gated by
     # allow_destructive, matching its destructiveHint annotation.
-    "destructive": ("stop_vm", "reset_vm", "delete_vm", "rollback_snapshot", "update_vm",
-                    "delete_snapshot", "stop_container"),
+    "destructive": (
+        "stop_vm",
+        "reset_vm",
+        "delete_vm",
+        "rollback_snapshot",
+        "update_vm",
+        "delete_snapshot",
+        "stop_container",
+    ),
     "exec": ("execute_vm_command",),
 }
 _RISK_BY_NAME = {n: r for r, names in RISK_CLASSES.items() for n in names}
@@ -72,20 +108,28 @@ _RISK_BY_NAME = {n: r for r, names in RISK_CLASSES.items() for n in names}
 # MCP tool annotations (camelCase keys, accepted by fastmcp 4.x as a dict).
 _ANNOTATION_DEFAULTS: dict[str, dict[str, bool]] = {
     "read": {
-        "readOnlyHint": True, "destructiveHint": False,
-        "idempotentHint": True, "openWorldHint": False,
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
     },
     "write": {
-        "readOnlyHint": False, "destructiveHint": False,
-        "idempotentHint": False, "openWorldHint": False,
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "idempotentHint": False,
+        "openWorldHint": False,
     },
     "destructive": {
-        "readOnlyHint": False, "destructiveHint": True,
-        "idempotentHint": False, "openWorldHint": False,
+        "readOnlyHint": False,
+        "destructiveHint": True,
+        "idempotentHint": False,
+        "openWorldHint": False,
     },
     "exec": {
-        "readOnlyHint": False, "destructiveHint": True,
-        "idempotentHint": False, "openWorldHint": False,
+        "readOnlyHint": False,
+        "destructiveHint": True,
+        "idempotentHint": False,
+        "openWorldHint": False,
     },
 }
 ANNOTATION_OVERRIDES: dict[str, dict[str, bool]] = {
@@ -164,7 +208,9 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
 
     @_tool(GET_NODE_STATUS_DESC)
     def get_node_status(
-        node: Annotated[str, Field(description="Name/ID of node to query (e.g. 'pve1', 'proxmox-node2')")]
+        node: Annotated[
+            str, Field(description="Name/ID of node to query (e.g. 'pve1', 'proxmox-node2')")
+        ],
     ):
         return ctx.node_tools.get_node_status(node)
 
@@ -184,21 +230,45 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         vmid: Annotated[str, Field(description="New VM ID number (e.g. '200', '300')")],
         name: Annotated[str, Field(description="VM name (e.g. 'my-new-vm', 'web-server')")],
         cpus: Annotated[int, Field(description="Number of CPU cores (e.g. 1, 2, 4)", ge=1, le=32)],
-        memory: Annotated[int, Field(description="Memory size in MB (e.g. 2048 for 2GB)", ge=512, le=131072)],
-        disk_size: Annotated[int, Field(description="Disk size in GB (e.g. 10, 20, 50)", ge=5, le=1000)],
-        storage: Annotated[str | None, Field(description="Storage name (optional, will auto-detect)", default=None)] = None,
-        ostype: Annotated[str | None, Field(description="OS type (optional, default: 'l26' for Linux)", default=None)] = None,
-        iso_name: Annotated[str | None, Field(description="ISO file name to mount (optional)", default=None)] = None,
-        iso_storage: Annotated[str | None, Field(description="Storage containing the ISO (optional)", default=None)] = None,
+        memory: Annotated[
+            int, Field(description="Memory size in MB (e.g. 2048 for 2GB)", ge=512, le=131072)
+        ],
+        disk_size: Annotated[
+            int, Field(description="Disk size in GB (e.g. 10, 20, 50)", ge=5, le=1000)
+        ],
+        storage: Annotated[
+            str | None, Field(description="Storage name (optional, will auto-detect)", default=None)
+        ] = None,
+        ostype: Annotated[
+            str | None,
+            Field(description="OS type (optional, default: 'l26' for Linux)", default=None),
+        ] = None,
+        iso_name: Annotated[
+            str | None, Field(description="ISO file name to mount (optional)", default=None)
+        ] = None,
+        iso_storage: Annotated[
+            str | None, Field(description="Storage containing the ISO (optional)", default=None)
+        ] = None,
     ):
-        return ctx.vm_tools.create_vm(node, vmid, name, cpus, memory, disk_size, storage, ostype, iso_name, iso_storage)
+        return ctx.vm_tools.create_vm(
+            node, vmid, name, cpus, memory, disk_size, storage, ostype, iso_name, iso_storage
+        )
 
     @_tool(EXECUTE_VM_COMMAND_DESC)
     async def execute_vm_command(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve1', 'proxmox-node2')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '100', '101')")],
-        command: Annotated[str, Field(description="Shell command to run (e.g. 'uname -a', 'systemctl status nginx')")],
-        args: Annotated[list[str] | None, Field(description="Optional argument list. When given, the command is the program and args its arguments (no shell is involved). When omitted, command is split into words with shlex rules (no shell).", default=None)] = None,
+        command: Annotated[
+            str,
+            Field(description="Shell command to run (e.g. 'uname -a', 'systemctl status nginx')"),
+        ],
+        args: Annotated[
+            list[str] | None,
+            Field(
+                description="Optional argument list. When given, the command is the program and args its arguments (no shell is involved). When omitted, command is split into words with shlex rules (no shell).",
+                default=None,
+            ),
+        ] = None,
     ):
         return await ctx.vm_tools.execute_command(node, vmid, command, args)
 
@@ -216,7 +286,13 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
     def stop_vm(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")],
-        confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
+        confirm: Annotated[
+            bool,
+            Field(
+                description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.",
+                default=False,
+            ),
+        ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
     ):
@@ -237,7 +313,13 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
     def reset_vm(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")],
-        confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
+        confirm: Annotated[
+            bool,
+            Field(
+                description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.",
+                default=False,
+            ),
+        ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
     ):
@@ -249,8 +331,16 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
     def delete_vm(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '998')")],
-        force: Annotated[bool, Field(description="Force deletion even if VM is running", default=False)] = False,
-        confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
+        force: Annotated[
+            bool, Field(description="Force deletion even if VM is running", default=False)
+        ] = False,
+        confirm: Annotated[
+            bool,
+            Field(
+                description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.",
+                default=False,
+            ),
+        ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
     ):
@@ -262,8 +352,15 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
     def update_vm(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
-        memory: Annotated[int | None, Field(description="New memory size in MB (e.g. 4096 for 4GB, 6144 for 6GB)", default=None)] = None,
-        cpus: Annotated[int | None, Field(description="New number of CPU cores (e.g. 1, 2, 4)", default=None)] = None,
+        memory: Annotated[
+            int | None,
+            Field(
+                description="New memory size in MB (e.g. 4096 for 4GB, 6144 for 6GB)", default=None
+            ),
+        ] = None,
+        cpus: Annotated[
+            int | None, Field(description="New number of CPU cores (e.g. 1, 2, 4)", default=None)
+        ] = None,
         name: Annotated[str | None, Field(description="New VM name", default=None)] = None,
     ):
         return ctx.vm_tools.update_vm(node, vmid, memory, cpus, name)
@@ -272,7 +369,13 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
     @_tool(START_CONTAINER_DESC)
     def start_container(
         vmid: Annotated[str, Field(description="Container ID number (e.g. '200')")],
-        node: Annotated[str | None, Field(description="Optional node name; must match the node the container runs on", default=None)] = None,
+        node: Annotated[
+            str | None,
+            Field(
+                description="Optional node name; must match the node the container runs on",
+                default=None,
+            ),
+        ] = None,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
     ):
@@ -281,8 +384,20 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
     @_tool(STOP_CONTAINER_DESC)
     def stop_container(
         vmid: Annotated[str, Field(description="Container ID number (e.g. '200')")],
-        node: Annotated[str | None, Field(description="Optional node name; must match the node the container runs on", default=None)] = None,
-        confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
+        node: Annotated[
+            str | None,
+            Field(
+                description="Optional node name; must match the node the container runs on",
+                default=None,
+            ),
+        ] = None,
+        confirm: Annotated[
+            bool,
+            Field(
+                description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.",
+                default=False,
+            ),
+        ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
     ):
@@ -293,7 +408,13 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
     @_tool(SHUTDOWN_CONTAINER_DESC)
     def shutdown_container(
         vmid: Annotated[str, Field(description="Container ID number (e.g. '200')")],
-        node: Annotated[str | None, Field(description="Optional node name; must match the node the container runs on", default=None)] = None,
+        node: Annotated[
+            str | None,
+            Field(
+                description="Optional node name; must match the node the container runs on",
+                default=None,
+            ),
+        ] = None,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
     ):
@@ -305,8 +426,12 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
         name: Annotated[str, Field(description="Snapshot name (e.g. 'pre-upgrade')")],
-        description: Annotated[str | None, Field(description="Optional description", default=None)] = None,
-        vmstate: Annotated[bool, Field(description="Include VM memory state", default=False)] = False,
+        description: Annotated[
+            str | None, Field(description="Optional description", default=None)
+        ] = None,
+        vmstate: Annotated[
+            bool, Field(description="Include VM memory state", default=False)
+        ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
     ):
@@ -317,7 +442,13 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
         name: Annotated[str, Field(description="Snapshot name to rollback to")],
-        confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
+        confirm: Annotated[
+            bool,
+            Field(
+                description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.",
+                default=False,
+            ),
+        ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
     ):
@@ -337,7 +468,13 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
         vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
         name: Annotated[str, Field(description="Snapshot name to delete")],
-        confirm: Annotated[bool, Field(description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.", default=False)] = False,
+        confirm: Annotated[
+            bool,
+            Field(
+                description="Set true to actually perform this destructive operation. When omitted or false only a preview is returned and nothing is changed.",
+                default=False,
+            ),
+        ] = False,
         wait: WaitParam = False,
         timeout: TimeoutParam = 30,
     ):
@@ -361,8 +498,17 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
     @_tool(LIST_BACKUPS_DESC)
     def list_backups(
         node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-        storage: Annotated[str | None, Field(description="Storage name to list (optional, default: all backup-capable storages on the node)", default=None)] = None,
-        vmid: Annotated[str | None, Field(description="Only backups of this VM/CT ID (optional, e.g. '100')", default=None)] = None,
+        storage: Annotated[
+            str | None,
+            Field(
+                description="Storage name to list (optional, default: all backup-capable storages on the node)",
+                default=None,
+            ),
+        ] = None,
+        vmid: Annotated[
+            str | None,
+            Field(description="Only backups of this VM/CT ID (optional, e.g. '100')", default=None),
+        ] = None,
     ):
         return ctx.storage_tools.list_backups(node, storage, vmid)
 
@@ -385,7 +531,15 @@ def build_registry(ctx: ToolContext) -> list[ToolSpec]:
     @_tool(WAIT_FOR_TASK_DESC)
     def wait_for_task(
         upid: Annotated[str, Field(description="Task id (UPID) returned by a mutating tool")],
-        timeout: Annotated[int, Field(description="Maximum seconds to wait (1-300, default 30); a still-running task is reported as running, not as an error", ge=1, le=300, default=30)] = 30,
+        timeout: Annotated[
+            int,
+            Field(
+                description="Maximum seconds to wait (1-300, default 30); a still-running task is reported as running, not as an error",
+                ge=1,
+                le=300,
+                default=30,
+            ),
+        ] = 30,
     ):
         return ctx.task_tools.wait_for_task(upid, timeout)
 

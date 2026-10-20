@@ -1,4 +1,5 @@
 """Unit tests for proxmox_mcp.tools.pve_compat (PVE 8.x / 9.x API reality, TECH-02)."""
+
 from unittest.mock import MagicMock
 
 import pytest
@@ -26,16 +27,19 @@ def rex(code, content="x", message="Err"):
     return ResourceException(code, message, content)
 
 
-@pytest.mark.parametrize("op,priv,path", [
-    ("start_vm", "VM.PowerMgmt", "/vms/100"),
-    ("stop_vm", "VM.PowerMgmt", "/vms/100"),
-    ("delete_vm", "VM.Allocate", "/vms/100"),
-    ("create_snapshot", "VM.Snapshot", "/vms/100"),
-    ("rollback_snapshot", "VM.Snapshot.Rollback", "/vms/100"),
-    ("update_vm", "VM.Config", "/vms/100"),
-    ("get_storage", "Datastore.Audit", "/storage"),
-    ("get_node_status", "Sys.Audit", "/nodes/pve1"),
-])
+@pytest.mark.parametrize(
+    "op,priv,path",
+    [
+        ("start_vm", "VM.PowerMgmt", "/vms/100"),
+        ("stop_vm", "VM.PowerMgmt", "/vms/100"),
+        ("delete_vm", "VM.Allocate", "/vms/100"),
+        ("create_snapshot", "VM.Snapshot", "/vms/100"),
+        ("rollback_snapshot", "VM.Snapshot.Rollback", "/vms/100"),
+        ("update_vm", "VM.Config", "/vms/100"),
+        ("get_storage", "Datastore.Audit", "/storage"),
+        ("get_node_status", "Sys.Audit", "/nodes/pve1"),
+    ],
+)
 def test_403_names_privilege_and_path(op, priv, path):
     err = translate_pve_error(rex(403), op, node="pve1", vmid="100")
     assert isinstance(err, ValueError)
@@ -53,8 +57,10 @@ def test_401_404_lock_unreachable_and_generic():
     assert "Authentication" in str(translate_pve_error(rex(401), "start_vm"))
     nf = translate_pve_error(rex(404), "start_vm")
     assert isinstance(nf, ValueError) and "not found" in str(nf)
-    for body in ("can't lock file '/var/lock/qemu-server/lock-100.conf' - got timeout",
-                 "VM is locked (backup)"):
+    for body in (
+        "can't lock file '/var/lock/qemu-server/lock-100.conf' - got timeout",
+        "VM is locked (backup)",
+    ):
         lock = translate_pve_error(rex(500, body), "start_vm")
         assert "locked" in str(lock) and "retry" in str(lock)
     for code in (595, 596):
@@ -90,11 +96,19 @@ def test_describe_task_result():
     assert "True" in describe_task_result(True)
 
 
-@pytest.mark.parametrize("value,ok", [
-    (UPID, True), ("../x", False), ("UPID:", False), (UPID + "\n", False),
-    (UPID.replace("pve1", "pve 1"), False), (UPID + "/../x", False), (None, False),
-    ("UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstop:100:a/b:", False),
-])
+@pytest.mark.parametrize(
+    "value,ok",
+    [
+        (UPID, True),
+        ("../x", False),
+        ("UPID:", False),
+        (UPID + "\n", False),
+        (UPID.replace("pve1", "pve 1"), False),
+        (UPID + "/../x", False),
+        (None, False),
+        ("UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstop:100:a/b:", False),
+    ],
+)
 def test_is_upid(value, ok):
     assert is_upid(value) is ok
 
@@ -112,10 +126,20 @@ def test_is_upid_agrees_with_validate_upid():
         assert is_upid(value) is passes, value
 
 
-@pytest.mark.parametrize("key", [
-    "start_container", "stop_container", "shutdown_container", "list_snapshots",
-    "delete_snapshot", "list_backups", "get_ha_status", "get_task_status", "wait_for_task",
-])
+@pytest.mark.parametrize(
+    "key",
+    [
+        "start_container",
+        "stop_container",
+        "shutdown_container",
+        "list_snapshots",
+        "delete_snapshot",
+        "list_backups",
+        "get_ha_status",
+        "get_task_status",
+        "wait_for_task",
+    ],
+)
 def test_new_operation_privileges_present(key):
     from proxmox_mcp.tools.pve_compat import OPERATION_PRIVILEGES
 
@@ -123,8 +147,9 @@ def test_new_operation_privileges_present(key):
 
 
 def test_403_delete_snapshot_names_privilege_and_path():
-    err = translate_pve_error(rex(403), "delete a snapshot", node="pve1", vmid="105",
-                              privilege_key="delete_snapshot")
+    err = translate_pve_error(
+        rex(403), "delete a snapshot", node="pve1", vmid="105", privilege_key="delete_snapshot"
+    )
     assert "VM.Snapshot" in str(err) and "/vms/105" in str(err)
 
 
@@ -162,8 +187,7 @@ def test_wait_task_stopped_ok_after_polling():
 @pytest.mark.parametrize("exitstatus", ["some error", "WARNINGS: 1", None])
 def test_wait_task_stopped_bad_exit(exitstatus):
     fake = _fake()
-    fake.set("GET", "nodes/*/tasks/*/status",
-             {"status": "stopped", "exitstatus": exitstatus})
+    fake.set("GET", "nodes/*/tasks/*/status", {"status": "stopped", "exitstatus": exitstatus})
     with pytest.raises(RuntimeError, match="exitstatus"):
         wait_task_stopped(fake, "pve1", UPID, sleep=lambda s: None)
 
@@ -177,8 +201,9 @@ def test_wait_task_stopped_timeout_and_invalid_upid():
         now[0] += s
 
     with pytest.raises(RuntimeError, match="Timed out"):
-        wait_task_stopped(fake, "pve1", UPID, timeout=5, interval=1, sleep=sleep,
-                          clock=lambda: now[0])
+        wait_task_stopped(
+            fake, "pve1", UPID, timeout=5, interval=1, sleep=sleep, clock=lambda: now[0]
+        )
     fake.reset_calls()
     with pytest.raises(ValueError):
         wait_task_stopped(fake, "pve1", "../x", sleep=lambda s: None)
@@ -191,14 +216,22 @@ def test_require_vm_status_ok_and_403():
     fake.fail("GET", "nodes/pve1/qemu/100/status/current", rex(403))
     fake.reset_calls()
     with pytest.raises(ValueError, match="VM.PowerMgmt"):
-        require_vm_status(fake, "pve1", "100", "start_vm", )
+        require_vm_status(
+            fake,
+            "pve1",
+            "100",
+            "start_vm",
+        )
     assert not any(c.path.endswith("/qemu") for c in fake.calls)
 
 
 def test_require_vm_status_missing_vm_via_listing():
     fake = _fake()
-    fake.fail("GET", "nodes/pve1/qemu/999/status/current",
-              rex(500, "Configuration file 'nodes/pve1/qemu-server/999.conf' does not exist"))
+    fake.fail(
+        "GET",
+        "nodes/pve1/qemu/999/status/current",
+        rex(500, "Configuration file 'nodes/pve1/qemu-server/999.conf' does not exist"),
+    )
     with pytest.raises(ValueError, match="VM 999 not found on node pve1"):
         require_vm_status(fake, "pve1", "999", "start_vm")
 

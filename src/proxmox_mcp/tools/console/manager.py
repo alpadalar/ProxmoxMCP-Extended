@@ -37,13 +37,13 @@ from ..pve_compat import (
 
 class VMConsoleManager:
     """Manager class for VM console operations.
-    
+
     Provides functionality for:
     - Executing commands in VM consoles
     - Managing command execution lifecycle
     - Handling command output and errors
     - Monitoring execution status
-    
+
     Uses QEMU guest agent for reliable command execution with:
     - VM state verification before execution
     - Asynchronous command processing
@@ -107,8 +107,12 @@ class VMConsoleManager:
         if not isinstance(exc, (ResourceException, requests.exceptions.RequestException)):
             return
         translated = translate_pve_error(
-            exc, "execute command on VM", node=node, vmid=vmid,
-            major=self._pve_major(), privilege_key="execute_vm_command",
+            exc,
+            "execute command on VM",
+            node=node,
+            vmid=vmid,
+            major=self._pve_major(),
+            privilege_key="execute_vm_command",
         )
         clean = type(translated)(redact_local(str(translated), command, *argv))
         clean._pve_translated = True  # type: ignore[attr-defined]
@@ -206,12 +210,12 @@ class VMConsoleManager:
            - Verifies VM exists and is running
            - Initiates command execution via guest agent
            - Captures command PID for tracking
-        
+
         2. Result Collection:
            - Monitors command execution status
            - Captures command output and errors
            - Handles completion status
-        
+
         Requirements:
         - VM must be running
         - QEMU guest agent must be installed and active
@@ -261,9 +265,7 @@ class VMConsoleManager:
             self.logger.info(f"Executing command on VM {vmid} (node: {node})")
 
             # Use the guest agent exec endpoint
-            endpoint = await asyncio.to_thread(
-                lambda: self.proxmox.nodes(node).qemu(vmid).agent
-            )
+            endpoint = await asyncio.to_thread(lambda: self.proxmox.nodes(node).qemu(vmid).agent)
 
             # Execute the command using two-step process
             try:
@@ -280,10 +282,10 @@ class VMConsoleManager:
                     self._raise_translated(e, node, vmid, command, argv)
                     raise RuntimeError(f"Failed to start command: {type(e).__name__}") from None
 
-                if not isinstance(exec_result, dict) or 'pid' not in exec_result:
+                if not isinstance(exec_result, dict) or "pid" not in exec_result:
                     raise RuntimeError("No PID returned from command execution")
 
-                pid = exec_result['pid']
+                pid = exec_result["pid"]
                 self.logger.info(f"Command started on VM {vmid} (PID: {pid})")
 
                 # Poll exec-status with backoff until the command exits or the deadline passes.
@@ -326,8 +328,10 @@ class VMConsoleManager:
             if isinstance(console, dict):
                 output, cut_out = self._cap(console.get("out-data", ""))
                 error, cut_err = self._cap(console.get("err-data", ""))
-                truncated = cut_out or cut_err or bool(
-                    console.get("out-truncated") or console.get("err-truncated")
+                truncated = (
+                    cut_out
+                    or cut_err
+                    or bool(console.get("out-truncated") or console.get("err-truncated"))
                 )
                 exited = bool(console.get("exited", 0))
                 exit_code = console.get("exitcode") if exited else None

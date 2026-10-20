@@ -10,6 +10,7 @@ This module provides the foundation for all Proxmox MCP tools, including:
 All tool implementations inherit from the ProxmoxTool base class to ensure
 consistent behavior and error handling across the MCP server.
 """
+
 import logging
 from collections.abc import Callable
 from typing import Any
@@ -26,13 +27,13 @@ from .pve_compat import TaskFailedError, translate_pve_error
 
 class ProxmoxTool:
     """Base class for Proxmox MCP tools.
-    
+
     This class provides common functionality used by all Proxmox tool implementations:
     - Proxmox API access
     - Standardized logging
     - Response formatting
     - Error handling
-    
+
     All tool classes should inherit from this base class to ensure consistent
     behavior and error handling across the MCP server.
     """
@@ -82,6 +83,7 @@ class ProxmoxTool:
         else:
             # Fallback to JSON formatting for unknown types
             import json
+
             formatted = json.dumps(data, indent=2)
 
         return [Content(type="text", text=formatted)]
@@ -121,7 +123,11 @@ class ProxmoxTool:
             error, (requests.exceptions.ConnectionError, requests.exceptions.Timeout)
         ):
             raise translate_pve_error(
-                error, operation, node=node, vmid=vmid, privilege_key=privilege_key,
+                error,
+                operation,
+                node=node,
+                vmid=vmid,
+                privilege_key=privilege_key,
                 major=self._pve_major(),
             ) from None
 
@@ -131,5 +137,5 @@ class ProxmoxTool:
             raise ValueError(f"Permission denied: {error_msg}")
         if "invalid" in error_msg.lower():
             raise ValueError(f"Invalid input: {error_msg}")
-        
+
         raise RuntimeError(f"Failed to {redact(operation)}: {error_msg}")

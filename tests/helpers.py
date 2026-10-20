@@ -1,4 +1,5 @@
 """Shared test helpers (importable explicitly: ``from tests.helpers import tool_text``)."""
+
 from typing import Any
 
 

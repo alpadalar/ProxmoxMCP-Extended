@@ -1,4 +1,5 @@
 """PVE 8.x vs 9.x behavior matrix (TECH-02), run against the pve8 and pve9 harness fixtures."""
+
 import pytest
 from fastmcp.exceptions import ToolError
 from proxmoxer.core import ResourceException
@@ -7,7 +8,8 @@ from tests.helpers import tool_text
 
 UPID_RE_PREFIX = "UPID:pve1:"
 MISSING = ResourceException(
-    500, "Internal Server Error",
+    500,
+    "Internal Server Error",
     "Configuration file 'nodes/pve1/qemu-server/999.conf' does not exist",
 )
 
@@ -49,8 +51,11 @@ async def test_missing_vm_is_not_found_and_mutates_nothing(app, fake_pve, tool):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("tool", sorted(VM_TOOLS))
 async def test_403_names_privilege_and_path(app, fake_pve, tool):
-    fake_pve.fail("GET", "nodes/*/qemu/999/status/current",
-                  ResourceException(403, "Forbidden", "Permission check failed"))
+    fake_pve.fail(
+        "GET",
+        "nodes/*/qemu/999/status/current",
+        ResourceException(403, "Forbidden", "Permission check failed"),
+    )
     fake_pve.reset_calls()
     with pytest.raises(ToolError) as ei:
         await app.mcp.call_tool(tool, _args(tool))
@@ -75,10 +80,12 @@ async def test_rollback_upid_vs_null_return(app, fake_pve):
 @pytest.mark.asyncio
 async def test_update_and_snapshot_never_print_task_id_none(app, fake_pve):
     fake_pve.set("POST", "nodes/*/qemu/*/snapshot", None)
-    snap = tool_text(await app.mcp.call_tool(
-        "create_snapshot", {"node": "pve1", "vmid": "100", "name": "s2"}))
-    upd = tool_text(await app.mcp.call_tool(
-        "update_vm", {"node": "pve1", "vmid": "101", "name": "renamed-vm"}))
+    snap = tool_text(
+        await app.mcp.call_tool("create_snapshot", {"node": "pve1", "vmid": "100", "name": "s2"})
+    )
+    upd = tool_text(
+        await app.mcp.call_tool("update_vm", {"node": "pve1", "vmid": "101", "name": "renamed-vm"})
+    )
     for text in (snap, upd):
         assert "Task ID: None" not in text and "None" not in text
         assert "no task id" in text.lower()
@@ -94,11 +101,15 @@ async def test_force_delete_waits_for_stop_task(app, fake_pve):
     app.vm_tools._sleep = lambda s: None
     _stop_sequence(fake_pve)
     cur = iter([{"status": "running", "name": "web-01"}])
-    fake_pve.set("GET", "nodes/*/qemu/100/status/current",
-                 lambda p, s: next(cur, {"status": "stopped", "name": "web-01"}))
+    fake_pve.set(
+        "GET",
+        "nodes/*/qemu/100/status/current",
+        lambda p, s: next(cur, {"status": "stopped", "name": "web-01"}),
+    )
     fake_pve.reset_calls()
     await app.mcp.call_tool(
-        "delete_vm", {"node": "pve1", "vmid": "100", "force": True, "confirm": True})
+        "delete_vm", {"node": "pve1", "vmid": "100", "force": True, "confirm": True}
+    )
     seq = [(c.method, c.path) for c in fake_pve.calls if c.method != "GET" or "tasks" in c.path]
     assert seq[0] == ("POST", "nodes/pve1/qemu/100/status/stop")
     assert [p for m, p in seq if "tasks" in p] and seq[-1] == ("DELETE", "nodes/pve1/qemu/100")
@@ -112,7 +123,8 @@ async def test_force_delete_aborts_when_stop_task_failed(app, fake_pve):
     fake_pve.reset_calls()
     with pytest.raises(ToolError, match="some error"):
         await app.mcp.call_tool(
-            "delete_vm", {"node": "pve1", "vmid": "100", "force": True, "confirm": True})
+            "delete_vm", {"node": "pve1", "vmid": "100", "force": True, "confirm": True}
+        )
     assert [c for c in fake_pve.mutating_calls() if c.method == "DELETE"] == []
 
 
@@ -120,16 +132,19 @@ async def test_force_delete_aborts_when_stop_task_failed(app, fake_pve):
 async def test_force_delete_null_stop_polls_status_current(app, fake_pve):
     app.vm_tools._sleep = lambda s: None
     fake_pve.set("POST", "nodes/*/qemu/*/status/stop", None)
-    states = iter([
-        {"status": "running", "name": "web-01"},  # lookup
-        {"status": "running"},
-        {"status": "stopped"},
-        {"status": "stopped"},  # re-check right before delete
-    ])
+    states = iter(
+        [
+            {"status": "running", "name": "web-01"},  # lookup
+            {"status": "running"},
+            {"status": "stopped"},
+            {"status": "stopped"},  # re-check right before delete
+        ]
+    )
     fake_pve.set("GET", "nodes/*/qemu/100/status/current", lambda p, s: next(states))
     fake_pve.reset_calls()
     await app.mcp.call_tool(
-        "delete_vm", {"node": "pve1", "vmid": "100", "force": True, "confirm": True})
+        "delete_vm", {"node": "pve1", "vmid": "100", "force": True, "confirm": True}
+    )
     methods = [(c.method, c.path) for c in fake_pve.calls]
     assert methods[-1] == ("DELETE", "nodes/pve1/qemu/100")
     assert not any("tasks" in p for _, p in methods)
@@ -142,7 +157,8 @@ async def test_force_delete_null_stop_times_out_without_delete(app, fake_pve):
     fake_pve.reset_calls()
     with pytest.raises(ToolError, match="did not stop"):
         await app.mcp.call_tool(
-            "delete_vm", {"node": "pve1", "vmid": "100", "force": True, "confirm": True})
+            "delete_vm", {"node": "pve1", "vmid": "100", "force": True, "confirm": True}
+        )
     assert [c for c in fake_pve.calls if c.method == "DELETE"] == []
 
 
@@ -154,7 +170,8 @@ async def test_delete_running_without_force_refused_and_stopped_only_deletes(app
     assert fake_pve.mutating_calls() == []
     await app.mcp.call_tool("delete_vm", {"node": "pve1", "vmid": "101", "confirm": True})
     assert [(c.method, c.path) for c in fake_pve.mutating_calls()] == [
-        ("DELETE", "nodes/pve1/qemu/101")]
+        ("DELETE", "nodes/pve1/qemu/101")
+    ]
 
 
 @pytest.mark.asyncio
@@ -249,8 +266,11 @@ async def _exec(app):
 @pytest.mark.asyncio
 async def test_exec_403_is_version_aware(app, fake_pve):
     _, major = _expected(fake_pve)
-    fake_pve.fail("POST", "nodes/*/qemu/*/agent/exec",
-                  ResourceException(403, "Forbidden", "Permission check failed"))
+    fake_pve.fail(
+        "POST",
+        "nodes/*/qemu/*/agent/exec",
+        ResourceException(403, "Forbidden", "Permission check failed"),
+    )
     with pytest.raises(ToolError) as ei:
         await _exec(app)
     text = str(ei.value)
@@ -275,8 +295,11 @@ async def test_exec_403_unknown_version_names_both(policy_app, fake_pve):
 
 @pytest.mark.asyncio
 async def test_exec_agent_not_running_and_stopped_vm(app, fake_pve):
-    fake_pve.fail("POST", "nodes/*/qemu/*/agent/exec", ResourceException(
-        500, "Internal Server Error", "QEMU guest agent is not running"))
+    fake_pve.fail(
+        "POST",
+        "nodes/*/qemu/*/agent/exec",
+        ResourceException(500, "Internal Server Error", "QEMU guest agent is not running"),
+    )
     with pytest.raises(ToolError) as ei:
         await _exec(app)
     assert "agent: 1" in str(ei.value) and "qemu-guest-agent" in str(ei.value)
@@ -327,8 +350,9 @@ CONTAINER_TOOLS = {
 @pytest.mark.asyncio
 @pytest.mark.parametrize("tool", sorted(CONTAINER_TOOLS))
 async def test_container_403_names_power_privilege(app, fake_pve, tool):
-    fake_pve.fail("GET", "cluster/resources",
-                  ResourceException(403, "Forbidden", "Permission check failed"))
+    fake_pve.fail(
+        "GET", "cluster/resources", ResourceException(403, "Forbidden", "Permission check failed")
+    )
     fake_pve.reset_calls()
     with pytest.raises(ToolError) as ei:
         await app.mcp.call_tool(tool, {"vmid": "200", **CONTAINER_TOOLS[tool]})

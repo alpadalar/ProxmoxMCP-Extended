@@ -4,6 +4,7 @@
 the tool registry, the ``/health`` route and the auth middleware.  For HTTP the ASGI
 application is built exactly once and ``serve_asgi`` serves that same object.
 """
+
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -143,7 +144,8 @@ def create_app(
             logger.warning(
                 "AUTHENTICATION DISABLED (--no-auth): all MCP tools, including VM "
                 "create/delete/exec, are open to anyone who can reach %s:%s",
-                host, port,
+                host,
+                port,
             )
 
         elif host not in LOOPBACK_HOSTS:

@@ -12,6 +12,7 @@ never touches the network; the connection is established on the first
 attribute access of the proxy returned by get_api(). A failed connection is
 cached briefly (a few seconds) so bursts fail fast, then the next access retries.
 """
+
 import logging
 import threading
 import time
@@ -127,14 +128,14 @@ class ProxmoxManager:
                 "API traffic is vulnerable to interception"
             )
         return {
-            'host': proxmox_config.host,
-            'port': proxmox_config.port,
-            'user': auth_config.user,
-            'token_name': auth_config.token_name,
-            'token_value': auth_config.token_value.get_secret_value(),
-            'verify_ssl': proxmox_config.ca_bundle or proxmox_config.verify_ssl,
-            'service': proxmox_config.service,
-            'timeout': proxmox_config.timeout,
+            "host": proxmox_config.host,
+            "port": proxmox_config.port,
+            "user": auth_config.user,
+            "token_name": auth_config.token_name,
+            "token_value": auth_config.token_value.get_secret_value(),
+            "verify_ssl": proxmox_config.ca_bundle or proxmox_config.verify_ssl,
+            "service": proxmox_config.service,
+            "timeout": proxmox_config.timeout,
         }
 
     def _connect(self) -> ProxmoxAPI:

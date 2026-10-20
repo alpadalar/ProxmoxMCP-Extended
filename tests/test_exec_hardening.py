@@ -1,4 +1,5 @@
 """SEC-03: execute_vm_command argv, bounded polling, output cap, no logging."""
+
 import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -55,19 +56,22 @@ async def test_command_is_shlex_split_without_args():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("command,args", [
-    ("echo 'unbalanced SENTINEL-CMD-xyz", None),
-    ("", None),
-    ("   ", None),
-    ("", ["a"]),
-    ("ls", ["a"] * 64),  # 65 elements with the program
-    ("ls", ["x" * 4097]),
-    ("x" * 4097, []),
-    ("ls", ["a" * 4000] * 9),  # total over 32768
-    ("ls", ["a\x00b"]),
-    ("ls", ["ok", 5]),
-    ("l\x00s", None),
-])
+@pytest.mark.parametrize(
+    "command,args",
+    [
+        ("echo 'unbalanced SENTINEL-CMD-xyz", None),
+        ("", None),
+        ("   ", None),
+        ("", ["a"]),
+        ("ls", ["a"] * 64),  # 65 elements with the program
+        ("ls", ["x" * 4097]),
+        ("x" * 4097, []),
+        ("ls", ["a" * 4000] * 9),  # total over 32768
+        ("ls", ["a\x00b"]),
+        ("ls", ["ok", 5]),
+        ("l\x00s", None),
+    ],
+)
 async def test_invalid_argv_rejected_before_any_api_call(command, args):
     api, ex, _ = _api(_status())
     with pytest.raises(ValueError) as ei:
@@ -93,8 +97,9 @@ async def test_polling_backs_off_until_exit():
 async def test_deadline_reports_timed_out_not_failure():
     api, _, st = _api(_status(0, out="partial"))
     ticks = iter([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    with patch("asyncio.sleep", new=AsyncMock()), patch(
-        f"{MANAGER}.time", MagicMock(monotonic=lambda: next(ticks))
+    with (
+        patch("asyncio.sleep", new=AsyncMock()),
+        patch(f"{MANAGER}.time", MagicMock(monotonic=lambda: next(ticks))),
     ):
         result = await _mgr(api, exec_timeout=2.5).execute_command("n", "100", "sleep 99")
     assert result["timed_out"] is True and result["exited"] is False
@@ -108,8 +113,9 @@ async def test_timed_out_formatted_distinctly():
     api, _, _ = _api(_status(0, out="partial"))
     ticks = iter([0.0, 100.0, 200.0])
     tools = VMTools(api, exec_timeout=1.0)
-    with patch("asyncio.sleep", new=AsyncMock()), patch(
-        f"{MANAGER}.time", MagicMock(monotonic=lambda: next(ticks))
+    with (
+        patch("asyncio.sleep", new=AsyncMock()),
+        patch(f"{MANAGER}.time", MagicMock(monotonic=lambda: next(ticks))),
     ):
         text = tool_text(await tools.execute_command("n", "100", "sleep 99"))
     assert "Timed out" in text and "still running in the guest" in text
@@ -154,8 +160,9 @@ async def test_timeout_is_not_success_and_exit_code_unknown():
     api, _, _ = _api(_status(0, out="partial"))
     ticks = iter([0.0, 100.0, 200.0])
     tools = VMTools(api, exec_timeout=1.0)
-    with patch("asyncio.sleep", new=AsyncMock()), patch(
-        f"{MANAGER}.time", MagicMock(monotonic=lambda: next(ticks))
+    with (
+        patch("asyncio.sleep", new=AsyncMock()),
+        patch(f"{MANAGER}.time", MagicMock(monotonic=lambda: next(ticks))),
     ):
         text = tool_text(await tools.execute_command("n", "100", "sleep 99"))
     assert "Status: FAILED" in text and "Exit code: unknown" in text and "Timed out" in text
@@ -199,7 +206,8 @@ async def test_exec_denied_without_allow_exec(policy_app, fake_pve):
     fake_pve.reset_calls()
     with pytest.raises(ToolError, match="policy_denied"):
         await app.mcp.call_tool(
-            "execute_vm_command", {"node": "pve1", "vmid": "100", "command": "id"})
+            "execute_vm_command", {"node": "pve1", "vmid": "100", "command": "id"}
+        )
     assert fake_pve.calls == []
 
 
@@ -208,8 +216,9 @@ async def test_exec_runs_with_allow_exec(policy_app, fake_pve):
     app = policy_app(allow_exec=True)
     fake_pve.reset_calls()
     with patch("asyncio.sleep", new=AsyncMock()):
-        await app.mcp.call_tool("execute_vm_command", {
-            "node": "pve1", "vmid": "100", "command": "ls", "args": ["-l"]})
+        await app.mcp.call_tool(
+            "execute_vm_command", {"node": "pve1", "vmid": "100", "command": "ls", "args": ["-l"]}
+        )
     post = [c for c in fake_pve.calls if c.method == "POST"]
     assert post and post[0].path.endswith("agent/exec")
 
@@ -224,16 +233,24 @@ async def test_limits_come_from_policy_config(policy_app):
 
 def _resource_exc(code, body=""):
     from proxmoxer.core import ResourceException
+
     return ResourceException(code, "err", body)
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("code,body,expected", [
-    (401, "", "Authentication failed"),
-    (500, "VM 100 qmp command failed - VM is locked (backup)", "locked by another task"),
-    (596, "", "unreachable"),
-    (403, "Permission check failed (/vms/100, VM.GuestAgent.Unrestricted)", "Permission denied"),
-])
+@pytest.mark.parametrize(
+    "code,body,expected",
+    [
+        (401, "", "Authentication failed"),
+        (500, "VM 100 qmp command failed - VM is locked (backup)", "locked by another task"),
+        (596, "", "unreachable"),
+        (
+            403,
+            "Permission check failed (/vms/100, VM.GuestAgent.Unrestricted)",
+            "Permission denied",
+        ),
+    ],
+)
 async def test_exec_start_errors_use_status_code_mapping(code, body, expected):
     api, _, _ = _api(_status(), post_error=_resource_exc(code, body))
     tools = VMTools(api)
@@ -248,6 +265,7 @@ async def test_exec_start_errors_use_status_code_mapping(code, body, expected):
 @pytest.mark.asyncio
 async def test_exec_status_connection_error_is_translated():
     import requests
+
     api, _, st = _api(_status())
     st.get.side_effect = requests.exceptions.ConnectionError("down")
     with patch("asyncio.sleep", new=AsyncMock()):
@@ -290,6 +308,7 @@ async def test_exec_concurrency_is_capped():
 
 def test_exec_max_concurrent_policy_range_and_env(monkeypatch):
     from proxmox_mcp.config.models import PolicyConfig
+
     assert PolicyConfig().exec_max_concurrent == 2
     for bad in (0, 17):
         with pytest.raises(Exception):

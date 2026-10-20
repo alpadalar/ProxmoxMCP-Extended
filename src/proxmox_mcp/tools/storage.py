@@ -12,6 +12,7 @@ This module provides tools for managing and monitoring Proxmox storage:
 The tools implement fallback mechanisms for scenarios where
 detailed storage information might be temporarily unavailable.
 """
+
 from datetime import datetime, timezone
 from typing import Any
 
@@ -24,15 +25,16 @@ from .base import ProxmoxTool
 
 NOTES_MAX = 300
 
+
 class StorageTools(ProxmoxTool):
     """Tools for managing Proxmox storage.
-    
+
     Provides functionality for:
     - Retrieving cluster-wide storage information
     - Monitoring storage pool status and health
     - Tracking storage utilization and capacity
     - Managing storage content types
-    
+
     Implements fallback mechanisms for scenarios where detailed
     storage information might be temporarily unavailable.
     """
@@ -48,7 +50,7 @@ class StorageTools(ProxmoxTool):
           * Used space
           * Total capacity
           * Available space
-        
+
         Implements a fallback mechanism that returns basic information
         if detailed status retrieval fails for any storage pool.
 
@@ -70,32 +72,40 @@ class StorageTools(ProxmoxTool):
         try:
             result = self.proxmox.storage.get()
             storage = []
-            
+
             for store in result:
                 # Get detailed storage info including usage
                 try:
-                    status = self.proxmox.nodes(store.get("node", "localhost")).storage(store["storage"]).status.get()
-                    storage.append({
-                        "storage": store["storage"],
-                        "type": store["type"],
-                        "content": store.get("content", []),
-                        "status": "online" if store.get("enabled", True) else "offline",
-                        "used": status.get("used", 0),
-                        "total": status.get("total", 0),
-                        "available": status.get("avail", 0)
-                    })
+                    status = (
+                        self.proxmox.nodes(store.get("node", "localhost"))
+                        .storage(store["storage"])
+                        .status.get()
+                    )
+                    storage.append(
+                        {
+                            "storage": store["storage"],
+                            "type": store["type"],
+                            "content": store.get("content", []),
+                            "status": "online" if store.get("enabled", True) else "offline",
+                            "used": status.get("used", 0),
+                            "total": status.get("total", 0),
+                            "available": status.get("avail", 0),
+                        }
+                    )
                 except Exception:
                     # If detailed status fails, add basic info
-                    storage.append({
-                        "storage": store["storage"],
-                        "type": store["type"],
-                        "content": store.get("content", []),
-                        "status": "online" if store.get("enabled", True) else "offline",
-                        "used": 0,
-                        "total": 0,
-                        "available": 0
-                    })
-                    
+                    storage.append(
+                        {
+                            "storage": store["storage"],
+                            "type": store["type"],
+                            "content": store.get("content", []),
+                            "status": "online" if store.get("enabled", True) else "offline",
+                            "used": 0,
+                            "total": 0,
+                            "available": 0,
+                        }
+                    )
+
             return self._format_response(storage, "storage")
         except Exception as e:
             self._handle_error("get storage", e, privilege_key="get_storage")
@@ -124,15 +134,14 @@ class StorageTools(ProxmoxTool):
             "ctime": ctime if ok else None,
             "ctime_utc": (
                 datetime.fromtimestamp(ctime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-                if ok else None
+                if ok
+                else None
             ),
             "notes": redact(str(item.get("notes") or ""))[:NOTES_MAX],
             "protected": bool(item.get("protected")),
         }
 
-    def _storage_backups(
-        self, node: str, storage: str, vmid: str | None
-    ) -> list[dict[str, Any]]:
+    def _storage_backups(self, node: str, storage: str, vmid: str | None) -> list[dict[str, Any]]:
         params: dict[str, Any] = {"content": "backup"}
         if vmid is not None:
             params["vmid"] = vmid
@@ -171,16 +180,19 @@ class StorageTools(ProxmoxTool):
                         name = validate_storage(store.get("storage"))
                         backups.extend(self._storage_backups(node, name, vmid))
                     except Exception as exc:  # reported, never hidden; other storages continue
-                        skipped.append({
-                            "storage": redact(str(store.get("storage"))),
-                            "reason": redact(str(exc))[:NOTES_MAX],
-                        })
+                        skipped.append(
+                            {
+                                "storage": redact(str(store.get("storage"))),
+                                "reason": redact(str(exc))[:NOTES_MAX],
+                            }
+                        )
             backups.sort(key=lambda b: (b["ctime"] or 0, b["volid"]), reverse=True)
             payload = {
-                "node": node, "count": len(backups), "backups": backups, "skipped": skipped,
+                "node": node,
+                "count": len(backups),
+                "backups": backups,
+                "skipped": skipped,
             }
             return self._format_response(payload)
         except Exception as e:
-            self._handle_error(
-                "list backups", e, privilege_key="list_backups", node=node
-            )
+            self._handle_error("list backups", e, privilege_key="list_backups", node=node)

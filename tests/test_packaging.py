@@ -40,7 +40,9 @@ def test_fastmcp_bounded():
     data = _pyproject()
     assert data["project"]["requires-python"] == ">=3.10"
     matches = [
-        d for d in data["project"]["dependencies"] if d.replace(" ", "").startswith("fastmcp>=4.1.2")
+        d
+        for d in data["project"]["dependencies"]
+        if d.replace(" ", "").startswith("fastmcp>=4.1.2")
     ]
     assert matches and "<5" in matches[0].replace(" ", "")
 

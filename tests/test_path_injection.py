@@ -3,6 +3,7 @@
 Every tool in ``tests/golden/tools.json`` that takes a node/vmid/storage/snapshot/
 VM-name style parameter must reject bad values before any proxmoxer call.
 """
+
 import json
 from pathlib import Path
 
@@ -43,7 +44,12 @@ EXTRA_BAD = {
 
 # Bad task ids (UPID); the generic BAD list does not exercise the UPID grammar.
 BAD_UPID = [
-    "../x", "a b", "x\n", "", "UPID:", "upid:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:u:",
+    "../x",
+    "a b",
+    "x\n",
+    "",
+    "UPID:",
+    "upid:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:u:",
     "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:monitor@pve!mcp",  # no trailing colon
     "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:../../x:",
     "UPID:../x:0000ABCD:00123456:65A1B2C3:qmstart:100:root@pam:",
@@ -53,8 +59,13 @@ BAD_UPID = [
 
 # Tools without identifier parameters: explicitly exempt.
 NO_INPUT_TOOLS = {
-    "get_nodes", "get_vms", "get_containers", "get_storage",
-    "get_cluster_status", "health", "get_ha_status",
+    "get_nodes",
+    "get_vms",
+    "get_containers",
+    "get_storage",
+    "get_cluster_status",
+    "health",
+    "get_ha_status",
 }
 IDENT_HINTS = ("node", "vmid", "storage", "snapshot", "name", "iso", "ostype", "upid")
 
@@ -102,10 +113,14 @@ def test_matrix_covers_every_golden_tool():
                 assert pname in GOOD, f"{tool}.{pname} is not covered by the injection matrix"
             else:
                 assert pname in OTHER or pname in {
-                    "description", "vmstate", "force", "confirm", "args", "wait", "timeout",
-                }, (
-                    f"{tool}.{pname} is unknown to the injection matrix"
-                )
+                    "description",
+                    "vmstate",
+                    "force",
+                    "confirm",
+                    "args",
+                    "wait",
+                    "timeout",
+                }, f"{tool}.{pname} is unknown to the injection matrix"
 
 
 @pytest.mark.asyncio
@@ -120,12 +135,15 @@ async def test_bad_identifier_rejected_before_proxmoxer(server, api, tool, pname
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("kwargs", [
-    {"cpus": 0},
-    {"memory": 1},
-    {"name": "a b"},
-    {"name": "../x"},
-])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"cpus": 0},
+        {"memory": 1},
+        {"name": "a b"},
+        {"name": "../x"},
+    ],
+)
 async def test_update_vm_bad_values_rejected(server, api, kwargs):
     api.nodes.reset_mock()
     with pytest.raises((ToolError, ValidationError)):
@@ -156,7 +174,9 @@ async def test_positive_controls_reach_proxmoxer(server, api):
 
     api.nodes.reset_mock()
     api.nodes.return_value.qemu.return_value.status.current.get.return_value = {
-        "status": "stopped", "name": "web01"}
+        "status": "stopped",
+        "name": "web01",
+    }
     await server.mcp.call_tool("start_vm", {"node": "node1", "vmid": "100"})
     assert api.nodes.called is True
 

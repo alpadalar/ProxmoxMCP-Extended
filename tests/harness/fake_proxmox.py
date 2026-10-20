@@ -13,6 +13,7 @@ PVE-version specific behaviour. They contain example values only.
 Unlike MagicMock, an unmatched route raises ``UnmockedCallError``; every call is recorded
 (before any error is raised) so tests can prove which requests did or did not happen.
 """
+
 import json
 from collections.abc import Callable
 from dataclasses import dataclass, field

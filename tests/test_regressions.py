@@ -22,6 +22,7 @@ since Phase 4 / TECH-02.)
 | Known Bugs: blocking calls inside async path    | test_execute_command_does_not_block_loop           | FIXED         | Phase 3 / SRV-04    |
 | Inconsistent error semantics (delete_vm)        | test_delete_vm_not_found_not_substring_matched     | FIXED         | Phase 4 / TECH-02   |
 """
+
 import ast
 import json
 import logging
@@ -49,6 +50,7 @@ def _function_source(path: Path, name: str) -> str:
 # --------------------------------------------------------------------------
 # Fixed in Phase 1 (green)
 # --------------------------------------------------------------------------
+
 
 def test_console_script_main_exists():
     """CONCERNS packaging/entrypoint: console script must resolve to a callable main."""
@@ -83,6 +85,7 @@ def test_packaging_single_source():
 # --------------------------------------------------------------------------
 # Fixed in later phases (green)
 # --------------------------------------------------------------------------
+
 
 def test_http_auth_not_hardcoded_off():
     """CONCERNS Security: server_http must not hardcode use_django_auth = False."""
@@ -149,9 +152,7 @@ async def test_exec_command_not_logged(server, api, caplog):
     from unittest.mock import MagicMock
 
     sentinel = "SENTINEL_CMD_9f3a"
-    api.nodes.return_value.qemu.return_value.status.current.get.return_value = {
-        "status": "running"
-    }
+    api.nodes.return_value.qemu.return_value.status.current.get.return_value = {"status": "running"}
     exec_ep = MagicMock()
     exec_ep.post.return_value = {"pid": 1}
     status_ep = MagicMock()
@@ -251,6 +252,7 @@ def test_delete_vm_not_found_not_substring_matched():
 # --------------------------------------------------------------------------
 # Meta
 # --------------------------------------------------------------------------
+
 
 def test_catalog_covers_known_bug_section():
     """Every bold heading under CONCERNS '## Known Bugs' needs a catalog row."""

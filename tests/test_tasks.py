@@ -1,4 +1,5 @@
 """Task polling core: strict OK semantics, bounded waits, redaction, UPID safety."""
+
 import json
 
 import pytest
@@ -35,19 +36,22 @@ class Clock:
         self.now += seconds
 
 
-@pytest.mark.parametrize("status,expected", [
-    ({"status": "stopped", "exitstatus": "OK"}, "ok"),
-    ({"status": "stopped", "exitstatus": "WARNINGS: 2"}, "warnings"),
-    ({"status": "stopped", "exitstatus": "command failed"}, "failed"),
-    ({"status": "stopped", "exitstatus": ""}, "failed"),
-    ({"status": "stopped", "exitstatus": None}, "failed"),
-    ({"status": "stopped"}, "failed"),
-    ({"status": "stopped", "exitstatus": "ok"}, "failed"),
-    ({"status": "running"}, "running"),
-    ({"status": "weird"}, "running"),
-    ({}, "running"),
-    (None, "running"),
-])
+@pytest.mark.parametrize(
+    "status,expected",
+    [
+        ({"status": "stopped", "exitstatus": "OK"}, "ok"),
+        ({"status": "stopped", "exitstatus": "WARNINGS: 2"}, "warnings"),
+        ({"status": "stopped", "exitstatus": "command failed"}, "failed"),
+        ({"status": "stopped", "exitstatus": ""}, "failed"),
+        ({"status": "stopped", "exitstatus": None}, "failed"),
+        ({"status": "stopped"}, "failed"),
+        ({"status": "stopped", "exitstatus": "ok"}, "failed"),
+        ({"status": "running"}, "running"),
+        ({"status": "weird"}, "running"),
+        ({}, "running"),
+        (None, "running"),
+    ],
+)
 def test_classify_task(status, expected):
     assert classify_task(status) == expected
 
@@ -88,7 +92,10 @@ def test_failed_reads_log_with_limit_and_tail(fake_pve):
     assert outcome.state == "failed" and not outcome.success
     assert outcome.log_tail == [f"line {i}" for i in range(21, 31)]
     log_call = fake_pve.calls[-1]
-    assert log_call.path == f"nodes/pve1/tasks/{UPID}/log" and log_call.params == {"start": 0, "limit": 200}
+    assert log_call.path == f"nodes/pve1/tasks/{UPID}/log" and log_call.params == {
+        "start": 0,
+        "limit": 200,
+    }
 
 
 def test_log_failure_is_swallowed_and_long_lines_cut(fake_pve):
@@ -107,8 +114,9 @@ def test_non_dict_status_response(fake_pve):
 
 
 def test_poll_running_then_stopped(fake_pve):
-    seq = iter([{"status": "running"}, {"status": "running"},
-                {"status": "stopped", "exitstatus": "OK"}])
+    seq = iter(
+        [{"status": "running"}, {"status": "running"}, {"status": "stopped", "exitstatus": "OK"}]
+    )
     fake_pve.set("GET", STATUS, lambda p, s: next(seq))
     clock = Clock()
     outcome = poll_task(fake_pve, UPID, 30, sleep=clock.sleep, clock=clock)
@@ -249,10 +257,16 @@ async def test_task_tools_listed_and_work_on_both_transports(policy_app, fake_pv
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("args", [
-    {"upid": "../x"}, {"upid": UPID + "/y"}, {"upid": UPID, "timeout": 0},
-    {"upid": UPID, "timeout": 301}, {"upid": UPID, "timeout": -1},
-])
+@pytest.mark.parametrize(
+    "args",
+    [
+        {"upid": "../x"},
+        {"upid": UPID + "/y"},
+        {"upid": UPID, "timeout": 0},
+        {"upid": UPID, "timeout": 301},
+        {"upid": UPID, "timeout": -1},
+    ],
+)
 async def test_task_tools_reject_bad_input_with_zero_calls(policy_app, fake_pve, args):
     app = policy_app()
     for name in ("get_task_status", "wait_for_task"):

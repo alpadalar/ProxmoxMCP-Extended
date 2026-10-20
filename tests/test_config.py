@@ -1,4 +1,5 @@
 """Config hardening tests (CONF-01, CONF-04). Fake values only; tmp_path for files."""
+
 import json
 import logging
 from pathlib import Path
@@ -13,9 +14,17 @@ ROOT = Path(__file__).resolve().parent.parent
 SENTINEL = "SENTINEL-token-value-xyz"
 
 ENV_KEYS = [
-    "PROXMOX_HOST", "PROXMOX_PORT", "PROXMOX_USER", "PROXMOX_TOKEN_NAME",
-    "PROXMOX_TOKEN_VALUE", "PROXMOX_VERIFY_SSL", "PROXMOX_CA_BUNDLE",
-    "PROXMOX_SERVICE", "PROXMOX_TIMEOUT", "LOG_LEVEL", "LOG_FILE",
+    "PROXMOX_HOST",
+    "PROXMOX_PORT",
+    "PROXMOX_USER",
+    "PROXMOX_TOKEN_NAME",
+    "PROXMOX_TOKEN_VALUE",
+    "PROXMOX_VERIFY_SSL",
+    "PROXMOX_CA_BUNDLE",
+    "PROXMOX_SERVICE",
+    "PROXMOX_TIMEOUT",
+    "LOG_LEVEL",
+    "LOG_FILE",
 ]
 
 
@@ -45,6 +54,7 @@ def _data(**over):
 
 # ---- Task 1: models ----
 
+
 def test_extra_keys_forbidden():
     with pytest.raises(ValidationError):
         ProxmoxConfig(host="h", bogus=1)
@@ -56,10 +66,21 @@ def test_extra_keys_forbidden():
         Config(**_data(), bogus=1)
 
 
-@pytest.mark.parametrize("val,exp", [
-    (True, True), (False, False), ("1", True), (" TRUE ", True), ("yes", True),
-    ("on", True), ("0", False), ("False", False), ("no", False), ("OFF", False),
-])
+@pytest.mark.parametrize(
+    "val,exp",
+    [
+        (True, True),
+        (False, False),
+        ("1", True),
+        (" TRUE ", True),
+        ("yes", True),
+        ("on", True),
+        ("0", False),
+        ("False", False),
+        ("no", False),
+        ("OFF", False),
+    ],
+)
 def test_verify_ssl_accepts(val, exp):
     assert ProxmoxConfig(host="h", verify_ssl=val).verify_ssl is exp
 
@@ -102,10 +123,21 @@ def test_validation_error_hides_token():
     assert SENTINEL not in str(ei.value)
 
 
-@pytest.mark.parametrize("kw", [
-    {"port": 0}, {"port": 70000}, {"host": ""}, {"host": "a b"},
-    {"host": "a/b"}, {"host": "https://h"}, {"host": "evil.com#@pve"}, {"host": "u@h"}, {"host": "h?x"}, {"service": "XYZ"},
-])
+@pytest.mark.parametrize(
+    "kw",
+    [
+        {"port": 0},
+        {"port": 70000},
+        {"host": ""},
+        {"host": "a b"},
+        {"host": "a/b"},
+        {"host": "https://h"},
+        {"host": "evil.com#@pve"},
+        {"host": "u@h"},
+        {"host": "h?x"},
+        {"service": "XYZ"},
+    ],
+)
 def test_proxmox_field_validation(kw):
     with pytest.raises(ValidationError):
         ProxmoxConfig(**{"host": "h", **kw})
@@ -133,13 +165,15 @@ def test_proxmox_manager_passes_secret_and_verify(tmp_path, caplog):
         with caplog.at_level(logging.WARNING, logger="proxmox-mcp.proxmox"):
             ProxmoxManager(ProxmoxConfig(host="h", verify_ssl=False), AuthConfig(**_auth()))
         assert any(
-            r.levelno == logging.WARNING and r.name == "proxmox-mcp.proxmox"
+            r.levelno == logging.WARNING
+            and r.name == "proxmox-mcp.proxmox"
             and SENTINEL not in r.getMessage()
             for r in caplog.records
         )
 
 
 # ---- Task 2: loader ----
+
 
 def _write(tmp_path, data, name="c.json"):
     p = tmp_path / name
@@ -167,9 +201,15 @@ def test_env_only(tmp_path, clean_env):
     ca = tmp_path / "ca.pem"
     ca.write_text("x")
     for k, v in {
-        "PROXMOX_HOST": "h", "PROXMOX_USER": "u@pve", "PROXMOX_TOKEN_NAME": "t",
-        "PROXMOX_TOKEN_VALUE": SENTINEL, "PROXMOX_PORT": "8443", "PROXMOX_SERVICE": "PBS",
-        "PROXMOX_CA_BUNDLE": str(ca), "LOG_LEVEL": "warning", "LOG_FILE": "x.log",
+        "PROXMOX_HOST": "h",
+        "PROXMOX_USER": "u@pve",
+        "PROXMOX_TOKEN_NAME": "t",
+        "PROXMOX_TOKEN_VALUE": SENTINEL,
+        "PROXMOX_PORT": "8443",
+        "PROXMOX_SERVICE": "PBS",
+        "PROXMOX_CA_BUNDLE": str(ca),
+        "LOG_LEVEL": "warning",
+        "LOG_FILE": "x.log",
     }.items():
         clean_env.setenv(k, v)
     cfg = load_config()

@@ -1,4 +1,5 @@
 """start_container / stop_container / shutdown_container (FEAT-04) on PVE 8 and PVE 9 fixtures."""
+
 import json
 
 import pytest
@@ -77,8 +78,13 @@ async def test_stop_without_confirm_is_static_preview(app, fake_pve):
     assert out["tool"] == "stop_container"
     assert out["target"] == {"node": None, "vmid": "200"}
     assert fake_pve.calls == []
-    out = json.loads(tool_text(await app.mcp.call_tool(
-        "stop_container", {"vmid": "200", "node": "pve1", "confirm": False})))
+    out = json.loads(
+        tool_text(
+            await app.mcp.call_tool(
+                "stop_container", {"vmid": "200", "node": "pve1", "confirm": False}
+            )
+        )
+    )
     assert out["target"]["node"] == "pve1" and fake_pve.calls == []
 
 
@@ -87,8 +93,10 @@ async def test_stop_confirm_resolves_and_posts(app, fake_pve):
     text = tool_text(await app.mcp.call_tool("stop_container", _args("stop_container")))
     assert "stop initiated" in text
     assert [c.path for c in fake_pve.calls if c.path != "version"] == [
-        "cluster/resources", "nodes/pve1/lxc/200/status/current",
-        "nodes/pve1/lxc/200/status/stop"]
+        "cluster/resources",
+        "nodes/pve1/lxc/200/status/current",
+        "nodes/pve1/lxc/200/status/stop",
+    ]
 
 
 @pytest.mark.asyncio
@@ -103,7 +111,9 @@ async def test_qemu_vmid_refused_without_post(app, fake_pve, name):
 @pytest.mark.parametrize("name", sorted(TOOLS))
 async def test_missing_template_and_node_mismatch_refused(app, fake_pve, name):
     for vmid, node, pattern in (
-        ("999", None, "VM.Audit"), ("201", None, "template"), ("200", "pve2", "pve1"),
+        ("999", None, "VM.Audit"),
+        ("201", None, "template"),
+        ("200", "pve2", "pve1"),
     ):
         extra = {"node": node} if node else {}
         with pytest.raises(ToolError, match=pattern):
@@ -127,8 +137,11 @@ async def test_wait_ok_running_failed(app, fake_pve, name):
 
 @pytest.mark.asyncio
 async def test_migrated_container_uses_current_node(app, fake_pve):
-    fake_pve.set("GET", "cluster/resources", [
-        {"type": "lxc", "vmid": 200, "node": "pve2", "status": "running", "name": "ct-01"}])
+    fake_pve.set(
+        "GET",
+        "cluster/resources",
+        [{"type": "lxc", "vmid": 200, "node": "pve2", "status": "running", "name": "ct-01"}],
+    )
     await app.mcp.call_tool("shutdown_container", {"vmid": "200"})
     assert _posts(fake_pve) == [("nodes/pve2/lxc/200/status/shutdown", {})]
 

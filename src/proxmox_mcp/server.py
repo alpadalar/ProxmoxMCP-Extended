@@ -5,6 +5,7 @@ Thin wrapper around :func:`proxmox_mcp.app.create_app`: loads configuration, set
 logging and runs the stdio transport.  All tools come from the shared registry
 (``proxmox_mcp.tools.registry``).
 """
+
 import argparse
 import os
 import sys
@@ -53,12 +54,12 @@ class ProxmoxMCPServer:
 
     def start(self) -> None:
         """Start the MCP server.
-        
+
         Initializes the server with:
         - Shutdown handled by fastmcp (KeyboardInterrupt / SIGTERM)
         - Async runtime for handling concurrent requests
         - Error handling and logging
-        
+
         The server runs until terminated by a signal or fatal error.
         """
         try:
@@ -66,6 +67,7 @@ class ProxmoxMCPServer:
             run_tests = os.getenv("RUN_TESTS_ON_START", "0").lower() in ("1", "true", "yes", "on")
             if run_tests:
                 import subprocess
+
                 self.logger.info("Running startup tests (pytest)...")
                 env = os.environ.copy()
                 # Ensure src on PYTHONPATH for tests
@@ -73,9 +75,11 @@ class ProxmoxMCPServer:
                 env["PYTHONPATH"] = f"{os.getcwd()}/src" + extra
                 result = subprocess.run(
                     [sys.executable, "-m", "pytest", "-q"],
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    env=env,
                 )
-                self._tests_passed = (result.returncode == 0)
+                self._tests_passed = result.returncode == 0
                 if not self._tests_passed:
                     self.logger.error(
                         "Startup tests failed. Health will be 'degraded'. Output:\n"
@@ -89,6 +93,7 @@ class ProxmoxMCPServer:
         except Exception as e:
             self.logger.error(f"Server error: {e}")
             sys.exit(1)
+
 
 def main(argv: list[str] | None = None) -> None:
     """Console script entry point for ``proxmox-mcp``."""
@@ -104,7 +109,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--log-level", default=None, help="Override logging level")
     parser.add_argument("--log-file", default=None, help="Override log file path")
     parser.add_argument(
-        "--verify-ssl", default=None,
+        "--verify-ssl",
+        default=None,
         help="Override TLS verification (true/false, 1/0, yes/no, on/off)",
     )
     parser.add_argument("--ca-bundle", default=None, help="CA bundle file for TLS verification")

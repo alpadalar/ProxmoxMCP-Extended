@@ -9,6 +9,7 @@ permission, lock and guest-agent failures. It is never used to decide that a VM 
 
 This module must not import from tools/vm.py or tools/console/manager.py (both import it).
 """
+
 import re
 import time
 from collections.abc import Callable
@@ -63,6 +64,7 @@ KNOWN_500_MARKERS: dict[str, tuple[str, ...]] = {
     "lock": ("can't lock file", "cannot lock", "is locked", "got lock timeout"),
     "agent": ("guest agent is not running", "qga is not running"),
 }
+
 
 class TaskFailedError(RuntimeError):
     """A waited-for Proxmox task stopped without exitstatus OK (message names UPID/exitstatus)."""
@@ -191,9 +193,7 @@ def require_vm_status(api: Any, node: str, vmid: Any, operation: str) -> dict[st
             try:
                 listed = vm_listed(api, node, vmid)
             except Exception:
-                raise translate_pve_error(
-                    exc, operation, node=node, vmid=vmid
-                ) from None
+                raise translate_pve_error(exc, operation, node=node, vmid=vmid) from None
             if not listed:
                 raise ValueError(f"VM {vmid} not found on node {node}") from None
         raise translate_pve_error(exc, operation, node=node, vmid=vmid) from None
@@ -204,8 +204,10 @@ def describe_task_result(result: Any) -> str:
     if result is None:
         return "Task: no task id returned (PVE may complete this synchronously); verify VM state"
     if isinstance(result, str):
-        return f"Task ID: {result[:200]}" if result else (
-            "Task: no task id returned (empty); verify VM state"
+        return (
+            f"Task ID: {result[:200]}"
+            if result
+            else ("Task: no task id returned (empty); verify VM state")
         )
     text = repr(result)
     return f"Task result: {text[:200]}"

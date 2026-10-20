@@ -1,4 +1,5 @@
 """Policy config tests (SEC-01 config surface). Fake values only."""
+
 import hashlib
 import json
 from pathlib import Path
@@ -10,8 +11,12 @@ from proxmox_mcp.config.loader import load_config
 from proxmox_mcp.config.models import Config, PolicyConfig
 
 POLICY_ENV = [
-    "PROXMOX_MCP_READ_ONLY", "PROXMOX_MCP_ALLOW_DESTRUCTIVE", "PROXMOX_MCP_ALLOW_EXEC",
-    "PROXMOX_MCP_EXEC_TIMEOUT", "PROXMOX_MCP_EXEC_MAX_OUTPUT", "PROXMOX_MCP_EXEC_MAX_CONCURRENT",
+    "PROXMOX_MCP_READ_ONLY",
+    "PROXMOX_MCP_ALLOW_DESTRUCTIVE",
+    "PROXMOX_MCP_ALLOW_EXEC",
+    "PROXMOX_MCP_EXEC_TIMEOUT",
+    "PROXMOX_MCP_EXEC_MAX_OUTPUT",
+    "PROXMOX_MCP_EXEC_MAX_CONCURRENT",
 ]
 BASE_ENV = {
     "PROXMOX_HOST": "h.example",
@@ -47,11 +52,23 @@ def test_defaults_closed():
     assert p.exec_max_output_bytes == 65536
 
 
-@pytest.mark.parametrize("raw,expected", [
-    (True, True), (False, False), (1, True), (0, False),
-    ("true", True), ("FALSE", False), ("Yes", True), ("no", False),
-    ("on", True), ("OFF", False), ("1", True), ("0", False),
-])
+@pytest.mark.parametrize(
+    "raw,expected",
+    [
+        (True, True),
+        (False, False),
+        (1, True),
+        (0, False),
+        ("true", True),
+        ("FALSE", False),
+        ("Yes", True),
+        ("no", False),
+        ("on", True),
+        ("OFF", False),
+        ("1", True),
+        ("0", False),
+    ],
+)
 def test_bool_accepts(raw, expected):
     assert PolicyConfig(allow_exec=raw).allow_exec is expected
 
@@ -71,19 +88,28 @@ def test_unknown_key_rejected():
         PolicyConfig(allow_everything=True)
 
 
-@pytest.mark.parametrize("kw", [
-    {"exec_timeout_seconds": 0}, {"exec_timeout_seconds": 301},
-    {"exec_max_output_bytes": 1023}, {"exec_max_output_bytes": 1_048_577},
-])
+@pytest.mark.parametrize(
+    "kw",
+    [
+        {"exec_timeout_seconds": 0},
+        {"exec_timeout_seconds": 301},
+        {"exec_max_output_bytes": 1023},
+        {"exec_max_output_bytes": 1_048_577},
+    ],
+)
 def test_ranges_rejected(kw):
     with pytest.raises(ValidationError):
         PolicyConfig(**kw)
 
 
-@pytest.mark.parametrize("kw", [
-    {"exec_timeout_seconds": 300}, {"exec_max_output_bytes": 1024},
-    {"exec_max_output_bytes": 1_048_576},
-])
+@pytest.mark.parametrize(
+    "kw",
+    [
+        {"exec_timeout_seconds": 300},
+        {"exec_max_output_bytes": 1024},
+        {"exec_max_output_bytes": 1_048_576},
+    ],
+)
 def test_range_edges_accepted(kw):
     PolicyConfig(**kw)
 
@@ -142,11 +168,14 @@ def _capture_stdio(monkeypatch):
     return srv, seen
 
 
-@pytest.mark.parametrize("flag,key", [
-    ("--allow-destructive", "allow_destructive"),
-    ("--allow-exec", "allow_exec"),
-    ("--read-only", "read_only"),
-])
+@pytest.mark.parametrize(
+    "flag,key",
+    [
+        ("--allow-destructive", "allow_destructive"),
+        ("--allow-exec", "allow_exec"),
+        ("--read-only", "read_only"),
+    ],
+)
 def test_stdio_flags_in_overrides(env, tmp_path, monkeypatch, flag, key):
     srv, seen = _capture_stdio(monkeypatch)
     srv.main(["--config", _write_cfg(tmp_path), flag])
@@ -189,5 +218,7 @@ def test_http_parser_flags_and_server(env):
 def test_example_config_loads_closed(env):
     cfg = load_config(str(ROOT / "proxmox-config" / "config.example.json"))
     assert (cfg.policy.read_only, cfg.policy.allow_destructive, cfg.policy.allow_exec) == (
-        False, False, False,
+        False,
+        False,
+        False,
     )

@@ -1,4 +1,5 @@
 """Tests for the FakeProxmox harness itself and an every-tool smoke run through it."""
+
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -116,7 +117,11 @@ TASK_UPID = "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:monitor@pve!mcp:"
 SMOKE_ARGS = {
     "create_snapshot": {"node": "pve1", "vmid": "100", "name": "snap2"},
     "create_vm": {
-        "node": "pve1", "vmid": "200", "name": "new-vm", "cpus": 2, "memory": 1024,
+        "node": "pve1",
+        "vmid": "200",
+        "name": "new-vm",
+        "cpus": 2,
+        "memory": 1024,
         "disk_size": 10,
     },
     "delete_vm": {"node": "pve1", "vmid": "101"},
@@ -147,8 +152,14 @@ SMOKE_ARGS = {
 }
 
 
-CONFIRM_TOOLS = ("delete_vm", "stop_vm", "reset_vm", "rollback_snapshot", "delete_snapshot",
-                 "stop_container")
+CONFIRM_TOOLS = (
+    "delete_vm",
+    "stop_vm",
+    "reset_vm",
+    "rollback_snapshot",
+    "delete_snapshot",
+    "stop_container",
+)
 SMOKE_ARGS_CONFIRMED = {
     n: ({**a, "confirm": True} if n in CONFIRM_TOOLS else a) for n, a in SMOKE_ARGS.items()
 }
@@ -164,7 +175,8 @@ def test_smoke_table_matches_golden():
 async def test_every_tool_runs_through_fake(fake_pve_server, fake_pve, name):
     if name == "create_vm":
         fake_pve.fail(
-            "GET", "nodes/*/qemu/200/config",
+            "GET",
+            "nodes/*/qemu/200/config",
             ResourceException(500, "Internal Server Error", "Configuration file does not exist"),
         )
     with patch("asyncio.sleep", new=AsyncMock()):

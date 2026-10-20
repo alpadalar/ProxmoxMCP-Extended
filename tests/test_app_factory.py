@@ -1,4 +1,5 @@
 """App factory: transports, auth policy matrix, /health, served-app identity."""
+
 import hashlib
 import json
 import logging
@@ -82,7 +83,14 @@ def test_health_payload_over_asgi(config, mock_proxmox):
         assert c.get("/health").json() == {"status": "ok"}
         body = c.get("/health", headers={"X-API-Key": "k"}).json()
     assert set(body) == {
-        "status", "server", "transport", "auth", "policy", "proxmox", "pve", "timestamp"
+        "status",
+        "server",
+        "transport",
+        "auth",
+        "policy",
+        "proxmox",
+        "pve",
+        "timestamp",
     }
     assert body["pve"] is None
     assert body["auth"] == "api-key" and body["transport"] == "http"

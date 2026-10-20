@@ -1,4 +1,5 @@
 """SEC-02: destructive tools return a preview unless confirm=true."""
+
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -32,16 +33,18 @@ async def test_without_confirm_returns_preview_and_no_calls(policy_app, fake_pve
 @pytest.mark.asyncio
 async def test_preview_target_fields(policy_app):
     app = policy_app(allow_destructive=True)
-    snap = _preview(tool_text(await app.mcp.call_tool(
-        "rollback_snapshot", SMOKE_ARGS["rollback_snapshot"])))
+    snap = _preview(
+        tool_text(await app.mcp.call_tool("rollback_snapshot", SMOKE_ARGS["rollback_snapshot"]))
+    )
     assert snap["target"]["name"] == "snap1"
     assert snap["target"]["node"] == "pve1" and snap["target"]["vmid"]
     assert "allow_destructive" in snap["note"] and "not an authorization" in snap["note"]
     d = _preview(tool_text(await app.mcp.call_tool("delete_vm", SMOKE_ARGS["delete_vm"])))
     assert d["target"]["force"] is False
     assert not any("stopped first" in e for e in d["effects"])
-    df = _preview(tool_text(await app.mcp.call_tool(
-        "delete_vm", {**SMOKE_ARGS["delete_vm"], "force": True})))
+    df = _preview(
+        tool_text(await app.mcp.call_tool("delete_vm", {**SMOKE_ARGS["delete_vm"], "force": True}))
+    )
     assert df["target"]["force"] is True
     assert any("stopped first" in e for e in df["effects"])
 
@@ -106,8 +109,11 @@ async def test_string_confirm_follows_pydantic_bool_coercion(policy_app, fake_pv
     app = policy_app(allow_destructive=True)
     fake_pve.reset_calls()
     for falsy in ("false", "0", "no"):
-        out = _preview(tool_text(await app.mcp.call_tool(
-            "stop_vm", {**SMOKE_ARGS["stop_vm"], "confirm": falsy})))
+        out = _preview(
+            tool_text(
+                await app.mcp.call_tool("stop_vm", {**SMOKE_ARGS["stop_vm"], "confirm": falsy})
+            )
+        )
         assert out["preview"] is True
     with pytest.raises((ToolError, ValidationError)):
         await app.mcp.call_tool("stop_vm", {**SMOKE_ARGS["stop_vm"], "confirm": "maybe"})
@@ -132,7 +138,8 @@ async def test_http_transport_parity(policy_app, fake_pve):
 def test_closure_never_forwards_confirm(name):
     ctx = MagicMock()
     spec = next(
-        s for s in build_registry(
+        s
+        for s in build_registry(
             ToolContext(ctx, ctx.vm_tools, ctx, ctx, dict, container_tools=ctx.container_tools)
         )
         if s.name == name

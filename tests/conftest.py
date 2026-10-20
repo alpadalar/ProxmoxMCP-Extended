@@ -1,4 +1,5 @@
 """Shared fixtures for the ProxmoxMCP test suite."""
+
 import os
 from unittest.mock import patch
 

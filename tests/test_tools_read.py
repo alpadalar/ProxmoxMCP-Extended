@@ -1,4 +1,5 @@
 """Mock-based tests for the read-only tools, called through ``server.mcp.call_tool``."""
+
 import json
 
 import pytest
@@ -73,6 +74,7 @@ async def test_get_vms_lists_qemu_vms(server, api):
 @pytest.mark.asyncio
 async def test_get_containers_skips_failing_node(server, api):
     """A node whose lxc listing raises is skipped; healthy containers are returned."""
+
     def nodes_call(name):
         node = api.nodes.return_value
         if name == "node1":
@@ -97,7 +99,9 @@ async def test_get_storage_renders_pools(server, api):
         {"storage": "local-lvm", "type": "lvmthin", "content": "images,rootdir", "node": "node1"},
     ]
     api.nodes.return_value.storage.return_value.status.get.return_value = {
-        "used": 1024, "total": 4096, "avail": 3072,
+        "used": 1024,
+        "total": 4096,
+        "avail": 3072,
     }
     text = tool_text(await server.mcp.call_tool("get_storage", {}))
     api.storage.get.assert_called()
@@ -121,7 +125,7 @@ async def test_get_cluster_status_renders_cluster(server, api):
 async def test_get_vm_usage_renders_cpu_and_memory(server, api):
     """get_vm_usage renders CPU percent and memory from status.current."""
     chain = api.nodes.return_value.qemu.return_value.status.current.get
-    chain.return_value = {"cpu": 0.5, "mem": 1024 ** 3, "maxmem": 2 * 1024 ** 3}
+    chain.return_value = {"cpu": 0.5, "mem": 1024**3, "maxmem": 2 * 1024**3}
     text = tool_text(await server.mcp.call_tool("get_vm_usage", {"node": "node1", "vmid": "100"}))
     api.nodes.assert_any_call("node1")
     api.nodes.return_value.qemu.assert_any_call("100")

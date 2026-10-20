@@ -18,5 +18,6 @@ if TYPE_CHECKING:
 def __getattr__(name):  # pragma: no cover - trivial lazy import
     if name == "ProxmoxMCPServer":
         from .server import ProxmoxMCPServer as _ProxmoxMCPServer
+
         return _ProxmoxMCPServer
     raise AttributeError(f"module 'proxmox_mcp' has no attribute {name!r}")

@@ -3,6 +3,7 @@
 Only the configured API token is registered (bounded, process-wide). Caller-supplied
 values must never be registered globally; use :func:`redact_local` for per-call scrubbing.
 """
+
 import logging
 import threading
 

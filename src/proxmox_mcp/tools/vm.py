@@ -15,6 +15,7 @@ This module provides tools for managing and interacting with Proxmox VMs:
 The tools implement fallback mechanisms for scenarios where
 detailed VM information might be temporarily unavailable.
 """
+
 import time
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -51,7 +52,7 @@ from .tasks import task_result_text
 
 class VMTools(ProxmoxTool):
     """Tools for managing Proxmox VMs.
-    
+
     Provides functionality for:
     - Retrieving cluster-wide VM information
     - Getting detailed VM status and configuration
@@ -59,7 +60,7 @@ class VMTools(ProxmoxTool):
     - Managing VM console operations
     - VM power management (start, stop, shutdown, reset)
     - VM creation with customizable specifications
-    
+
     Implements fallback mechanisms for scenarios where detailed
     VM information might be temporarily unavailable. Integrates
     with QEMU guest agent for VM command execution.
@@ -87,8 +88,11 @@ class VMTools(ProxmoxTool):
         self._clock = time.monotonic
         self._pve_major = pve_major
         self.console_manager = VMConsoleManager(
-            proxmox_api, exec_timeout=exec_timeout, exec_max_output=exec_max_output,
-            exec_max_concurrent=exec_max_concurrent, pve_major=pve_major,
+            proxmox_api,
+            exec_timeout=exec_timeout,
+            exec_max_output=exec_max_output,
+            exec_max_concurrent=exec_max_concurrent,
+            pve_major=pve_major,
         )
 
     def _task_text(self, task_result, wait: bool, timeout: int) -> str:
@@ -108,8 +112,12 @@ class VMTools(ProxmoxTool):
         """
         if is_upid(stop_result):
             wait_task_stopped(
-                self.proxmox, node, stop_result, timeout=self.STOP_WAIT_SECONDS,
-                interval=self.STOP_POLL_INTERVAL, sleep=self._sleep,
+                self.proxmox,
+                node,
+                stop_result,
+                timeout=self.STOP_WAIT_SECONDS,
+                interval=self.STOP_POLL_INTERVAL,
+                sleep=self._sleep,
             )
             return
         attempts = int(self.STOP_WAIT_SECONDS / self.STOP_POLL_INTERVAL)
@@ -118,7 +126,9 @@ class VMTools(ProxmoxTool):
             if isinstance(status, dict) and status.get("status") == "stopped":
                 return
             self._sleep(self.STOP_POLL_INTERVAL)
-        raise RuntimeError(f"VM {vmid} did not stop within {self.STOP_WAIT_SECONDS:g}s; not deleted")
+        raise RuntimeError(
+            f"VM {vmid} did not stop within {self.STOP_WAIT_SECONDS:g}s; not deleted"
+        )
 
     def get_vms(self) -> list[Content]:
         """List all virtual machines across the cluster with detailed status.
@@ -130,7 +140,7 @@ class VMTools(ProxmoxTool):
           * CPU cores
           * Memory allocation and usage
         - Node placement
-        
+
         Implements a fallback mechanism that returns basic information
         if detailed configuration retrieval fails for any VM.
 
@@ -161,39 +171,47 @@ class VMTools(ProxmoxTool):
                     # Get VM config for CPU cores
                     try:
                         config = self.proxmox.nodes(node_name).qemu(vmid).config.get()
-                        result.append({
-                            "vmid": vmid,
-                            "name": vm["name"],
-                            "status": vm["status"],
-                            "node": node_name,
-                            "cpus": config.get("cores", "N/A"),
-                            "memory": {
-                                "used": vm.get("mem", 0),
-                                "total": vm.get("maxmem", 0)
+                        result.append(
+                            {
+                                "vmid": vmid,
+                                "name": vm["name"],
+                                "status": vm["status"],
+                                "node": node_name,
+                                "cpus": config.get("cores", "N/A"),
+                                "memory": {"used": vm.get("mem", 0), "total": vm.get("maxmem", 0)},
                             }
-                        })
+                        )
                     except Exception:
                         # Fallback if can't get config
-                        result.append({
-                            "vmid": vmid,
-                            "name": vm["name"],
-                            "status": vm["status"],
-                            "node": node_name,
-                            "cpus": "N/A",
-                            "memory": {
-                                "used": vm.get("mem", 0),
-                                "total": vm.get("maxmem", 0)
+                        result.append(
+                            {
+                                "vmid": vmid,
+                                "name": vm["name"],
+                                "status": vm["status"],
+                                "node": node_name,
+                                "cpus": "N/A",
+                                "memory": {"used": vm.get("mem", 0), "total": vm.get("maxmem", 0)},
                             }
-                        })
+                        )
             return self._format_response(result, "vms")
         except Exception as e:
             self._handle_error("get VMs", e, privilege_key="get_vms")
 
-    def create_vm(self, node: str, vmid: str, name: str, cpus: int, memory: int,
-                  disk_size: int, storage: str | None = None, ostype: str | None = None,
-                  iso_name: str | None = None, iso_storage: str | None = None) -> list[Content]:
+    def create_vm(
+        self,
+        node: str,
+        vmid: str,
+        name: str,
+        cpus: int,
+        memory: int,
+        disk_size: int,
+        storage: str | None = None,
+        ostype: str | None = None,
+        iso_name: str | None = None,
+        iso_storage: str | None = None,
+    ) -> list[Content]:
         """Create a new virtual machine with specified configuration.
-        
+
         Args:
             node: Host node name (e.g., 'pve')
             vmid: New VM ID number (e.g., '200')
@@ -205,10 +223,10 @@ class VMTools(ProxmoxTool):
             ostype: OS type (e.g., 'l26' for Linux, 'win10' for Windows). Default: 'l26'
             iso_name: Optional ISO file name to mount on creation (e.g., 'debian-12.iso')
             iso_storage: Optional storage name where ISO resides (auto-detected if not provided)
-            
+
         Returns:
             List of Content objects containing creation result
-            
+
         Raises:
             ValueError: If VM ID already exists or invalid parameters
             RuntimeError: If VM creation fails
@@ -228,13 +246,13 @@ class VMTools(ProxmoxTool):
             # Check if VM ID already exists
             if vm_listed(self.proxmox, node, vmid):
                 raise ValueError(f"VM {vmid} already exists on node {node}")
-            
+
             # Get storage information
             storage_list = self.proxmox.nodes(node).storage.get()
             storage_info = {}
             for s in storage_list:
                 storage_info[s["storage"]] = s
-            
+
             # Auto-detect storage if not specified
             if storage is None:
                 # Prefer local-lvm for VM images first
@@ -243,7 +261,7 @@ class VMTools(ProxmoxTool):
                         storage = s["storage"]
                         break
                 if storage is None:
-                    # Then try vm-storage 
+                    # Then try vm-storage
                     for s in storage_list:
                         if s["storage"] == "vm-storage" and "images" in s.get("content", ""):
                             storage = s["storage"]
@@ -256,17 +274,17 @@ class VMTools(ProxmoxTool):
                             break
                     if storage is None:
                         raise ValueError("No suitable storage found for VM images")
-            
+
             # Validate storage exists and supports images
             if storage not in storage_info:
                 raise ValueError(f"Storage '{storage}' not found on node {node}")
-            
+
             if "images" not in storage_info[storage].get("content", ""):
                 raise ValueError(f"Storage '{storage}' does not support VM images")
-            
+
             # Determine appropriate disk format based on storage type
             storage_type = storage_info[storage]["type"]
-            
+
             if storage_type in ["lvm", "lvmthin"]:
                 # LVM storages use raw format and no cloudinit
                 disk_format = "raw"
@@ -303,11 +321,11 @@ class VMTools(ProxmoxTool):
                 ide_dev = "ide2" if "ide2" not in vm_config_storage else "ide3"
                 vm_config_storage[ide_dev] = f"{iso_storage}:iso/{iso_name},media=cdrom"
                 iso_config_note = f"\n  • ISO: {iso_name} (from {iso_storage} on {ide_dev})"
-            
+
             # Set default OS type
             if ostype is None:
                 ostype = "l26"  # Linux 2.6+ kernel
-            
+
             # Prepare VM configuration
             vm_config = {
                 "vmid": vmid,
@@ -321,17 +339,17 @@ class VMTools(ProxmoxTool):
                 "vga": "std",
                 "net0": "virtio,bridge=vmbr0",
             }
-            
+
             # Add storage configuration
             vm_config.update(vm_config_storage)
-            
+
             # Create the VM
             task_result = self.proxmox.nodes(node).qemu.create(**vm_config)
-            
+
             cloudinit_note = ""
             if storage_type in ["lvm", "lvmthin"]:
                 cloudinit_note = "\n  ⚠️  Note: LVM storage doesn't support cloud-init image"
-            
+
             result_text = f"""🎉 VM {vmid} creation queued!
 
 📋 VM Configuration:
@@ -339,7 +357,7 @@ class VMTools(ProxmoxTool):
   • Node: {node}
   • VM ID: {vmid}
   • CPU Cores: {cpus}
-  • Memory: {memory} MB ({memory/1024:.1f} GB)
+  • Memory: {memory} MB ({memory / 1024:.1f} GB)
   • Disk: {disk_size} GB ({storage}, {disk_format} format)
   • Storage Type: {storage_type}
   • OS Type: {ostype}
@@ -352,9 +370,9 @@ class VMTools(ProxmoxTool):
   1. Upload an ISO to install the operating system
   2. Start the VM using start_vm tool
   3. Access the console to complete OS installation"""
-            
+
             return [Content(type="text", text=result_text)]
-            
+
         except ValueError as e:
             raise e
         except Exception as e:
@@ -366,14 +384,14 @@ class VMTools(ProxmoxTool):
         self, node: str, vmid: str, wait: bool = False, timeout: int = 30
     ) -> list[Content]:
         """Start a virtual machine.
-        
+
         Args:
             node: Host node name (e.g., 'pve1', 'proxmox-node2')
             vmid: VM ID number (e.g., '100', '101')
-            
+
         Returns:
             List of Content objects containing operation result
-            
+
         Raises:
             ValueError: If VM is not found
             RuntimeError: If start operation fails
@@ -392,26 +410,24 @@ class VMTools(ProxmoxTool):
                 # Start the VM
                 task_result = self.proxmox.nodes(node).qemu(vmid).status.start.post()
                 result_text = f"🚀 VM {vmid} start initiated successfully\n{self._task_text(task_result, wait, timeout)}"
-                
+
             return [Content(type="text", text=result_text)]
-            
+
         except Exception as e:
             self._handle_error(
                 f"start VM {vmid}", e, privilege_key="start_vm", node=node, vmid=vmid
             )
 
-    def stop_vm(
-        self, node: str, vmid: str, wait: bool = False, timeout: int = 30
-    ) -> list[Content]:
+    def stop_vm(self, node: str, vmid: str, wait: bool = False, timeout: int = 30) -> list[Content]:
         """Stop a virtual machine (force stop).
-        
+
         Args:
-            node: Host node name (e.g., 'pve1', 'proxmox-node2') 
+            node: Host node name (e.g., 'pve1', 'proxmox-node2')
             vmid: VM ID number (e.g., '100', '101')
-            
+
         Returns:
             List of Content objects containing operation result
-            
+
         Raises:
             ValueError: If VM is not found
             RuntimeError: If stop operation fails
@@ -430,26 +446,24 @@ class VMTools(ProxmoxTool):
                 # Stop the VM
                 task_result = self.proxmox.nodes(node).qemu(vmid).status.stop.post()
                 result_text = f"🛑 VM {vmid} stop initiated successfully\n{self._task_text(task_result, wait, timeout)}"
-                
+
             return [Content(type="text", text=result_text)]
-            
+
         except Exception as e:
-            self._handle_error(
-                f"stop VM {vmid}", e, privilege_key="stop_vm", node=node, vmid=vmid
-            )
+            self._handle_error(f"stop VM {vmid}", e, privilege_key="stop_vm", node=node, vmid=vmid)
 
     def shutdown_vm(
         self, node: str, vmid: str, wait: bool = False, timeout: int = 30
     ) -> list[Content]:
         """Shutdown a virtual machine gracefully.
-        
+
         Args:
             node: Host node name (e.g., 'pve1', 'proxmox-node2')
             vmid: VM ID number (e.g., '100', '101')
-            
+
         Returns:
             List of Content objects containing operation result
-            
+
         Raises:
             ValueError: If VM is not found
             RuntimeError: If shutdown operation fails
@@ -468,9 +482,9 @@ class VMTools(ProxmoxTool):
                 # Shutdown the VM gracefully
                 task_result = self.proxmox.nodes(node).qemu(vmid).status.shutdown.post()
                 result_text = f"💤 VM {vmid} graceful shutdown initiated\n{self._task_text(task_result, wait, timeout)}"
-                
+
             return [Content(type="text", text=result_text)]
-            
+
         except Exception as e:
             self._handle_error(
                 f"shutdown VM {vmid}", e, privilege_key="shutdown_vm", node=node, vmid=vmid
@@ -480,14 +494,14 @@ class VMTools(ProxmoxTool):
         self, node: str, vmid: str, wait: bool = False, timeout: int = 30
     ) -> list[Content]:
         """Reset (restart) a virtual machine.
-        
+
         Args:
             node: Host node name (e.g., 'pve1', 'proxmox-node2')
             vmid: VM ID number (e.g., '100', '101')
-            
+
         Returns:
             List of Content objects containing operation result
-            
+
         Raises:
             ValueError: If VM is not found
             RuntimeError: If reset operation fails
@@ -506,9 +520,9 @@ class VMTools(ProxmoxTool):
                 # Reset the VM
                 task_result = self.proxmox.nodes(node).qemu(vmid).status.reset.post()
                 result_text = f"🔄 VM {vmid} reset initiated successfully\n{self._task_text(task_result, wait, timeout)}"
-                
+
             return [Content(type="text", text=result_text)]
-            
+
         except Exception as e:
             self._handle_error(
                 f"reset VM {vmid}", e, privilege_key="reset_vm", node=node, vmid=vmid
@@ -549,6 +563,7 @@ class VMTools(ProxmoxTool):
             result = await self.console_manager.execute_command(node, vmid, command, args)
             # Use the command output formatter from ProxmoxFormatters
             from ..formatting import ProxmoxFormatters
+
             formatted = ProxmoxFormatters.format_command_output(
                 success=result["success"],
                 command=command,
@@ -565,29 +580,33 @@ class VMTools(ProxmoxTool):
             if getattr(e, "_pve_translated", False):
                 raise  # already mapped from the HTTP status code by the console manager
             self._handle_error(
-                f"execute command on VM {vmid}", e, privilege_key="execute_vm_command", node=node, vmid=vmid
+                f"execute command on VM {vmid}",
+                e,
+                privilege_key="execute_vm_command",
+                node=node,
+                vmid=vmid,
             )
 
     def delete_vm(
         self, node: str, vmid: str, force: bool = False, wait: bool = False, timeout: int = 30
     ) -> list[Content]:
         """Delete/remove a virtual machine completely.
-        
+
         This will permanently delete the VM and all its associated data including:
         - VM configuration
         - Virtual disks
         - Snapshots
-        
+
         WARNING: This operation cannot be undone!
-        
+
         Args:
             node: Host node name (e.g., 'pve1', 'proxmox-node2')
             vmid: VM ID number (e.g., '100', '101')
             force: Force deletion even if VM is running (will stop first)
-            
+
         Returns:
             List of Content objects containing deletion result
-            
+
         Raises:
             ValueError: If VM is not found or is running and force=False
             RuntimeError: If deletion fails
@@ -600,12 +619,14 @@ class VMTools(ProxmoxTool):
             vm_status = require_vm_status(self.proxmox, node, vmid, "delete_vm")
             current_status = vm_status.get("status")
             vm_name = vm_status.get("name", f"VM-{vmid}")
-            
+
             # Check if VM is running
             if current_status == "running":
                 if not force:
-                    raise ValueError(f"VM {vmid} ({vm_name}) is currently running. "
-                                   f"Please stop it first or use force=True to stop and delete.")
+                    raise ValueError(
+                        f"VM {vmid} ({vm_name}) is currently running. "
+                        f"Please stop it first or use force=True to stop and delete."
+                    )
                 else:
                     # Force stop the VM first and wait (bounded) until it is really stopped;
                     # never delete while the stop task is running or after it failed.
@@ -633,10 +654,10 @@ class VMTools(ProxmoxTool):
                     result_text = f"🛑 Stopping VM {vmid} ({vm_name}) before deletion...\n"
             else:
                 result_text = f"🗑️ Deleting VM {vmid} ({vm_name})...\n"
-            
+
             # Delete the VM
             task_result = self.proxmox.nodes(node).qemu(vmid).delete()
-            
+
             result_text += f"""🗑️ VM {vmid} ({vm_name}) deletion initiated successfully!
 
 ⚠️ WARNING: This operation will permanently remove:
@@ -648,9 +669,9 @@ class VMTools(ProxmoxTool):
 🔧 {self._task_text(task_result, wait, timeout)}
 
 ✅ VM {vmid} ({vm_name}) is being deleted from node {node}"""
-            
+
             return [Content(type="text", text=result_text)]
-            
+
         except ValueError as e:
             raise e
         except Exception as e:
@@ -669,7 +690,7 @@ class VMTools(ProxmoxTool):
         timeout: int = 30,
     ) -> list[Content]:
         """Create a snapshot for a VM.
-        
+
         Args:
             node: Host node name
             vmid: VM ID number
@@ -698,14 +719,18 @@ class VMTools(ProxmoxTool):
             return [Content(type="text", text=result_text)]
         except Exception as e:
             self._handle_error(
-                f"create snapshot for VM {vmid}", e, privilege_key="create_snapshot", node=node, vmid=vmid
+                f"create snapshot for VM {vmid}",
+                e,
+                privilege_key="create_snapshot",
+                node=node,
+                vmid=vmid,
             )
 
     def rollback_snapshot(
         self, node: str, vmid: str, name: str, wait: bool = False, timeout: int = 30
     ) -> list[Content]:
         """Rollback a VM to a snapshot.
-        
+
         WARNING: This discards current VM state.
         """
         node = validate_node(node)
@@ -715,12 +740,7 @@ class VMTools(ProxmoxTool):
         try:
             # Ensure VM exists
             require_vm_status(self.proxmox, node, vmid, "rollback_snapshot")
-            task_result = (
-                self.proxmox.nodes(node)
-                .qemu(vmid)
-                .snapshot(name)
-                .rollback.post()
-            )
+            task_result = self.proxmox.nodes(node).qemu(vmid).snapshot(name).rollback.post()
             result_text = (
                 f"↩️ Rollback to snapshot '{name}' initiated for VM {vmid} on node {node}\n"
                 f"🔧 {self._task_text(task_result, wait, timeout)}"
@@ -728,7 +748,11 @@ class VMTools(ProxmoxTool):
             return [Content(type="text", text=result_text)]
         except Exception as e:
             self._handle_error(
-                f"rollback VM {vmid} to snapshot {name}", e, privilege_key="rollback_snapshot", node=node, vmid=vmid
+                f"rollback VM {vmid} to snapshot {name}",
+                e,
+                privilege_key="rollback_snapshot",
+                node=node,
+                vmid=vmid,
             )
 
     def list_snapshots(self, node: str, vmid: str) -> list[Content]:
@@ -742,7 +766,11 @@ class VMTools(ProxmoxTool):
             return self._format_response(payload)
         except Exception as e:
             self._handle_error(
-                f"list snapshots of VM {vmid}", e, privilege_key="list_snapshots", node=node, vmid=vmid
+                f"list snapshots of VM {vmid}",
+                e,
+                privilege_key="list_snapshots",
+                node=node,
+                vmid=vmid,
             )
 
     def _snapshot_entries(self, node: str, vmid: str) -> list:
@@ -760,7 +788,8 @@ class VMTools(ProxmoxTool):
                 "snaptime": snaptime if ok else None,
                 "snaptime_utc": (
                     datetime.fromtimestamp(snaptime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-                    if ok else None
+                    if ok
+                    else None
                 ),
                 "vmstate": bool(item.get("vmstate")),
                 "parent": item.get("parent"),
@@ -789,8 +818,11 @@ class VMTools(ProxmoxTool):
             return [Content(type="text", text=result_text)]
         except Exception as e:
             self._handle_error(
-                f"delete snapshot {name} of VM {vmid}", e,
-                privilege_key="delete_snapshot", node=node, vmid=vmid,
+                f"delete snapshot {name} of VM {vmid}",
+                e,
+                privilege_key="delete_snapshot",
+                node=node,
+                vmid=vmid,
             )
 
     def get_vm_usage(self, node: str, vmid: str) -> list[Content]:
@@ -828,23 +860,29 @@ class VMTools(ProxmoxTool):
                 f"get usage for VM {vmid}", e, privilege_key="get_vm_usage", node=node, vmid=vmid
             )
 
-    def update_vm(self, node: str, vmid: str, memory: int | None = None, 
-                  cpus: int | None = None, name: str | None = None) -> list[Content]:
+    def update_vm(
+        self,
+        node: str,
+        vmid: str,
+        memory: int | None = None,
+        cpus: int | None = None,
+        name: str | None = None,
+    ) -> list[Content]:
         """Update VM configuration (memory, CPU cores, name).
-        
+
         This function allows updating VM resources. Note that some changes
         may require the VM to be stopped for the changes to take effect.
-        
+
         Args:
             node: Host node name (e.g., 'pve')
             vmid: VM ID number (e.g., '100')
             memory: New memory size in MB (e.g., 4096 for 4GB, 6144 for 6GB)
             cpus: New number of CPU cores (e.g., 1, 2, 4)
             name: New VM name
-            
+
         Returns:
             List of Content objects containing update result
-            
+
         Raises:
             ValueError: If VM is not found or invalid parameters
             RuntimeError: If update operation fails
@@ -859,14 +897,14 @@ class VMTools(ProxmoxTool):
             vm_status = require_vm_status(self.proxmox, node, vmid, "update_vm")
             current_status = vm_status.get("status")
             current_name = vm_status.get("name", f"VM-{vmid}")
-            
+
             # Get current VM configuration
             current_config = self.proxmox.nodes(node).qemu(vmid).config.get()
-            
+
             # Prepare update parameters
             update_params = {}
             changes = []
-            
+
             # Memory update
             if memory is not None:
                 if memory < 512 or memory > 131072:
@@ -874,8 +912,10 @@ class VMTools(ProxmoxTool):
                 current_memory = current_config.get("memory", 0)
                 if memory != current_memory:
                     update_params["memory"] = memory
-                    changes.append(f"Memory: {current_memory} MB → {memory} MB ({memory/1024:.1f} GB)")
-            
+                    changes.append(
+                        f"Memory: {current_memory} MB → {memory} MB ({memory / 1024:.1f} GB)"
+                    )
+
             # CPU cores update
             if cpus is not None:
                 if cpus < 1 or cpus > 32:
@@ -884,45 +924,49 @@ class VMTools(ProxmoxTool):
                 if cpus != current_cpus:
                     update_params["cores"] = cpus
                     changes.append(f"CPU Cores: {current_cpus} → {cpus}")
-            
+
             # Name update
             if name is not None:
                 if name != current_name:
                     update_params["name"] = name
                     changes.append(f"Name: '{current_name}' → '{name}'")
-            
+
             # Check if any changes are requested
             if not update_params:
                 result_text = f"ℹ️ No changes requested for VM {vmid} ({current_name})"
                 return [Content(type="text", text=result_text)]
-            
+
             # Check if VM needs to be stopped for changes
             if current_status == "running":
                 if memory is not None or cpus is not None:
                     result_text = f"⚠️ VM {vmid} ({current_name}) is currently running.\n"
                     result_text += "Resource changes require the VM to be stopped first.\n"
-                    result_text += "Please stop the VM using shutdown_vm or stop_vm before updating.\n\n"
+                    result_text += (
+                        "Please stop the VM using shutdown_vm or stop_vm before updating.\n\n"
+                    )
                     result_text += "Requested changes:\n"
                     for change in changes:
                         result_text += f"  • {change}\n"
                     return [Content(type="text", text=result_text)]
-            
+
             # Apply updates
             if update_params:
                 task_result = self.proxmox.nodes(node).qemu(vmid).config.put(**update_params)
-                
+
                 result_text = f"✅ VM {vmid} configuration updated successfully!\n\n"
                 result_text += "📋 Applied Changes:\n"
                 for change in changes:
                     result_text += f"  • {change}\n"
-                
+
                 if current_status == "running":
-                    result_text += "\n⚠️ Note: Some changes may require VM restart to take full effect."
-                
+                    result_text += (
+                        "\n⚠️ Note: Some changes may require VM restart to take full effect."
+                    )
+
                 result_text += f"\n🔧 {describe_task_result(task_result)}"
-                
+
                 return [Content(type="text", text=result_text)]
-            
+
         except ValueError as e:
             raise e
         except Exception as e:

@@ -1,4 +1,5 @@
 """Secret/command/output leak tests (CONF-03). Fake sentinel values only."""
+
 import logging
 import os
 import stat
@@ -133,8 +134,7 @@ def test_handle_error_scrubs(caplog):
 
 
 def _exec_mocks(api, post_side_effect=None):
-    api.nodes.return_value.qemu.return_value.status.current.get.return_value = {
-        "status": "running"}
+    api.nodes.return_value.qemu.return_value.status.current.get.return_value = {"status": "running"}
     exec_ep = MagicMock()
     if post_side_effect:
         exec_ep.post.side_effect = post_side_effect
@@ -142,7 +142,11 @@ def _exec_mocks(api, post_side_effect=None):
         exec_ep.post.return_value = {"pid": 7}
     status_ep = MagicMock()
     status_ep.get.return_value = {
-        "out-data": "SENTINEL_OUT", "err-data": "SENTINEL_ERR", "exitcode": 0, "exited": 1}
+        "out-data": "SENTINEL_OUT",
+        "err-data": "SENTINEL_ERR",
+        "exitcode": 0,
+        "exited": 1,
+    }
     agent = MagicMock()
     agent.side_effect = lambda p: exec_ep if p == "exec" else status_ep
     api.nodes.return_value.qemu.return_value.agent = agent
@@ -155,7 +159,8 @@ async def test_exec_not_logged_but_returned(server, api, caplog):
         logging.getLogger(name).propagate = True
     with caplog.at_level(logging.DEBUG), patch("asyncio.sleep", return_value=None):
         result = await server.mcp.call_tool(
-            "execute_vm_command", {"node": "n1", "vmid": "100", "command": "echo SENTINEL_CMD"})
+            "execute_vm_command", {"node": "n1", "vmid": "100", "command": "echo SENTINEL_CMD"}
+        )
     for s in ("SENTINEL_CMD", "SENTINEL_OUT", "SENTINEL_ERR", "out-data"):
         assert s not in caplog.text, s
     assert "SENTINEL_OUT" in tool_text(result)
@@ -169,12 +174,13 @@ async def test_exec_failure_logs_only_type(server, api, caplog):
     with caplog.at_level(logging.DEBUG), patch("asyncio.sleep", return_value=None):
         with pytest.raises((ToolError, ValidationError)):
             await server.mcp.call_tool(
-                "execute_vm_command",
-                {"node": "n1", "vmid": "100", "command": "echo SENTINEL_CMD"})
+                "execute_vm_command", {"node": "n1", "vmid": "100", "command": "echo SENTINEL_CMD"}
+            )
     assert "SENTINEL_CMD" not in caplog.text
 
 
 # --- Caller-supplied values never enter the global registry (review WR-04) ---
+
 
 @pytest.mark.parametrize("short", ["a", "error", "root", "date", "ping"])
 @pytest.mark.asyncio
@@ -184,9 +190,11 @@ async def test_short_command_does_not_alter_other_logs(server, api, caplog, shor
         logging.getLogger(name).propagate = True
     with patch("asyncio.sleep", return_value=None):
         await server.mcp.call_tool(
-            "execute_vm_command", {"node": "n1", "vmid": "100", "command": short})
+            "execute_vm_command", {"node": "n1", "vmid": "100", "command": short}
+        )
     assert redact("an error occurred for root at date: ping") == (
-        "an error occurred for root at date: ping")
+        "an error occurred for root at date: ping"
+    )
     assert redact("a" * 10 + short) == "a" * 10 + short
 
 
@@ -199,7 +207,8 @@ async def test_registry_stays_bounded_after_many_calls(server, api):
         for i in range(300):
             await server.mcp.call_tool(
                 "execute_vm_command",
-                {"node": "n1", "vmid": "100", "command": f"echo unique-command-{i}"})
+                {"node": "n1", "vmid": "100", "command": f"echo unique-command-{i}"},
+            )
     with redaction._lock:
         assert (len(redaction._secrets), len(vars(redaction))) == before
     assert not hasattr(redaction, "register_sensitive")

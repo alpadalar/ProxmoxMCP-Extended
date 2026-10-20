@@ -1,4 +1,5 @@
 """pytest fixtures exposing the FakeProxmox harness (registered via conftest pytest_plugins)."""
+
 import hashlib
 from unittest.mock import patch
 
@@ -44,11 +45,16 @@ def policy_app(mock_env_vars, fake_pve):
     from proxmox_mcp.config.loader import load_config
 
     def build(transport="stdio", read_only=False, allow_destructive=False, allow_exec=False):
-        config = load_config(None, cli_overrides={"policy": {
-            "read_only": str(read_only).lower(),
-            "allow_destructive": str(allow_destructive).lower(),
-            "allow_exec": str(allow_exec).lower(),
-        }})
+        config = load_config(
+            None,
+            cli_overrides={
+                "policy": {
+                    "read_only": str(read_only).lower(),
+                    "allow_destructive": str(allow_destructive).lower(),
+                    "allow_exec": str(allow_exec).lower(),
+                }
+            },
+        )
         kwargs = {}
         if transport == "http":
             kwargs["api_key_digests"] = [hashlib.sha256(b"test-api-key").hexdigest()]

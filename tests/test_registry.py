@@ -1,4 +1,5 @@
 """Tool registry: parity with the golden contract and Phase 4 hooks."""
+
 import functools
 import json
 from unittest.mock import MagicMock
@@ -37,7 +38,10 @@ def test_spec_fields():
         assert isinstance(spec.name, str) and callable(spec.handler)
         assert spec.description
         assert set(spec.annotations) == {
-            "readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint",
+            "readOnlyHint",
+            "destructiveHint",
+            "idempotentHint",
+            "openWorldHint",
         }
         assert spec.risk in {"read", "write", "destructive", "exec"}
         assert spec.tags == frozenset()

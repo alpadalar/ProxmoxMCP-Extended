@@ -13,6 +13,7 @@ The models provide:
 - Field descriptions
 - Required vs optional field handling
 """
+
 import os
 import re
 from typing import Annotated, Any
@@ -44,27 +45,28 @@ def _strict_bool(v: Any, field_name: str) -> bool:
             return True
         if norm in _FALSE_VALUES:
             return False
-    raise ValueError(
-        f"invalid {field_name} value; accepted: true/false, 1/0, yes/no, on/off"
-    )
+    raise ValueError(f"invalid {field_name} value; accepted: true/false, 1/0, yes/no, on/off")
 
 
 class NodeStatus(BaseModel):
     """Model for node status query parameters.
-    
+
     Validates and documents the required parameters for
     querying a specific node's status in the cluster.
     """
+
     node: Annotated[
         str, Field(description="Name/ID of node to query (e.g. 'pve1', 'proxmox-node2')")
     ]
 
+
 class VMCommand(BaseModel):
     """Model for VM command execution parameters.
-    
+
     Validates and documents the required parameters for
     executing commands within a VM via QEMU guest agent.
     """
+
     node: Annotated[str, Field(description="Host node name (e.g. 'pve1', 'proxmox-node2')")]
     vmid: Annotated[str, Field(description="VM ID number (e.g. '100', '101')")]
     command: Annotated[
@@ -72,12 +74,14 @@ class VMCommand(BaseModel):
         Field(description="Shell command to run (e.g. 'uname -a', 'systemctl status nginx')"),
     ]
 
+
 class ProxmoxConfig(BaseModel):
     """Model for Proxmox connection configuration.
 
     Strict: unknown keys are rejected. ``verify_ssl`` defaults to True and is
     parsed strictly (typos raise instead of silently disabling TLS).
     """
+
     model_config = _STRICT
 
     host: str  # Required: Proxmox host address
@@ -119,19 +123,23 @@ class ProxmoxConfig(BaseModel):
             raise ValueError("ca_bundle cannot be combined with verify_ssl=false")
         return self
 
+
 class AuthConfig(BaseModel):
     """Model for Proxmox authentication configuration.
 
     ``token_value`` is a SecretStr so it never appears in repr/dumps/errors.
     """
+
     model_config = _STRICT
 
     user: str = Field(pattern=r"^[^@\s]+@[A-Za-z0-9._-]+$")  # e.g. 'monitor@pve'
     token_name: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
     token_value: SecretStr = Field(min_length=1)
 
+
 class LoggingConfig(BaseModel):
     """Model for logging configuration."""
+
     model_config = _STRICT
 
     level: str = "INFO"  # Optional: Log level (default: INFO)
@@ -146,12 +154,14 @@ class LoggingConfig(BaseModel):
             raise ValueError("level must be one of " + ", ".join(sorted(_LOG_LEVELS)))
         return norm
 
+
 class HttpConfig(BaseModel):
     """HTTP transport settings.
 
     ``api_key_digests`` holds SHA-256 hex digests of accepted API keys (never
     the keys themselves). Env ``PROXMOX_MCP_API_KEY_HASHES`` replaces this list.
     """
+
     model_config = _STRICT
 
     api_key_digests: list[str] = Field(default_factory=list)
@@ -171,6 +181,7 @@ class HttpConfig(BaseModel):
                 "(64 hex chars, optional 'sha256:' prefix)"
             ) from None
 
+
 class PolicyConfig(BaseModel):
     """Tool-layer safety policy. All dangerous gates default to closed.
 
@@ -178,6 +189,7 @@ class PolicyConfig(BaseModel):
     write, destructive and exec tool. The gates are enforced at call time
     (tools stay registered so the MCP surface is stable).
     """
+
     model_config = _STRICT
 
     read_only: bool = False
@@ -192,8 +204,10 @@ class PolicyConfig(BaseModel):
     def _parse_gates(cls, v: Any, info: Any) -> bool:
         return _strict_bool(v, info.field_name)
 
+
 class Config(BaseModel):
     """Root configuration model (proxmox and auth required, logging defaulted)."""
+
     model_config = _STRICT
 
     proxmox: ProxmoxConfig  # Required: Proxmox connection settings
