@@ -1,0 +1,32 @@
+ProxmoxMCP-Extended
+Copyright (c) 2024 Alperen Adalar
+
+This project is derived from other open source work. The MIT license notices of the upstream
+projects are retained, as the MIT license requires.
+
+Lineage
+-------
+
+1. canvrno/ProxmoxMCP (original project)
+   https://github.com/canvrno/ProxmoxMCP
+   License: MIT. Copyright (c) 2024 Kevin
+
+2. RekklesNA/ProxmoxMCP-Plus (first fork)
+   https://github.com/RekklesNA/ProxmoxMCP-Plus
+   License: MIT. Its LICENSE file carries the same notice: Copyright (c) 2024 Kevin
+
+3. alpadalar/ProxmoxMCP-Extended (this project)
+   https://github.com/alpadalar/ProxmoxMCP-Extended
+   License: MIT. Copyright (c) 2024 Alperen Adalar
+
+The upstream license texts were compared against the raw LICENSE files of both upstream
+repositories on 2026-10-20. Both are the standard MIT license text with the single copyright line
+shown above. The full text, including all copyright lines, is in the LICENSE file of this project.
+
+Third-party software
+--------------------
+
+The runtime and development dependencies of this project (for example FastMCP, the MCP Python SDK,
+Proxmoxer, Pydantic, Requests and Uvicorn) are distributed under their own licenses. They are not
+bundled in this repository; the exact versions that are resolved are pinned in uv.lock and each
+package carries its own license metadata.
