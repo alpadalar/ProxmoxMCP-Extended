@@ -64,6 +64,16 @@ upgrading an existing setup.
 - **Server signal handlers were removed**; shutdown is managed by uvicorn / FastMCP (Ctrl-C raises
   `KeyboardInterrupt` as usual).
 - **The default log level is INFO** and the log file is created with mode 0600.
+- **Docker and Compose changed.** The `HTTP_HOST`, `HTTP_PORT` and `HTTP_PATH` environment variables
+  no longer have any effect: host, port and path are fixed in the image `ENTRYPOINT`, and extra
+  `docker run` arguments are now appended to it instead of replacing the command (use a compose
+  `command:` or the `PROXMOX_MCP_*` variables to change behaviour). The config mount moved from
+  `/app/proxmox-config` to `/config`. The compose port is published on `127.0.0.1` only, so remote
+  access that used to work stops working; put a TLS reverse proxy in front. The `proxmox-network`
+  network was removed. The container now runs as uid 10001 on a read-only root filesystem and needs
+  `PROXMOX_MCP_API_KEY_HASHES` (compose refuses to render without it). Migration: mount the config at
+  `/config`, make `config.json` readable by uid 10001 (see the README Docker section), and set the
+  key digests.
 - **Error messages changed.** Missing VMs report "VM <id> not found on node <node>"; permission
   errors name the privilege and ACL path; `create_vm` says "creation queued" because it only queues a
   task. Clients that matched on the old text must be updated.

@@ -176,6 +176,10 @@ def test_license_and_notice_keep_attribution() -> None:
         "get_containers",
         "/health",
         "extra=forbid",
+        "HTTP_PORT",
+        "ENTRYPOINT",
+        "/config",
+        "proxmox-network",
     ],
 )
 def test_changelog_names_every_breaking_change(keyword: str) -> None:
