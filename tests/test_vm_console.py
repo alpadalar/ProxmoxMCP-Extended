@@ -112,3 +112,36 @@ async def test_execute_command_with_error_output(vm_console, mock_proxmox):
     assert result["output"] == ""
     assert result["error"] == "command error"
     assert result["exit_code"] == 1
+
+
+@pytest.mark.asyncio
+async def test_execute_command_does_not_stall_event_loop(mock_proxmox):
+    """Blocking proxmoxer calls run in threads: a concurrent ticker is never starved."""
+    import asyncio
+    import time
+
+    agent = mock_proxmox.nodes.return_value.qemu.return_value.agent
+    agent.side_effect("exec").post.side_effect = lambda **kw: (time.sleep(0.3), {"pid": 1})[1]
+    agent.side_effect("exec-status").get.side_effect = lambda **kw: (
+        time.sleep(0.3),
+        {"out-data": "x", "err-data": "", "exitcode": 0, "exited": 1},
+    )[1]
+    ticks = 0
+    max_gap = 0.0
+
+    async def ticker():
+        nonlocal ticks, max_gap
+        last = time.monotonic()
+        while True:
+            await asyncio.sleep(0.02)
+            now = time.monotonic()
+            max_gap = max(max_gap, now - last)
+            last = now
+            ticks += 1
+
+    task = asyncio.create_task(ticker())
+    result = await VMConsoleManager(mock_proxmox).execute_command("n", "100", "ls")
+    task.cancel()
+    assert result["success"] is True
+    assert ticks >= 5
+    assert max_gap < 0.15  # a blocking call would stall the loop for >= 0.3 s

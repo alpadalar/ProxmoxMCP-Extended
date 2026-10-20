@@ -14,9 +14,13 @@ The module implements a robust command execution system with:
 - Comprehensive error handling
 """
 
+import asyncio
 import logging
-from typing import Dict, Any
+from functools import partial
+from typing import Any, Dict
+
 from ...utils.redaction import redact_local
+
 
 class VMConsoleManager:
     """Manager class for VM console operations.
@@ -90,7 +94,11 @@ class VMConsoleManager:
         # per call only (never stored in the global redaction registry).
         try:
             # Verify VM exists and is running
-            vm_status = self.proxmox.nodes(node).qemu(vmid).status.current.get()
+            # proxmoxer is synchronous; run every call in a worker thread so the
+            # event loop (and /health) stays responsive.
+            vm_status = await asyncio.to_thread(
+                self.proxmox.nodes(node).qemu(vmid).status.current.get
+            )
             if vm_status["status"] != "running":
                 self.logger.error(f"Failed to execute command on VM {vmid}: VM is not running")
                 raise ValueError(f"VM {vmid} on node {node} is not running")
@@ -104,7 +112,9 @@ class VMConsoleManager:
             try:
                 # Start command execution
                 try:
-                    exec_result = endpoint("exec").post(command=command)
+                    exec_result = await asyncio.to_thread(
+                        partial(endpoint("exec").post, command=command)
+                    )
                 except Exception as e:
                     self.logger.error(
                         f"Failed to start command on VM {vmid} (node: {node}): {type(e).__name__}"
@@ -118,12 +128,13 @@ class VMConsoleManager:
                 self.logger.info(f"Command started on VM {vmid} (PID: {pid})")
 
                 # Add a small delay to allow command to complete
-                import asyncio
                 await asyncio.sleep(1)
 
                 # Get command output using exec-status
                 try:
-                    console = endpoint("exec-status").get(pid=pid)
+                    console = await asyncio.to_thread(
+                        partial(endpoint("exec-status").get, pid=pid)
+                    )
                     if not console:
                         raise RuntimeError("No response from exec-status")
                 except Exception as e:

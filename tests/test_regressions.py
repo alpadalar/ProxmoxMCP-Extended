@@ -20,8 +20,8 @@ test XPASSes, the strict marker fails the suite, and the marker must be removed.
 | Arbitrary command execution logged              | test_exec_command_not_logged                       | FIXED         | Phase 2 / CONF-03   |
 | TLS/logging defaults in example config          | test_example_config_safe_defaults                  | FIXED         | Phase 2 / CONF-04   |
 | Duplicated tool registration                    | test_stdio_http_tool_sets_identical                | PINNED xfail  | Phase 3 / SRV-01    |
-| Connection setup at construction time           | test_proxmox_connect_is_lazy                       | PINNED xfail  | Phase 3 / SRV-04    |
-| Known Bugs: blocking calls inside async path    | test_execute_command_does_not_block_loop           | PINNED xfail  | Phase 3 / SRV-04    |
+| Connection setup at construction time           | test_proxmox_connect_is_lazy                       | FIXED         | Phase 3 / SRV-04    |
+| Known Bugs: blocking calls inside async path    | test_execute_command_does_not_block_loop           | FIXED         | Phase 3 / SRV-04    |
 | Inconsistent error semantics (delete_vm)        | test_delete_vm_not_found_not_substring_matched     | PINNED xfail  | Phase 4 / TECH-02   |
 """
 import ast
@@ -204,7 +204,6 @@ def test_stdio_http_tool_sets_identical():
     assert stdio == http, f"differ: {sorted(stdio ^ http)}"
 
 
-@_pin("CONCERNS: connection at construction time; fixed in Phase 3 (SRV-04)")
 def test_proxmox_connect_is_lazy():
     """CONCERNS Fragile Areas: constructing ProxmoxManager must not touch the network."""
     from proxmox_mcp.config.models import AuthConfig, ProxmoxConfig
@@ -217,12 +216,12 @@ def test_proxmox_connect_is_lazy():
         mock_api.return_value.version.get.assert_not_called()
 
 
-@_pin("CONCERNS: blocking calls inside async path; fixed in Phase 3 (SRV-04)")
 def test_execute_command_does_not_block_loop():
     """CONCERNS Known Bugs: async execute_command must offload sync proxmoxer calls."""
     src = _function_source(SRC / "tools" / "console" / "manager.py", "execute_command")
     assert "to_thread" in src or "run_in_executor" in src
     assert "time.sleep" not in src
+    assert src.count("to_thread") >= 3
 
 
 @_pin("CONCERNS: inconsistent error semantics; fixed in Phase 4 (TECH-02)")
