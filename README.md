@@ -165,6 +165,18 @@ docker compose down
 `docker compose` refuses to start if `PROXMOX_MCP_API_KEY_HASHES` is unset. The container reports
 its health through a built-in `HEALTHCHECK`.
 
+**Config file permissions.** The container runs as uid 10001 with all capabilities dropped (no
+`CAP_DAC_OVERRIDE`), so it can only read `config.json` if the file permissions allow that uid. A
+typical `0600` file owned by your host user fails with "Cannot read config file". Pick one:
+
+- Run the container as the file owner: `export PROXMOX_MCP_UID=$(id -u) PROXMOX_MCP_GID=$(id -g)`
+  before `docker compose up` (compose passes them to `user:`). The file can stay `0600`.
+- Give the file to the image user: `sudo chown 10001 proxmox-config/config.json && chmod 400
+  proxmox-config/config.json`.
+- Do not mount a config with the token at all: set `PROXMOX_HOST`, `PROXMOX_USER`,
+  `PROXMOX_TOKEN_NAME` and `PROXMOX_TOKEN_VALUE` through `environment:` or an `env_file` and keep that
+  file at `0600`. The mount still needs a readable `config.json` (it may hold no secrets).
+
 ## Safety model
 
 All gates default to closed; gated tools stay registered (the tool list never changes) and refuse
@@ -381,6 +393,9 @@ uv run pytest -q
 
 ## Troubleshooting
 
+- **"Cannot read config file" in the container**: the container user (uid 10001, or
+  `PROXMOX_MCP_UID`) cannot read the mounted `config.json`; see
+  [Docker Compose](#docker-compose).
 - **Server exits at startup mentioning API keys**: HTTP mode needs digests; see
   [HTTP (streamable HTTP, API key required)](#http-streamable-http-api-key-required).
 - **401 from the HTTP endpoint**: send `Authorization: Bearer <plain key>` (not the digest).

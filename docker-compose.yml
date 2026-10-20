@@ -11,9 +11,13 @@ services:
       - PROXMOX_MCP_CONFIG=/config/config.json
       - PROXMOX_MCP_API_KEY_HASHES=${PROXMOX_MCP_API_KEY_HASHES:?set sha256 digests of API keys}
       - LOG_FILE=/tmp/proxmox_mcp.log
+    # Run as the uid that owns a 0600 config file on the host: PROXMOX_MCP_UID=$(id -u)
+    # PROXMOX_MCP_GID=$(id -g). The default is the image user.
+    user: "${PROXMOX_MCP_UID:-10001}:${PROXMOX_MCP_GID:-10001}"
     read_only: true
+    init: true
     tmpfs:
-      - /tmp
+      - /tmp:rw,noexec,nosuid,size=16m
     cap_drop:
       - ALL
     security_opt:
