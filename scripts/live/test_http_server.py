@@ -13,7 +13,7 @@ import requests
 from datetime import datetime
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 # Test configuration
 HTTP_SERVER_URL = "http://localhost:8812/proxmox-mcp"

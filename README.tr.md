@@ -634,7 +634,7 @@ ProxmoxMCP-Extended/
 │       └── utils/                   # Yardımcılar (auth, logging)
 │
 ├── 📁 tests/                       # Birim testleri
-├── 📁 test_scripts/                # Entegrasyon testleri ve demolar
+├── 📁 scripts/live/                 # Entegrasyon testleri ve demolar
 │   ├── README.md                   # Test dokümantasyonu
 │   ├── test_vm_power.py           # VM güç yönetimi testleri 🆕
 │   ├── test_vm_start.py           # VM başlatma testleri
@@ -670,7 +670,7 @@ pytest
 
 ### Entegrasyon Testlerini Çalıştır
 ```bash
-cd test_scripts
+cd scripts/live
 
 # VM güç yönetimi testi
 python test_vm_power.py

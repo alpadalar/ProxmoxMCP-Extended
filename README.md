@@ -628,7 +628,7 @@ ProxmoxMCP-Extended/
 │       └── utils/                   # Utilities (auth, logging)
 │
 ├── 📁 tests/                       # Unit test suite
-├── 📁 test_scripts/                # Integration tests & demos
+├── 📁 scripts/live/                 # Integration tests & demos
 │   ├── README.md                   # Test documentation
 │   ├── test_vm_power.py           # VM power management tests 🆕
 │   ├── test_vm_start.py           # VM startup tests
@@ -664,7 +664,7 @@ pytest
 
 ### Run Integration Tests
 ```bash
-cd test_scripts
+cd scripts/live
 
 # Test VM power management
 python test_vm_power.py

@@ -13,7 +13,7 @@ def setup_test_environment():
     current_dir = Path(__file__).parent
     
     # Calculate project root directory
-    project_root = current_dir.parent
+    project_root = current_dir.parent.parent
     
     # Set configuration file path
     config_path = project_root / "proxmox-config" / "config.json"

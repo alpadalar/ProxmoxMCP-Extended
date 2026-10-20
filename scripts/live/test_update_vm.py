@@ -5,7 +5,7 @@ Test script for VM update functionality.
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from proxmox_mcp.config.loader import load_config
 from proxmox_mcp.core.proxmox import ProxmoxManager
@@ -15,7 +15,7 @@ def test_update_vm():
     """Test VM update functionality."""
     
     # Load configuration
-    config = load_config("../proxmox-config/config.json")
+    config = load_config("proxmox-config/config.json")
     
     # Initialize Proxmox API
     proxmox_manager = ProxmoxManager(config.proxmox, config.auth)
