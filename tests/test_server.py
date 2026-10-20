@@ -18,7 +18,7 @@ def test_server_initialization(server, mock_proxmox):
     assert server.config.auth.token_value.get_secret_value() == "test_value"
     assert server.config.logging.level == "DEBUG"
 
-    mock_proxmox.assert_called_once()
+    mock_proxmox.assert_not_called()  # lazy: no connection at construction
 
 @pytest.mark.asyncio
 async def test_list_tools(server):

@@ -107,7 +107,9 @@ def _manager(failure=None):
     with patch("proxmox_mcp.core.proxmox.ProxmoxAPI") as api:
         if failure:
             api.return_value.version.get.side_effect = failure
-        return ProxmoxManager(cfg, auth)
+        manager = ProxmoxManager(cfg, auth)
+        manager.get_api().nodes  # lazy: the connection happens on first use
+        return manager
 
 
 def test_manager_registers_token_and_scrubs_connect_error(caplog):

@@ -2,36 +2,67 @@
 Proxmox API setup and management.
 
 This module handles the core Proxmox API integration, providing:
-- Secure API connection setup and management
+- Lazy, timeout-bounded API connection (no network I/O at construction)
 - Token-based authentication
-- Connection testing and validation
-- Error handling for API operations
+- Connectivity/auth check on first use
+- Redacted error handling for API operations
 
-The ProxmoxManager class serves as the central point for all Proxmox API
-interactions, ensuring consistent connection handling and authentication
-across the MCP server.
+ProxmoxManager is the central point for Proxmox API access. Constructing it
+never touches the network; the connection is established on the first
+attribute access of the proxy returned by get_api(). A failed connection is
+not cached, so the next access retries.
 """
 import logging
-from typing import Dict, Any
+import threading
+from typing import Any, Callable, Dict, Optional
+
 from proxmoxer import ProxmoxAPI
-from ..config.models import ProxmoxConfig, AuthConfig
+
+from ..config.models import AuthConfig, ProxmoxConfig
 from ..utils.redaction import redact, register_secret
 
+NOT_CONNECTED = "not_connected"
+CONNECTED = "connected"
+UNREACHABLE = "unreachable"
+
+
+class LazyProxmoxAPI:
+    """Proxy that connects to Proxmox on first attribute access."""
+
+    def __init__(self, connect: Callable[[], Any]):
+        self._connect = connect
+        self._lock = threading.Lock()
+        self._api: Optional[Any] = None
+        self._state = NOT_CONNECTED
+
+    @property
+    def state(self) -> str:
+        """Connection state; never performs I/O."""
+        return self._state
+
+    def _resolve(self) -> Any:
+        with self._lock:
+            if self._api is not None:
+                return self._api
+            try:
+                self._api = self._connect()
+            except Exception:
+                self._state = UNREACHABLE
+                raise
+            self._state = CONNECTED
+            return self._api
+
+    def __getattr__(self, name: str) -> Any:
+        if name.startswith("_"):
+            raise AttributeError(name)
+        return getattr(self._resolve(), name)
+
+
 class ProxmoxManager:
-    """Manager class for Proxmox API operations.
-    
-    This class handles:
-    - API connection initialization and management
-    - Configuration validation and merging
-    - Connection testing and health checks
-    - Token-based authentication setup
-    
-    The manager provides a single point of access to the Proxmox API,
-    ensuring proper initialization and error handling for all API operations.
-    """
-    
+    """Manager class for Proxmox API operations (lazy connection)."""
+
     def __init__(self, proxmox_config: ProxmoxConfig, auth_config: AuthConfig):
-        """Initialize the Proxmox API manager.
+        """Initialize the manager without any network I/O.
 
         Args:
             proxmox_config: Proxmox connection configuration
@@ -40,20 +71,15 @@ class ProxmoxManager:
         self.logger = logging.getLogger("proxmox-mcp.proxmox")
         register_secret(auth_config.token_value.get_secret_value())
         self.config = self._create_config(proxmox_config, auth_config)
-        self.api = self._setup_api()
+        self.api = LazyProxmoxAPI(self._connect)
 
-    def _create_config(self, proxmox_config: ProxmoxConfig, auth_config: AuthConfig) -> Dict[str, Any]:
+    def _create_config(
+        self, proxmox_config: ProxmoxConfig, auth_config: AuthConfig
+    ) -> Dict[str, Any]:
         """Create a configuration dictionary for ProxmoxAPI.
 
-        Merges connection and authentication configurations into a single
-        dictionary suitable for ProxmoxAPI initialization. Handles:
-        - Host and port configuration
-        - SSL verification settings
-        - Token-based authentication details
-        - Service type specification
-
         Args:
-            proxmox_config: Proxmox connection configuration (host, port, SSL settings)
+            proxmox_config: Proxmox connection configuration (host, port, SSL, timeout)
             auth_config: Authentication configuration (user, token details)
 
         Returns:
@@ -71,50 +97,31 @@ class ProxmoxManager:
             'token_name': auth_config.token_name,
             'token_value': auth_config.token_value.get_secret_value(),
             'verify_ssl': proxmox_config.ca_bundle or proxmox_config.verify_ssl,
-            'service': proxmox_config.service
+            'service': proxmox_config.service,
+            'timeout': proxmox_config.timeout,
         }
 
-    def _setup_api(self) -> ProxmoxAPI:
-        """Initialize and test Proxmox API connection.
-
-        Performs the following steps:
-        1. Creates ProxmoxAPI instance with configured settings
-        2. Tests connection by making a version check request
-        3. Validates authentication and permissions
-        4. Logs connection status and any issues
-
-        Returns:
-            Initialized and tested ProxmoxAPI instance
+    def _connect(self) -> ProxmoxAPI:
+        """Create the ProxmoxAPI instance and verify connectivity/authentication.
 
         Raises:
-            RuntimeError: If connection fails due to:
-                        - Invalid host/port
-                        - Authentication failure
-                        - Network connectivity issues
-                        - SSL certificate validation errors
+            RuntimeError: with redacted details if the connection or auth check fails.
         """
         try:
             self.logger.info(f"Connecting to Proxmox host: {self.config['host']}")
             api = ProxmoxAPI(**self.config)
-            
-            # Test connection
             api.version.get()
             self.logger.info("Successfully connected to Proxmox API")
-            
             return api
         except Exception as e:
             safe = redact(str(e))
             self.logger.error(f"Failed to connect to Proxmox: {safe}")
             raise RuntimeError(f"Failed to connect to Proxmox: {safe}") from None
 
-    def get_api(self) -> ProxmoxAPI:
-        """Get the initialized Proxmox API instance.
-        
-        Provides access to the configured and tested ProxmoxAPI instance
-        for making API calls. The instance maintains connection state and
-        handles authentication automatically.
-
-        Returns:
-            ProxmoxAPI instance ready for making API calls
-        """
+    def get_api(self) -> LazyProxmoxAPI:
+        """Get the lazy Proxmox API proxy (connects on first attribute access)."""
         return self.api
+
+    def connection_state(self) -> str:
+        """Return not_connected / connected / unreachable without any I/O."""
+        return self.api.state
