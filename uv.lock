@@ -1636,6 +1636,7 @@ dependencies = [
     { name = "proxmoxer" },
     { name = "pydantic" },
     { name = "requests" },
+    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -1656,6 +1657,7 @@ requires-dist = [
     { name = "proxmoxer", specifier = ">=2.2,<3" },
     { name = "pydantic", specifier = ">=2.12,<3" },
     { name = "requests", specifier = ">=2.32,<3" },
+    { name = "uvicorn", specifier = ">=0.54,<1" },
 ]
 
 [package.metadata.requires-dev]

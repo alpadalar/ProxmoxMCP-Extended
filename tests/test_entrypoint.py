@@ -43,7 +43,7 @@ def test_main_requires_config(monkeypatch, capsys):
     from proxmox_mcp import server
 
     monkeypatch.delenv("PROXMOX_MCP_CONFIG", raising=False)
-    with patch.object(server, "ProxmoxManager") as manager:
+    with patch("proxmox_mcp.app.ProxmoxManager") as manager:
         with pytest.raises(SystemExit) as exc:
             server.main([])
         manager.assert_not_called()

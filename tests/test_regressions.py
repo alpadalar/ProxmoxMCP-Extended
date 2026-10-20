@@ -19,7 +19,7 @@ test XPASSes, the strict marker fails the suite, and the marker must be removed.
 | Input validation / injection (node path)        | test_path_traversal_node_rejected                  | FIXED         | Phase 2 / CONF-02   |
 | Arbitrary command execution logged              | test_exec_command_not_logged                       | FIXED         | Phase 2 / CONF-03   |
 | TLS/logging defaults in example config          | test_example_config_safe_defaults                  | FIXED         | Phase 2 / CONF-04   |
-| Duplicated tool registration                    | test_stdio_http_tool_sets_identical                | PINNED xfail  | Phase 3 / SRV-01    |
+| Duplicated tool registration                    | test_stdio_http_tool_sets_identical                | FIXED         | Phase 3 / SRV-01    |
 | Connection setup at construction time           | test_proxmox_connect_is_lazy                       | FIXED         | Phase 3 / SRV-04    |
 | Known Bugs: blocking calls inside async path    | test_execute_command_does_not_block_loop           | FIXED         | Phase 3 / SRV-04    |
 | Inconsistent error semantics (delete_vm)        | test_delete_vm_not_found_not_substring_matched     | PINNED xfail  | Phase 4 / TECH-02   |
@@ -40,21 +40,6 @@ SRC = ROOT / "src" / "proxmox_mcp"
 def _pin(reason: str):
     """Strict xfail restricted to the intended failure mode."""
     return pytest.mark.xfail(strict=True, raises=AssertionError, reason=reason)
-
-
-def _tool_names(path: Path) -> set:
-    """Names of functions decorated with ``<something>.tool(...)``."""
-    names = set()
-    for node in ast.walk(ast.parse(path.read_text())):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            for dec in node.decorator_list:
-                if (
-                    isinstance(dec, ast.Call)
-                    and isinstance(dec.func, ast.Attribute)
-                    and dec.func.attr == "tool"
-                ):
-                    names.add(node.name)
-    return names
 
 
 def _function_source(path: Path, name: str) -> str:
@@ -81,9 +66,10 @@ def test_console_script_main_exists():
 
 def test_stdio_server_imports_on_fastmcp4():
     """CONCERNS fastmcp import path: stdio server imports FastMCP from the fastmcp package."""
-    from proxmox_mcp import server
+    from proxmox_mcp import app, server
 
-    assert server.FastMCP.__module__.split(".")[0] == "fastmcp"
+    assert callable(server.main)
+    assert app.FastMCP.__module__.split(".")[0] == "fastmcp"
 
 
 def test_middleware_has_no_silent_fallback():
@@ -110,7 +96,7 @@ def test_http_auth_not_hardcoded_off():
 
 def test_health_reports_real_auth_state():
     """CONCERNS Known Bugs: /health 'auth' must not derive from use_django_auth alone."""
-    text = (SRC / "server_http.py").read_text()
+    text = (SRC / "app.py").read_text()
     payload_values = []
     for node in ast.walk(ast.parse(text)):
         if isinstance(node, ast.Dict):
@@ -196,12 +182,22 @@ def test_example_config_safe_defaults():
     assert cfg["logging"]["level"].upper() != "DEBUG"
 
 
-@_pin("CONCERNS: duplicated tool registration; fixed in Phase 3 (SRV-01)")
-def test_stdio_http_tool_sets_identical():
+@pytest.mark.asyncio
+async def test_stdio_http_tool_sets_identical(mock_env_vars, mock_proxmox):
     """CONCERNS Tech Debt: stdio and HTTP servers must register the same tools."""
-    stdio = _tool_names(SRC / "server.py")
-    http = _tool_names(SRC / "server_http.py")
-    assert stdio == http, f"differ: {sorted(stdio ^ http)}"
+    from proxmox_mcp.server import ProxmoxMCPServer
+    from proxmox_mcp.server_http import ProxmoxMCPHTTPServer
+    from tests.test_tool_schema_snapshot import build_snapshot
+
+    stdio = ProxmoxMCPServer()
+    with patch("proxmox_mcp.server_http.setup_logging", lambda cfg: logging.getLogger("x")):
+        http = ProxmoxMCPHTTPServer(api_key_digests=["a" * 64])
+    stdio_snap = await build_snapshot(stdio)
+    http_snap = await build_snapshot(http)
+    assert stdio_snap == http_snap
+    assert len(stdio_snap) == 18
+    for module in ("server.py", "server_http.py"):
+        assert ".tool(" not in (SRC / module).read_text()
 
 
 def test_proxmox_connect_is_lazy():

@@ -58,7 +58,7 @@ def test_management_package_removed():
 
 def test_auth_package_contents():
     names = {p.name for p in (SRC / "auth").iterdir() if p.name != "__pycache__"}
-    assert names == {"__init__.py", "apikey.py", "hostguard.py"}
+    assert names == {"__init__.py", "apikey.py", "hostguard.py", "policy.py"}
 
 
 def test_no_legacy_words_in_repo():

@@ -1,60 +1,22 @@
 """
-Main server implementation for Proxmox MCP.
+Stdio MCP server for Proxmox.
 
-This module implements the core MCP server for Proxmox integration, providing:
-- Configuration loading and validation
-- Logging setup
-- Proxmox API connection management
-- MCP tool registration and routing
-- Signal handling for graceful shutdown
-
-The server exposes a set of tools for managing Proxmox resources including:
-- Node management
-- VM operations
-- Storage management
-- Cluster status monitoring
+Thin wrapper around :func:`proxmox_mcp.app.create_app`: loads configuration, sets up
+logging and runs the stdio transport.  All tools come from the shared registry
+(``proxmox_mcp.tools.registry``).
 """
 import argparse
-import logging
-import json
 import os
 import sys
-from typing import Any, Dict, Mapping, Optional, List, Annotated
+from typing import Any, Dict, List, Mapping, Optional
 
-from fastmcp import FastMCP
-from mcp.types import TextContent as Content
-from pydantic import Field
-
+from .app import create_app
 from .config.loader import load_config
 from .core.logging import setup_logging
-from .core.proxmox import ProxmoxManager
-from .tools.node import NodeTools
-from .tools.vm import VMTools
-from .tools.storage import StorageTools
-from .tools.cluster import ClusterTools
-from .tools.definitions import (
-    GET_NODES_DESC,
-    GET_NODE_STATUS_DESC,
-    GET_VMS_DESC,
-    CREATE_VM_DESC,
-    EXECUTE_VM_COMMAND_DESC,
-    START_VM_DESC,
-    STOP_VM_DESC,
-    SHUTDOWN_VM_DESC,
-    RESET_VM_DESC,
-    DELETE_VM_DESC,
-    UPDATE_VM_DESC,
-    GET_CONTAINERS_DESC,
-    GET_STORAGE_DESC,
-    GET_CLUSTER_STATUS_DESC,
-    CREATE_SNAPSHOT_DESC,
-    ROLLBACK_SNAPSHOT_DESC,
-    GET_VM_USAGE_DESC,
-    HEALTH_DESC,
-)
+
 
 class ProxmoxMCPServer:
-    """Main server class for Proxmox MCP."""
+    """Main server class for Proxmox MCP (stdio)."""
 
     def __init__(
         self,
@@ -67,175 +29,25 @@ class ProxmoxMCPServer:
             config_path: Path to configuration file
             cli_overrides: Optional nested overrides (highest precedence)
         """
-        # Pass-through: if caller provides a config path, use it; otherwise loader will use ENV fallback
         self.config = load_config(config_path, cli_overrides=cli_overrides)
         self.logger = setup_logging(self.config.logging)
-        
-        # Initialize core components
-        self.proxmox_manager = ProxmoxManager(self.config.proxmox, self.config.auth)
+
+        self.app = create_app(self.config, "stdio")
+        self.mcp = self.app.mcp
+        self.proxmox_manager = self.app.manager
         self.proxmox = self.proxmox_manager.get_api()
-        
-        # Initialize tools
-        self.node_tools = NodeTools(self.proxmox)
-        self.vm_tools = VMTools(self.proxmox)
-        self.storage_tools = StorageTools(self.proxmox)
-        self.cluster_tools = ClusterTools(self.proxmox)
-        
-        # Initialize MCP server
-        self.mcp = FastMCP("ProxmoxMCP")
-        self._tests_passed: Optional[bool] = None
-        self._setup_tools()
+        self.node_tools = self.app.node_tools
+        self.vm_tools = self.app.vm_tools
+        self.storage_tools = self.app.storage_tools
+        self.cluster_tools = self.app.cluster_tools
 
-    def _setup_tools(self) -> None:
-        """Register MCP tools with the server.
-        
-        Initializes and registers all available tools with the MCP server:
-        - Node management tools (list nodes, get status)
-        - VM operation tools (list VMs, execute commands, power management)
-        - Storage management tools (list storage)
-        - Cluster tools (get cluster status)
-        
-        Each tool is registered with appropriate descriptions and parameter
-        validation using Pydantic models.
-        """
-        
-        # Node tools
-        @self.mcp.tool(description=GET_NODES_DESC)
-        def get_nodes():
-            return self.node_tools.get_nodes()
+    @property
+    def _tests_passed(self) -> Optional[bool]:
+        return self.app.tests_passed
 
-        @self.mcp.tool(description=GET_NODE_STATUS_DESC)
-        def get_node_status(
-            node: Annotated[str, Field(description="Name/ID of node to query (e.g. 'pve1', 'proxmox-node2')")]
-        ):
-            return self.node_tools.get_node_status(node)
-
-        # VM tools
-        @self.mcp.tool(description=GET_VMS_DESC)
-        def get_vms():
-            return self.vm_tools.get_vms()
-
-        @self.mcp.tool(description=GET_CONTAINERS_DESC)
-        def get_containers():
-            result = self.cluster_tools.list_containers()
-            return [Content(type="text", text=json.dumps(result))]
-
-        @self.mcp.tool(description=CREATE_VM_DESC)
-        def create_vm(
-            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-            vmid: Annotated[str, Field(description="New VM ID number (e.g. '200', '300')")],
-            name: Annotated[str, Field(description="VM name (e.g. 'my-new-vm', 'web-server')")],
-            cpus: Annotated[int, Field(description="Number of CPU cores (e.g. 1, 2, 4)", ge=1, le=32)],
-            memory: Annotated[int, Field(description="Memory size in MB (e.g. 2048 for 2GB)", ge=512, le=131072)],
-            disk_size: Annotated[int, Field(description="Disk size in GB (e.g. 10, 20, 50)", ge=5, le=1000)],
-            storage: Annotated[Optional[str], Field(description="Storage name (optional, will auto-detect)", default=None)] = None,
-            ostype: Annotated[Optional[str], Field(description="OS type (optional, default: 'l26' for Linux)", default=None)] = None,
-            iso_name: Annotated[Optional[str], Field(description="ISO file name to mount (optional)", default=None)] = None,
-            iso_storage: Annotated[Optional[str], Field(description="Storage containing the ISO (optional)", default=None)] = None,
-        ):
-            return self.vm_tools.create_vm(node, vmid, name, cpus, memory, disk_size, storage, ostype, iso_name, iso_storage)
-
-        @self.mcp.tool(description=EXECUTE_VM_COMMAND_DESC)
-        async def execute_vm_command(
-            node: Annotated[str, Field(description="Host node name (e.g. 'pve1', 'proxmox-node2')")],
-            vmid: Annotated[str, Field(description="VM ID number (e.g. '100', '101')")],
-            command: Annotated[str, Field(description="Shell command to run (e.g. 'uname -a', 'systemctl status nginx')")]
-        ):
-            return await self.vm_tools.execute_command(node, vmid, command)
-
-        # VM Power Management tools
-        @self.mcp.tool(description=START_VM_DESC)
-        def start_vm(
-            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-            vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")]
-        ):
-            return self.vm_tools.start_vm(node, vmid)
-
-        @self.mcp.tool(description=STOP_VM_DESC)
-        def stop_vm(
-            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-            vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")]
-        ):
-            return self.vm_tools.stop_vm(node, vmid)
-
-        @self.mcp.tool(description=SHUTDOWN_VM_DESC)
-        def shutdown_vm(
-            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-            vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")]
-        ):
-            return self.vm_tools.shutdown_vm(node, vmid)
-
-        @self.mcp.tool(description=RESET_VM_DESC)
-        def reset_vm(
-            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-            vmid: Annotated[str, Field(description="VM ID number (e.g. '101')")]
-        ):
-            return self.vm_tools.reset_vm(node, vmid)
-
-        @self.mcp.tool(description=DELETE_VM_DESC)
-        def delete_vm(
-            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-            vmid: Annotated[str, Field(description="VM ID number (e.g. '998')")],
-            force: Annotated[bool, Field(description="Force deletion even if VM is running", default=False)] = False
-        ):
-            return self.vm_tools.delete_vm(node, vmid, force)
-
-        @self.mcp.tool(description=UPDATE_VM_DESC)
-        def update_vm(
-            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-            vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
-            memory: Annotated[Optional[int], Field(description="New memory size in MB (e.g. 4096 for 4GB, 6144 for 6GB)", default=None)] = None,
-            cpus: Annotated[Optional[int], Field(description="New number of CPU cores (e.g. 1, 2, 4)", default=None)] = None,
-            name: Annotated[Optional[str], Field(description="New VM name", default=None)] = None,
-        ):
-            return self.vm_tools.update_vm(node, vmid, memory, cpus, name)
-
-        # VM snapshot tools
-        @self.mcp.tool(description=CREATE_SNAPSHOT_DESC)
-        def create_snapshot(
-            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-            vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
-            name: Annotated[str, Field(description="Snapshot name (e.g. 'pre-upgrade')")],
-            description: Annotated[Optional[str], Field(description="Optional description", default=None)] = None,
-            vmstate: Annotated[bool, Field(description="Include VM memory state", default=False)] = False,
-        ):
-            return self.vm_tools.create_snapshot(node, vmid, name, description, vmstate)
-
-        @self.mcp.tool(description=ROLLBACK_SNAPSHOT_DESC)
-        def rollback_snapshot(
-            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-            vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
-            name: Annotated[str, Field(description="Snapshot name to rollback to")],
-        ):
-            return self.vm_tools.rollback_snapshot(node, vmid, name)
-
-        # VM usage tool
-        @self.mcp.tool(description=GET_VM_USAGE_DESC)
-        def get_vm_usage(
-            node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
-            vmid: Annotated[str, Field(description="VM ID number (e.g. '100')")],
-        ):
-            return self.vm_tools.get_vm_usage(node, vmid)
-
-        # Storage tools
-        @self.mcp.tool(description=GET_STORAGE_DESC)
-        def get_storage():
-            return self.storage_tools.get_storage()
-
-        # Cluster tools
-        @self.mcp.tool(description=GET_CLUSTER_STATUS_DESC)
-        def get_cluster_status():
-            return self.cluster_tools.get_cluster_status()
-
-        # System tools
-        @self.mcp.tool(description=HEALTH_DESC)
-        def health():
-            status = "ok" if self._tests_passed is True else ("degraded" if self._tests_passed is False else "unknown")
-            return [Content(type="text", text=json.dumps({
-                "status": status,
-                "tests_passed": self._tests_passed,
-                "details": "Startup tests passed" if self._tests_passed else ("Startup tests failed" if self._tests_passed is False else "No tests executed")
-            }))]
+    @_tests_passed.setter
+    def _tests_passed(self, value: Optional[bool]) -> None:
+        self.app.tests_passed = value
 
     def start(self) -> None:
         """Start the MCP server.
@@ -255,11 +67,18 @@ class ProxmoxMCPServer:
                 self.logger.info("Running startup tests (pytest)...")
                 env = os.environ.copy()
                 # Ensure src on PYTHONPATH for tests
-                env["PYTHONPATH"] = f"{os.getcwd()}/src" + (":" + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
-                result = subprocess.run([sys.executable, "-m", "pytest", "-q"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+                extra = ":" + env["PYTHONPATH"] if env.get("PYTHONPATH") else ""
+                env["PYTHONPATH"] = f"{os.getcwd()}/src" + extra
+                result = subprocess.run(
+                    [sys.executable, "-m", "pytest", "-q"],
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env,
+                )
                 self._tests_passed = (result.returncode == 0)
                 if not self._tests_passed:
-                    self.logger.error("Startup tests failed. Health will be 'degraded'. Output:\n" + result.stdout.decode())
+                    self.logger.error(
+                        "Startup tests failed. Health will be 'degraded'. Output:\n"
+                        + result.stdout.decode()
+                    )
                 else:
                     self.logger.info("Startup tests passed.")
 

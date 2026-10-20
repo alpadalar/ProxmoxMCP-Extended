@@ -33,6 +33,7 @@ dependencies = [
     "proxmoxer>=2.2,<3",
     "pydantic>=2.12,<3",
     "requests>=2.32,<3",
+    "uvicorn>=0.54,<1",
 ]
 
 [dependency-groups]

@@ -159,9 +159,11 @@ def test_run_installs_no_signal_handlers(mock_env_vars, mock_proxmox, monkeypatc
     from unittest.mock import MagicMock
 
     server = ProxmoxMCPHTTPServer(api_key_digests=[hash_api_key(KEY)])
-    monkeypatch.setattr(server.mcp, "run", MagicMock())
+    serve = MagicMock()
+    monkeypatch.setattr("proxmox_mcp.app.serve_asgi", serve)
     before = (signal.getsignal(signal.SIGINT), signal.getsignal(signal.SIGTERM))
     server.run()
+    serve.assert_called_once_with(server.build_app(), server.host, server.port)
     assert (signal.getsignal(signal.SIGINT), signal.getsignal(signal.SIGTERM)) == before
 
 
