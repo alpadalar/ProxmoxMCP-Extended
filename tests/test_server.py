@@ -253,7 +253,7 @@ async def test_execute_vm_command_with_error(server, mock_proxmox):
         "command": "invalid-command"
     })
     text = tool_text(response)
-    assert "Status: SUCCESS" in text
+    assert "Status: FAILED" in text
     assert "Error:" in text and "command not found" in text
 
 @pytest.mark.asyncio

@@ -172,7 +172,7 @@ class VMConsoleManager:
         Returns:
             Dictionary containing command execution results:
             {
-                "success": true/false,
+                "success": true only if the command exited with status 0,
                 "output": "command output",
                 "error": "error output if any",
                 "exit_code": command_exit_code
@@ -271,14 +271,16 @@ class VMConsoleManager:
                 truncated = cut_out or cut_err or bool(
                     console.get("out-truncated") or console.get("err-truncated")
                 )
-                exit_code = console.get("exitcode", 0)
                 exited = bool(console.get("exited", 0))
+                exit_code = console.get("exitcode") if exited else None
+                signal = console.get("signal") if exited else None
             else:
                 # Some versions might return data differently
                 output, truncated = self._cap(str(console))
                 error = ""
                 exit_code = 0
                 exited = True
+                signal = None
 
             if timed_out:
                 self.logger.warning(f"Command on VM {vmid} still running at MCP wait limit")
@@ -289,12 +291,16 @@ class VMConsoleManager:
                 f"output_len: {len(output)}, error_len: {len(error)})"
             )
 
+            # Success means the command exited normally with status 0. A command that is still
+            # running (wait limit), was killed by a signal or exited non-zero is not a success.
+            success = exited and not timed_out and not signal and exit_code == 0
             result = {
-                "success": True,
+                "success": success,
                 "output": output,
                 "error": error,
                 "exit_code": exit_code,
                 "exited": exited,
+                "signal": signal,
                 "timed_out": timed_out,
                 "truncated": truncated,
                 "pid": pid,

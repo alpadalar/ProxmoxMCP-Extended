@@ -534,6 +534,8 @@ class VMTools(ProxmoxTool):
                 output=result["output"],
                 error=result.get("error"),
                 exit_code=result.get("exit_code"),
+                exited=result.get("exited", True),
+                signal=result.get("signal"),
                 timed_out=result.get("timed_out", False),
                 truncated=result.get("truncated", False),
             )

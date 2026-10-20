@@ -135,6 +135,8 @@ class ProxmoxFormatters:
         exit_code: int = None,
         timed_out: bool = False,
         truncated: bool = False,
+        exited: bool = True,
+        signal: Any = None,
     ) -> str:
         """Format command execution output.
         
@@ -146,6 +148,8 @@ class ProxmoxFormatters:
             exit_code: Optional exit code; shown only when non-zero
             timed_out: True when the MCP wait limit passed while the command still ran
             truncated: True when output was cut at the configured cap
+            exited: False when the command had not exited yet (exit code unknown)
+            signal: Signal number when the command was killed by a signal
 
         Returns:
             Formatted command output string
@@ -155,7 +159,11 @@ class ProxmoxFormatters:
             f"  • Status: {'SUCCESS' if success else 'FAILED'}",
             f"  • Command: {command}",
         ]
-        if exit_code not in (None, 0):
+        if signal:
+            result.append(f"  • Killed by signal: {signal}")
+        elif not exited:
+            result.append("  • Exit code: unknown (still running)")
+        elif exit_code not in (None, 0):
             result.append(f"  • Exit code: {exit_code}")
         if timed_out:
             result.append(

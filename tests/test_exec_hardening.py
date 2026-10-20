@@ -141,12 +141,35 @@ async def test_pve_truncation_flags_surfaced():
 
 
 @pytest.mark.asyncio
-async def test_nonzero_exit_still_reports_success_status_with_exit_code():
+async def test_nonzero_exit_reports_failed_status_with_exit_code():
     api, _, _ = _api(_status(out="", err="boom", code=3))
     tools = VMTools(api)
     with patch("asyncio.sleep", new=AsyncMock()):
         text = tool_text(await tools.execute_command("n", "100", "false"))
-    assert "Status: SUCCESS" in text and "Exit code: 3" in text and "boom" in text
+    assert "Status: FAILED" in text and "Exit code: 3" in text and "boom" in text
+
+
+@pytest.mark.asyncio
+async def test_timeout_is_not_success_and_exit_code_unknown():
+    api, _, _ = _api(_status(0, out="partial"))
+    ticks = iter([0.0, 100.0, 200.0])
+    tools = VMTools(api, exec_timeout=1.0)
+    with patch("asyncio.sleep", new=AsyncMock()), patch(
+        f"{MANAGER}.time", MagicMock(monotonic=lambda: next(ticks))
+    ):
+        text = tool_text(await tools.execute_command("n", "100", "sleep 99"))
+    assert "Status: FAILED" in text and "Exit code: unknown" in text and "Timed out" in text
+
+
+@pytest.mark.asyncio
+async def test_signal_kill_is_failure_not_exit_zero():
+    status = {"exited": 1, "signal": 9, "out-data": "", "err-data": ""}
+    api, _, _ = _api(status)
+    with patch("asyncio.sleep", new=AsyncMock()):
+        result = await _mgr(api).execute_command("n", "100", "x")
+        text = tool_text(await VMTools(api).execute_command("n", "100", "x"))
+    assert result["success"] is False and result["signal"] == 9 and result["exit_code"] is None
+    assert "Status: FAILED" in text and "Killed by signal: 9" in text
 
 
 @pytest.mark.asyncio
