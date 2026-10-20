@@ -1,0 +1,20 @@
+.git
+.gitignore
+.venv
+**/__pycache__
+**/*.pyc
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.benchmarks
+.planning
+.github
+tests
+scripts
+examples
+*.log
+.env*
+# never let real credentials into the build context
+proxmox-config/config.json
+**/config.json
+proxmox-config/config.example.json
