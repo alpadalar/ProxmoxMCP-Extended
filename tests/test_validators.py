@@ -198,6 +198,13 @@ UPID_BAD = [
     "UPID:pve1:0000ABCD:00123456:65A1B2C3:qm/start:100:root@pam:",
     "UPID:../x:0000ABCD:00123456:65A1B2C3:qmstart:100:root@pam:",
     "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:" + "1" * 600 + ":root@pam:",
+    # URL metacharacters / traversal in the user field (CR-01)
+    "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:root@pam?x=1:",
+    "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:root@pam#frag:",
+    "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:a%2F..%2Fb#:",
+    "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:root@pam%00:",
+    "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:..:",
+    "UPID:pve1:0000ABCD:00123456:65A1B2C3:qmstart:100:root@pam;x:",
 ]
 
 

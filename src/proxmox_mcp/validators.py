@@ -47,11 +47,12 @@ _OSTYPE_RE = re.compile(r"[a-z0-9]{2,16}")
 _DIGITS_RE = re.compile(r"[0-9]+")
 
 # PVE task id: UPID:<node>:<pid hex>:<pstart hex>:<starttime hex>:<type>:<id>:<user>:
-# Defined once here; tools.pve_compat re-exports it. The user part excludes whitespace,
-# separators and control characters so the id is safe inside an API path.
+# Defined once here; validate_upid is the single validation entry point (pve_compat.is_upid
+# delegates to it). The user part (user@realm or user@realm!tokenid) is restricted to
+# [A-Za-z0-9._@!-] so no URL metacharacter (? # % / ..-escapes) can reach an API path.
 UPID_RE = re.compile(
     r"UPID:[A-Za-z0-9._-]+:[0-9A-Fa-f]{8}:[0-9A-Fa-f]{8}:[0-9A-Fa-f]{8}:"
-    r"[A-Za-z0-9._-]+:[A-Za-z0-9._-]*:[^\s:/\\\x00-\x1f\x7f]+:"
+    r"[A-Za-z0-9._-]+:[A-Za-z0-9._-]*:[A-Za-z0-9._@!-]+:"
 )
 UPID_MAX = 512
 
@@ -180,7 +181,10 @@ def validate_upid(value: object, field: str = "upid") -> str:
     """PVE task id (UPID); rejected, never rewritten. ASCII only, max 512 chars."""
     if not isinstance(value, str) or len(value) > UPID_MAX:
         raise _fail(field, "must be a PVE task id (UPID:node:...)", value)
-    return _match(value, UPID_RE, field, "must be a PVE task id (UPID:node:...)")
+    rule = "must be a PVE task id (UPID:node:...)"
+    if ".." in value:
+        raise _fail(field, rule, value)
+    return _match(value, UPID_RE, field, rule)
 
 
 def upid_node(value: object, field: str = "upid") -> str:

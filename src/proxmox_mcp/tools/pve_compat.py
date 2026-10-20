@@ -18,7 +18,7 @@ import requests
 from proxmoxer.core import ResourceException
 
 from ..utils.redaction import redact
-from ..validators import UPID_RE
+from ..validators import InputValidationError, validate_upid
 
 # (privilege text, ACL path template) per operation key; PVE admin guide (pveum) privileges.
 OPERATION_PRIVILEGES: Dict[str, Tuple[str, str]] = {
@@ -68,13 +68,12 @@ class TaskFailedError(RuntimeError):
 
 
 def is_upid(value: Any) -> bool:
-    """True for a well-formed PVE task id (safe to place into an API path)."""
-    return (
-        isinstance(value, str)
-        and len(value) <= 512
-        and value.isascii()
-        and UPID_RE.fullmatch(value) is not None
-    )
+    """True for a well-formed PVE task id (delegates to ``validators.validate_upid``)."""
+    try:
+        validate_upid(value)
+    except InputValidationError:
+        return False
+    return True
 
 
 def _status_code(exc: BaseException) -> Optional[int]:

@@ -273,3 +273,25 @@ async def test_wait_for_task_running_timeout_via_mcp(policy_app, fake_pve):
     data = json.loads(result.content[0].text)
     assert data["state"] == "running" and data["timed_out"] is True
     assert "still running" in data["message"] and sum(clock.sleeps) == 7
+
+
+_PATH_UNSAFE = [
+    UPID.replace("monitor@pve!mcp", "root@pam?x=1"),
+    UPID.replace("monitor@pve!mcp", "root@pam#frag"),
+    UPID.replace("monitor@pve!mcp", "a%2F..%2Fb#"),
+    UPID.replace("monitor@pve!mcp", ".."),
+]
+
+
+@pytest.mark.parametrize("bad", _PATH_UNSAFE)
+def test_path_unsafe_upid_never_reaches_api_path(fake_pve, bad):
+    from proxmox_mcp.tools.pve_compat import is_upid, wait_task_stopped
+
+    assert is_upid(bad) is False
+    with pytest.raises(InputValidationError):
+        fetch_task_outcome(fake_pve, bad)
+    with pytest.raises(InputValidationError):
+        poll_task(fake_pve, bad, 5, sleep=lambda s: None)
+    with pytest.raises(ValueError):
+        wait_task_stopped(fake_pve, "pve1", bad)
+    assert fake_pve.calls == []
