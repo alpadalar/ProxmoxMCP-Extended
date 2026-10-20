@@ -7,8 +7,7 @@ import json
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
-from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.exceptions import ToolError
+from fastmcp.exceptions import ToolError
 from proxmox_mcp.server import ProxmoxMCPServer
 
 @pytest.fixture

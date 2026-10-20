@@ -8,24 +8,9 @@ for controlling access to MCP tools based on user scopes.
 import logging
 from typing import List, Set, Optional
 
-try:
-    from fastmcp import FastMCP
-    FASTMCP_AVAILABLE = True
-    # Try to import middleware components
-    try:
-        from fastmcp.server.middleware import Middleware, MiddlewareContext
-        from fastmcp.server.dependencies import get_access_token
-        from fastmcp.exceptions import ToolError
-    except ImportError:
-        # Alternative import paths
-        try:
-            from fastmcp.middleware import Middleware, MiddlewareContext
-            from fastmcp.dependencies import get_access_token
-            from fastmcp.exceptions import ToolError
-        except ImportError:
-            FASTMCP_AVAILABLE = False
-except ImportError:
-    FASTMCP_AVAILABLE = False
+from fastmcp.server.middleware import Middleware, MiddlewareContext
+from fastmcp.server.dependencies import get_access_token
+from fastmcp.exceptions import ToolError
 
 from .models import ProxmoxMCPToken
 
@@ -59,9 +44,6 @@ class ScopeRBAC(Middleware):
         self.default_scope = default_scope
         self.admin_scope = admin_scope
         self.write_scope = write_scope
-        
-        if not FASTMCP_AVAILABLE:
-            logger.error("FastMCP is not available. RBAC middleware will be disabled.")
 
     def _get_default_tool_scope_mapping(self) -> dict:
         """
@@ -128,9 +110,6 @@ class ScopeRBAC(Middleware):
         Returns:
             Filtered list of tools the user can access
         """
-        if not FASTMCP_AVAILABLE:
-            return await call_next(ctx)
-            
         try:
             token = get_access_token()
             if not token or not isinstance(token, ProxmoxMCPToken):
@@ -177,9 +156,6 @@ class ScopeRBAC(Middleware):
         Raises:
             ToolError: If user lacks required permissions
         """
-        if not FASTMCP_AVAILABLE:
-            return await call_next(ctx)
-            
         try:
             token = get_access_token()
             if not token or not isinstance(token, ProxmoxMCPToken):
@@ -246,9 +222,6 @@ class AuditMiddleware(Middleware):
         Returns:
             Tool execution result
         """
-        if not FASTMCP_AVAILABLE:
-            return await call_next(ctx)
-            
         try:
             token = get_access_token()
             user_info = f"user:{token.username}" if token and hasattr(token, 'username') else "anonymous"

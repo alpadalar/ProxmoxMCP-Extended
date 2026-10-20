@@ -21,15 +21,7 @@ try:
 except ImportError:
     DJANGO_AVAILABLE = False
 
-try:
-    from fastmcp import FastMCP
-    FASTMCP_AVAILABLE = True
-except ImportError:
-    try:
-        from mcp.server.fastmcp import FastMCP
-        FASTMCP_AVAILABLE = True
-    except ImportError:
-        FASTMCP_AVAILABLE = False
+from fastmcp import FastMCP
 
 from .config.loader import load_config
 from .core.logging import setup_logging
@@ -72,9 +64,6 @@ class ProxmoxMCPHTTPServer:
             port: Server port
             path: HTTP path for MCP endpoint
         """
-        if not FASTMCP_AVAILABLE:
-            raise RuntimeError("FastMCP is not available. Please install fastmcp package.")
-            
         self.config = load_config(config_path)
         self.logger = setup_logging(self.config.logging)
         self.use_django_auth = False  # Temporarily disable for testing

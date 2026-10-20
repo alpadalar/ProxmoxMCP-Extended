@@ -14,6 +14,7 @@ The server exposes a set of tools for managing Proxmox resources including:
 - Storage management
 - Cluster status monitoring
 """
+import argparse
 import logging
 import json
 import os
@@ -21,8 +22,7 @@ import sys
 import signal
 from typing import Optional, List, Annotated
 
-from mcp.server.fastmcp import FastMCP
-from mcp.server.fastmcp.tools import Tool
+from fastmcp import FastMCP
 from mcp.types import TextContent as Content
 from pydantic import Field
 
@@ -257,8 +257,6 @@ class ProxmoxMCPServer:
         
         The server runs until terminated by a signal or fatal error.
         """
-        import anyio
-
         def signal_handler(signum, frame):
             self.logger.info("Received signal to shutdown...")
             sys.exit(0)
@@ -284,17 +282,32 @@ class ProxmoxMCPServer:
                     self.logger.info("Startup tests passed.")
 
             self.logger.info("Starting MCP server...")
-            anyio.run(self.mcp.run_stdio_async)
+            self.mcp.run(transport="stdio")
         except Exception as e:
             self.logger.error(f"Server error: {e}")
             sys.exit(1)
 
-if __name__ == "__main__":
-    config_path = os.getenv("PROXMOX_MCP_CONFIG")
+def main(argv: Optional[List[str]] = None) -> None:
+    """Console script entry point for ``proxmox-mcp``."""
+    parser = argparse.ArgumentParser(
+        prog="proxmox-mcp",
+        description="Proxmox MCP server (stdio transport).",
+    )
+    parser.add_argument(
+        "--config",
+        default=None,
+        help="Path to the config JSON file (default: $PROXMOX_MCP_CONFIG)",
+    )
+    args = parser.parse_args(argv)
+
+    config_path = args.config or os.getenv("PROXMOX_MCP_CONFIG")
     if not config_path:
-        print("PROXMOX_MCP_CONFIG environment variable must be set")
+        print(
+            "Error: config path required (use --config or set PROXMOX_MCP_CONFIG)",
+            file=sys.stderr,
+        )
         sys.exit(1)
-    
+
     try:
         server = ProxmoxMCPServer(config_path)
         server.start()
@@ -302,5 +315,9 @@ if __name__ == "__main__":
         print("\nShutting down gracefully...")
         sys.exit(0)
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
