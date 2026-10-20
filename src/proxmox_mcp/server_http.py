@@ -66,6 +66,7 @@ class ProxmoxMCPHTTPServer:
         """
         self.config = load_config(config_path)
         self.logger = setup_logging(self.config.logging)
+        # TODO(SRV-03): auth is rewritten in Phase 3; django auth stays disabled until then.
         self.use_django_auth = False  # Temporarily disable for testing
         self.host = host
         self.port = port

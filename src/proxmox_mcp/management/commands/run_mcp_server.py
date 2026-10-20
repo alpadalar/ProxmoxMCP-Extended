@@ -8,8 +8,26 @@ Usage:
 import os
 import sys
 from datetime import datetime, timedelta, timezone
-from django.core.management.base import BaseCommand
-from django.conf import settings
+
+# TODO(SRV-03): The Django/JWT auth path is rewritten in Phase 3. The django
+# extra was removed in Phase 1, so django is optional here and this module must
+# stay importable without it. Do not re-add the django dependency.
+try:
+    from django.conf import settings
+    from django.core.management.base import BaseCommand
+    DJANGO_AVAILABLE = True
+except ImportError:  # pragma: no cover - django is not a declared dependency
+    DJANGO_AVAILABLE = False
+    settings = None  # type: ignore[assignment]
+
+    class BaseCommand:  # type: ignore[no-redef]
+        """Placeholder used when django is not installed."""
+
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError(
+                "run_mcp_server requires django, which is not a declared "
+                "dependency (auth rewrite tracked as SRV-03)."
+            )
 
 try:
     import jwt
