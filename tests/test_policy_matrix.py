@@ -193,3 +193,29 @@ def test_health_shows_policy_summary_over_http(policy_app):
     with TestClient(app.asgi) as c:
         body = c.get("/health", headers={"X-API-Key": "test-api-key"}).json()
     assert body["policy"] == {"read_only": False, "allow_destructive": False, "allow_exec": True}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", ["delete_vm", "stop_vm", "reset_vm", "rollback_snapshot"])
+async def test_destructive_without_confirm_is_preview_or_denied(policy_app, fake_pve, name):
+    app = policy_app(allow_destructive=True)
+    fake_pve.reset_calls()
+    result = await app.mcp.call_tool(name, SMOKE_ARGS[name])
+    assert '"preview": true' in result.content[0].text
+    assert fake_pve.calls == []
+    denied = policy_app(allow_destructive=False)
+    with pytest.raises(ToolError, match="policy_denied"):
+        await denied.mcp.call_tool(name, SMOKE_ARGS[name])
+    assert fake_pve.calls == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("transport", ["stdio", "http"])
+async def test_delete_vm_confirm_parity_across_transports(policy_app, fake_pve, transport):
+    app = policy_app(transport, allow_destructive=True)
+    fake_pve.reset_calls()
+    await app.mcp.call_tool("delete_vm", SMOKE_ARGS["delete_vm"])
+    assert fake_pve.calls == []
+    with patch("asyncio.sleep", new=AsyncMock()):
+        await app.mcp.call_tool("delete_vm", SMOKE_ARGS_CONFIRMED["delete_vm"])
+    assert fake_pve.mutating_calls()
