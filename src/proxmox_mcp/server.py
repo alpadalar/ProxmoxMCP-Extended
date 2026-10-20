@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Mapping, Optional
 from .app import create_app
 from .config.loader import load_config
 from .core.logging import setup_logging
+from .utils.redaction import safe_error_message
 
 
 class ProxmoxMCPServer:
@@ -133,7 +134,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         print("\nShutting down gracefully...")
         sys.exit(0)
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
+        print(f"Error: {safe_error_message(e)}", file=sys.stderr)
         sys.exit(1)
 
 

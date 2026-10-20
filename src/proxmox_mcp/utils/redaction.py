@@ -6,7 +6,7 @@ values must never be registered globally; use :func:`redact_local` for per-call 
 import logging
 import threading
 
-__all__ = ["register_secret", "redact_local", "redact", "RedactingFilter"]
+__all__ = ["register_secret", "redact_local", "redact", "safe_error_message", "RedactingFilter"]
 
 REDACTED = "[REDACTED]"
 MIN_SECRET_LEN = 4
@@ -47,6 +47,21 @@ def redact(text: str) -> str:
         if value in text:
             text = text.replace(value, REDACTED)
     return text
+
+
+def safe_error_message(exc: BaseException) -> str:
+    """Startup-safe error text: redacted, and without echoed input for validation errors."""
+    errors = getattr(exc, "errors", None)
+    if callable(errors):
+        try:
+            parts = [
+                f"{'.'.join(str(x) for x in err.get('loc', ()))}: {err.get('msg', 'invalid')}"
+                for err in errors()
+            ]
+            return redact(f"{type(exc).__name__}: " + "; ".join(parts))
+        except Exception:
+            return type(exc).__name__
+    return redact(str(exc))
 
 
 class RedactingFilter(logging.Filter):

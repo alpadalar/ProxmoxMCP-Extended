@@ -245,3 +245,25 @@ def test_catalog_covers_known_bug_section():
         key = next((k for k in keys if k in h.lower()), None)
         assert key is not None, f"no catalog key defined for Known Bug: {h}"
         assert keys[key] in catalog, f"Known Bug not in catalog: {h}"
+
+
+def test_startup_error_is_redacted_and_on_stderr(monkeypatch, capsys):
+    import sys
+
+    import proxmox_mcp.server_http as sh
+    from proxmox_mcp.utils.redaction import register_secret
+
+    register_secret("super-secret-token-xyz")
+
+    class Boom:
+        def __init__(self, *a, **k):
+            raise RuntimeError("bad config super-secret-token-xyz")
+
+    monkeypatch.setattr(sh, "ProxmoxMCPHTTPServer", Boom)
+    monkeypatch.setattr(sys, "argv", ["x"])
+    with pytest.raises(SystemExit) as ei:
+        sh.main()
+    assert ei.value.code == 1
+    out = capsys.readouterr()
+    assert "super-secret-token-xyz" not in out.err and "Error:" in out.err
+    assert out.out == ""

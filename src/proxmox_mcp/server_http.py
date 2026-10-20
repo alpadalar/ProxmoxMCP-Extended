@@ -17,6 +17,7 @@ from .auth.apikey import ENV_HASHES
 from .auth.policy import LOOPBACK_HOSTS, AuthConfigError
 from .config.loader import load_config
 from .core.logging import setup_logging
+from .utils.redaction import safe_error_message
 
 __all__ = ["AuthConfigError", "LOOPBACK_HOSTS", "ProxmoxMCPHTTPServer", "ProxmoxMCPCommand", "main"]
 
@@ -151,7 +152,7 @@ def main():
         print("\nShutting down gracefully...")
         sys.exit(0)
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error: {safe_error_message(e)}", file=sys.stderr)
         sys.exit(1)
 
 
