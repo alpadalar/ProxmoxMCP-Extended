@@ -21,6 +21,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 from .auth.apikey import APIKeyAuthMiddleware, ENV_HASHES, digests_from_env, normalize_digests
+from .auth.hostguard import LoopbackHostGuardMiddleware
 from .config.loader import load_config
 from .core.logging import setup_logging
 from .core.proxmox import ProxmoxManager
@@ -149,7 +150,8 @@ class ProxmoxMCPHTTPServer:
 
     def _http_middleware(self) -> List[Middleware]:
         if not self.auth_enabled:
-            return []
+            # No-auth dev mode: still refuse DNS-rebinding / cross-site browser requests.
+            return [Middleware(LoopbackHostGuardMiddleware)]
         return [Middleware(APIKeyAuthMiddleware, digests=self.api_key_digests)]
 
     def build_app(self):

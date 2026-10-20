@@ -114,7 +114,7 @@ def test_no_auth_on_loopback_warns_and_reports_disabled(mock_env_vars, mock_prox
     with caplog.at_level(logging.WARNING):
         server = ProxmoxMCPHTTPServer(host="localhost", insecure_no_auth=True)
     assert any("AUTHENTICATION DISABLED" in r.getMessage() for r in caplog.records)
-    with TestClient(server.build_app()) as c:
+    with TestClient(server.build_app(), base_url="http://localhost") as c:
         assert c.get("/health").json()["auth"] == "disabled"
         assert _post(c).status_code == 200
 
@@ -169,3 +169,32 @@ def test_run_installs_no_signal_handlers(mock_env_vars, mock_proxmox, monkeypatc
     before = (signal.getsignal(signal.SIGINT), signal.getsignal(signal.SIGTERM))
     server.run()
     assert (signal.getsignal(signal.SIGINT), signal.getsignal(signal.SIGTERM)) == before
+
+
+@pytest.fixture
+def noauth_app(mock_env_vars, mock_proxmox):
+    return ProxmoxMCPHTTPServer(host="127.0.0.1", insecure_no_auth=True).build_app()
+
+
+@pytest.mark.parametrize("base", ["http://localhost", "http://127.0.0.1:8812", "http://[::1]:8812"])
+def test_noauth_allows_loopback_hosts(noauth_app, base):
+    with TestClient(noauth_app, base_url=base) as c:
+        assert _post(c).status_code == 200
+
+
+@pytest.mark.parametrize("base", ["http://evil.example.com", "http://rebind.test:8812"])
+def test_noauth_rejects_unknown_host(noauth_app, base):
+    with TestClient(noauth_app, base_url=base) as c:
+        assert _post(c).status_code == 403
+        assert c.get("/health").status_code == 403
+
+
+@pytest.mark.parametrize("origin", ["http://evil.example.com", "null", "https://localhost.evil.com"])
+def test_noauth_rejects_foreign_origin(noauth_app, origin):
+    with TestClient(noauth_app, base_url="http://localhost") as c:
+        assert _post(c, Origin=origin).status_code == 403
+
+
+def test_noauth_allows_loopback_origin(noauth_app):
+    with TestClient(noauth_app, base_url="http://localhost") as c:
+        assert _post(c, Origin="http://localhost:3000").status_code == 200
