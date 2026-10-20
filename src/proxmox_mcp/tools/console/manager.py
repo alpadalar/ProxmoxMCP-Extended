@@ -21,12 +21,16 @@ import time
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional
 
+import requests
+from proxmoxer.core import ResourceException
+
 from ...utils.redaction import redact_local
 from ..pve_compat import (
     guest_agent_privilege_message,
     is_agent_not_running,
     is_permission_failure,
     require_vm_status,
+    translate_pve_error,
 )
 
 
@@ -85,6 +89,24 @@ class VMConsoleManager:
                 f"The QEMU guest agent is not running in VM {vmid}. Set `agent: 1` on the VM "
                 "and install and start qemu-guest-agent inside the guest."
             ) from None
+
+    def _raise_translated(
+        self, exc: BaseException, node: str, vmid: str, command: str, argv: List[str]
+    ) -> None:
+        """Raise the status-code based translation for PVE / connection errors (else return).
+
+        The translated exception is marked so the outer handlers pass it through unchanged;
+        its text is scrubbed of the command per call.
+        """
+        if not isinstance(exc, (ResourceException, requests.exceptions.RequestException)):
+            return
+        translated = translate_pve_error(
+            exc, "execute command on VM", node=node, vmid=vmid,
+            major=self._pve_major(), privilege_key="execute_vm_command",
+        )
+        clean = type(translated)(redact_local(str(translated), command, *argv))
+        clean._pve_translated = True  # type: ignore[attr-defined]
+        raise clean from None
 
     @classmethod
     def _build_argv(cls, command: str, args: Optional[List[str]] = None) -> List[str]:
@@ -223,9 +245,10 @@ class VMConsoleManager:
                         f"Failed to start command on VM {vmid} (node: {node}): {type(e).__name__}"
                     )
                     self._raise_agent_hint(e, vmid)
+                    self._raise_translated(e, node, vmid, command, argv)
                     raise RuntimeError(f"Failed to start command: {type(e).__name__}") from None
 
-                if 'pid' not in exec_result:
+                if not isinstance(exec_result, dict) or 'pid' not in exec_result:
                     raise RuntimeError("No PID returned from command execution")
 
                 pid = exec_result['pid']
@@ -249,6 +272,7 @@ class VMConsoleManager:
                             f"Failed to get command status for PID {pid}: {type(e).__name__}"
                         )
                         self._raise_agent_hint(e, vmid)
+                        self._raise_translated(e, node, vmid, command, argv)
                         raise RuntimeError(
                             f"Failed to get command status: {type(e).__name__}"
                         ) from None
@@ -260,6 +284,8 @@ class VMConsoleManager:
             except ValueError:
                 raise
             except Exception as e:
+                if getattr(e, "_pve_translated", False):
+                    raise
                 self.logger.error(f"API call failed on VM {vmid}: {type(e).__name__}")
                 detail = redact_local(str(e), command, *argv)
                 raise RuntimeError(f"API call failed: {detail}") from None
@@ -313,6 +339,8 @@ class VMConsoleManager:
             # Re-raise ValueError for VM not running
             raise
         except Exception as e:
+            if getattr(e, "_pve_translated", False):
+                raise
             self.logger.error(f"Failed to execute command on VM {vmid}: {type(e).__name__}")
             detail = redact_local(str(e), command, *argv)
             raise RuntimeError(f"Failed to execute command: {detail}") from None

@@ -541,6 +541,8 @@ class VMTools(ProxmoxTool):
             )
             return [Content(type="text", text=formatted)]
         except Exception as e:
+            if getattr(e, "_pve_translated", False):
+                raise  # already mapped from the HTTP status code by the console manager
             self._handle_error(
                 f"execute command on VM {vmid}", e, privilege_key="execute_vm_command", node=node, vmid=vmid
             )

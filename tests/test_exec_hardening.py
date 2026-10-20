@@ -220,3 +220,45 @@ async def test_limits_come_from_policy_config(policy_app):
     mgr = app.vm_tools.console_manager if hasattr(app, "vm_tools") else None
     if mgr is not None:
         assert mgr.exec_timeout == 30.0 and mgr.exec_max_output == 65536
+
+
+def _resource_exc(code, body=""):
+    from proxmoxer.core import ResourceException
+    return ResourceException(code, "err", body)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("code,body,expected", [
+    (401, "", "Authentication failed"),
+    (500, "VM 100 qmp command failed - VM is locked (backup)", "locked by another task"),
+    (596, "", "unreachable"),
+    (403, "Permission check failed (/vms/100, VM.GuestAgent.Unrestricted)", "Permission denied"),
+])
+async def test_exec_start_errors_use_status_code_mapping(code, body, expected):
+    api, _, _ = _api(_status(), post_error=_resource_exc(code, body))
+    tools = VMTools(api)
+    with patch("asyncio.sleep", new=AsyncMock()):
+        with pytest.raises((RuntimeError, ValueError)) as ei:
+            await tools.execute_command("n", "100", "SENTINEL-CMD-xyz")
+    assert expected in str(ei.value) or "guest agent" in str(ei.value).lower()
+    assert "SENTINEL-CMD-xyz" not in str(ei.value)
+    assert "API call failed" not in str(ei.value)
+
+
+@pytest.mark.asyncio
+async def test_exec_status_connection_error_is_translated():
+    import requests
+    api, _, st = _api(_status())
+    st.get.side_effect = requests.exceptions.ConnectionError("down")
+    with patch("asyncio.sleep", new=AsyncMock()):
+        with pytest.raises(RuntimeError, match="unreachable or timed out"):
+            await VMTools(api).execute_command("n", "100", "ls")
+
+
+@pytest.mark.asyncio
+async def test_exec_null_post_result_gives_clear_error():
+    api, ex, _ = _api(_status())
+    ex.post.return_value = None
+    with patch("asyncio.sleep", new=AsyncMock()):
+        with pytest.raises(RuntimeError, match="No PID returned"):
+            await _mgr(api).execute_command("n", "100", "ls")
