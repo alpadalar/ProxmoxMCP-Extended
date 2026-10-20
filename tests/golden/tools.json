@@ -249,6 +249,26 @@
     "params": []
   },
   {
+    "name": "list_backups",
+    "params": [
+      {
+        "name": "node",
+        "required": true,
+        "type": "string"
+      },
+      {
+        "name": "storage",
+        "required": false,
+        "type": "string"
+      },
+      {
+        "name": "vmid",
+        "required": false,
+        "type": "string"
+      }
+    ]
+  },
+  {
     "name": "list_snapshots",
     "params": [
       {

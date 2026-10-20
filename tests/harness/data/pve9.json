@@ -139,6 +139,11 @@
       "enabled": 1
     }
   ],
+  "GET nodes/*/storage/*/content": [
+    {"volid": "local:backup/vzdump-qemu-100-2024_01_15-12_00_00.vma.zst", "content": "backup", "format": "vma.zst", "size": 1073741824, "ctime": 1705320000, "vmid": 100, "notes": "nightly", "protected": 0},
+    {"volid": "local:backup/vzdump-qemu-101-2024_01_16-12_00_00.vma.zst", "content": "backup", "format": "vma.zst", "size": 2147483648, "ctime": 1705406400, "vmid": 101, "notes": "", "protected": 1},
+    {"volid": "local:iso/debian-12.iso", "content": "iso", "format": "iso", "size": 657457152, "ctime": 1700000000}
+  ],
   "GET nodes/*/storage/*/status": {
     "used": 10737418240,
     "total": 107374182400,

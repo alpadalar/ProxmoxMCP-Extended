@@ -105,3 +105,9 @@ async def test_snapshot_tool_annotations(ann):
     assert ann["list_snapshots"].destructive_hint is False
     assert ann["delete_snapshot"].read_only_hint is False
     assert ann["delete_snapshot"].destructive_hint is True
+
+
+@pytest.mark.asyncio
+async def test_list_backups_annotations(ann):
+    assert ann["list_backups"].read_only_hint is True
+    assert ann["list_backups"].destructive_hint is False

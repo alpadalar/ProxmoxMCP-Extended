@@ -12,10 +12,16 @@ This module provides tools for managing and monitoring Proxmox storage:
 The tools implement fallback mechanisms for scenarios where
 detailed storage information might be temporarily unavailable.
 """
-from typing import List
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 from mcp.types import TextContent as Content
 from .base import ProxmoxTool
 from .definitions import GET_STORAGE_DESC
+from ..formatting import ProxmoxFormatters
+from ..utils.redaction import redact
+from ..validators import validate_node, validate_optional, validate_storage, validate_vmid
+
+NOTES_MAX = 300
 
 class StorageTools(ProxmoxTool):
     """Tools for managing Proxmox storage.
@@ -92,3 +98,88 @@ class StorageTools(ProxmoxTool):
             return self._format_response(storage, "storage")
         except Exception as e:
             self._handle_error("get storage", e, privilege_key="get_storage")
+
+    # ---- list_backups -----------------------------------------------------------------
+
+    @staticmethod
+    def _has_backup_content(value: Any) -> bool:
+        if isinstance(value, str):
+            value = [part.strip() for part in value.split(",")]
+        return isinstance(value, (list, tuple)) and "backup" in value
+
+    @staticmethod
+    def _backup_entry(storage: str, item: Dict[str, Any]) -> Dict[str, Any]:
+        size = item.get("size")
+        size = size if isinstance(size, int) and not isinstance(size, bool) else 0
+        ctime = item.get("ctime")
+        ok = isinstance(ctime, int) and not isinstance(ctime, bool)
+        return {
+            "volid": redact(str(item.get("volid", ""))),
+            "storage": storage,
+            "vmid": str(item.get("vmid")) if item.get("vmid") is not None else None,
+            "format": item.get("format"),
+            "size_bytes": size,
+            "size": ProxmoxFormatters.format_bytes(size),
+            "ctime": ctime if ok else None,
+            "ctime_utc": (
+                datetime.fromtimestamp(ctime, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                if ok else None
+            ),
+            "notes": redact(str(item.get("notes") or ""))[:NOTES_MAX],
+            "protected": bool(item.get("protected")),
+        }
+
+    def _storage_backups(
+        self, node: str, storage: str, vmid: Optional[str]
+    ) -> List[Dict[str, Any]]:
+        params: Dict[str, Any] = {"content": "backup"}
+        if vmid is not None:
+            params["vmid"] = vmid
+        raw = self.proxmox.nodes(node).storage(storage).content.get(**params) or []
+        found = []
+        for item in raw:
+            if not isinstance(item, dict) or item.get("content") != "backup":
+                continue
+            if vmid is not None and str(item.get("vmid")) != vmid:
+                continue
+            found.append(self._backup_entry(storage, item))
+        return found
+
+    def list_backups(
+        self, node: str, storage: Optional[str] = None, vmid: Optional[str] = None
+    ) -> List[Content]:
+        """List backup volumes (read-only inventory) of one storage or all backup storages."""
+        node = validate_node(node)
+        storage = validate_optional(validate_storage, storage)
+        vmid = validate_optional(validate_vmid, vmid)
+        try:
+            skipped: List[Dict[str, str]] = []
+            backups: List[Dict[str, Any]] = []
+            if storage is not None:
+                backups = self._storage_backups(node, storage, vmid)
+            else:
+                listing = self.proxmox.nodes(node).storage.get(content="backup") or []
+                for store in listing:
+                    if not isinstance(store, dict):
+                        continue
+                    if not store.get("enabled", 1) or not store.get("active", 1):
+                        continue
+                    if not self._has_backup_content(store.get("content")):
+                        continue
+                    try:
+                        name = validate_storage(store.get("storage"))
+                        backups.extend(self._storage_backups(node, name, vmid))
+                    except Exception as exc:  # reported, never hidden; other storages continue
+                        skipped.append({
+                            "storage": redact(str(store.get("storage"))),
+                            "reason": redact(str(exc))[:NOTES_MAX],
+                        })
+            backups.sort(key=lambda b: (b["ctime"] or 0, b["volid"]), reverse=True)
+            payload = {
+                "node": node, "count": len(backups), "backups": backups, "skipped": skipped,
+            }
+            return self._format_response(payload)
+        except Exception as e:
+            self._handle_error(
+                "list backups", e, privilege_key="list_backups", node=node
+            )

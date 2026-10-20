@@ -258,4 +258,4 @@ def test_create_vm_tool_enforces_limits_itself(server, api, cpus, memory, disk):
 
 
 # Literal mentions for the golden coverage check; behaviour is tested against the fixtures in
-# tests/test_snapshots.py: "list_snapshots" "delete_snapshot".
+# tests/test_snapshots.py and tests/test_backups.py: "list_snapshots" "delete_snapshot" "list_backups".

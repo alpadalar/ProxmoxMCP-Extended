@@ -132,6 +132,7 @@ SMOKE_ARGS = {
     "health": {},
     "reset_vm": {"node": "pve1", "vmid": "100"},
     "rollback_snapshot": {"node": "pve1", "vmid": "100", "name": "snap1"},
+    "list_backups": {"node": "pve1"},
     "list_snapshots": {"node": "pve1", "vmid": "100"},
     "delete_snapshot": {"node": "pve1", "vmid": "100", "name": "snap1"},
     "shutdown_vm": {"node": "pve1", "vmid": "100"},

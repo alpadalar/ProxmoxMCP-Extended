@@ -142,3 +142,8 @@ def test_snapshot_tools_literal_risk():
     assert specs["delete_snapshot"].risk == "destructive"
     assert specs["delete_snapshot"].annotations["readOnlyHint"] is False
     assert specs["delete_snapshot"].annotations["destructiveHint"] is True
+
+
+def test_list_backups_literally_read_risk():
+    spec = next(s for s in build_registry(_ctx()) if s.name == "list_backups")
+    assert spec.risk == "read" and spec.annotations["readOnlyHint"] is True

@@ -32,6 +32,7 @@ from .definitions import (
     GET_VM_USAGE_DESC,
     GET_VMS_DESC,
     HEALTH_DESC,
+    LIST_BACKUPS_DESC,
     LIST_SNAPSHOTS_DESC,
     RESET_VM_DESC,
     ROLLBACK_SNAPSHOT_DESC,
@@ -49,7 +50,7 @@ RISK_CLASSES = {
     "read": (
         "get_nodes", "get_node_status", "get_vms", "get_containers", "get_storage",
         "get_cluster_status", "get_vm_usage", "health", "get_task_status", "wait_for_task",
-        "list_snapshots",
+        "list_snapshots", "list_backups",
     ),
     "write": ("create_vm", "start_vm", "shutdown_vm", "create_snapshot"),
     # update_vm overwrites existing configuration (memory, cores, name), so it is gated by
@@ -314,6 +315,14 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
     @_tool(GET_STORAGE_DESC)
     def get_storage():
         return ctx.storage_tools.get_storage()
+
+    @_tool(LIST_BACKUPS_DESC)
+    def list_backups(
+        node: Annotated[str, Field(description="Host node name (e.g. 'pve')")],
+        storage: Annotated[Optional[str], Field(description="Storage name to list (optional, default: all backup-capable storages on the node)", default=None)] = None,
+        vmid: Annotated[Optional[str], Field(description="Only backups of this VM/CT ID (optional, e.g. '100')", default=None)] = None,
+    ):
+        return ctx.storage_tools.list_backups(node, storage, vmid)
 
     # Cluster tools
     @_tool(GET_CLUSTER_STATUS_DESC)

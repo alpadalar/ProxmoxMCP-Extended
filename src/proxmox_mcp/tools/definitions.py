@@ -79,6 +79,20 @@ Only QEMU VMs are supported. Requires policy.allow_destructive.
 Example:
 Delete snapshot 'pre-upgrade' of VM 100 on node pve"""
 
+LIST_BACKUPS_DESC = """List backup volumes (vzdump archives) stored on a node (read-only inventory).
+
+Without storage, every enabled storage on the node that supports backups is queried; a storage that fails is reported under 'skipped' instead of aborting the listing. Results are sorted newest first. Restoring or creating backups is not covered.
+
+Parameters:
+node* - Host node name (e.g. 'pve'); required because storage content is node-scoped
+storage - Storage name to list (optional, e.g. 'local')
+vmid - Only backups of this VM/CT ID (optional, e.g. '100')
+
+The token needs Datastore.Audit on /storage/<id>.
+
+Example:
+List the backups of VM 100 on node pve"""
+
 GET_VM_USAGE_DESC = """Get real-time resource usage details for a specific VM.
 
 Parameters:
