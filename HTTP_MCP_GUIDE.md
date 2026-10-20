@@ -1,235 +1,166 @@
-# ProxmoxMCP HTTP Server Kılavuzu
+# ProxmoxMCP HTTP Sunucu Kılavuzu
 
-Bu kılavuz, ProxmoxMCP'nin HTTP transport özelliğini ve API anahtarı (API key) ile kimlik doğrulamayı açıklar.
+Bu kılavuz ProxmoxMCP'nin streamable HTTP taşımasını ve API anahtarı (API key) ile kimlik
+doğrulamayı anlatır. Kurulum, yapılandırma ve güvenlik modeli için [README.tr.md](README.tr.md)
+dosyasına bakın. Buradaki komutlar `scripts/verify_docs_commands.sh` ile temiz bir kopyada
+çalıştırılarak doğrulanır.
 
-## 🚀 Hızlı Başlangıç
+## Hızlı başlangıç
 
-### 1. API Anahtarı Üret ve Hash'le
+### 1. API anahtarı üret ve digest'ini hesapla
 
 ```bash
 # Anahtar üret
-python -c "import secrets; print(secrets.token_urlsafe(32))"
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 
 # SHA-256 digest'ini hesapla (anahtarın kendisi asla yapılandırmaya yazılmaz)
-echo -n '<key>' | python -m proxmox_mcp.auth.apikey
+echo -n 'my-secret-key' | uv run python -m proxmox_mcp.auth.apikey
 ```
 
-### 2. Digest'i Yapılandır
+### 2. Digest'i sunucuya ver
 
-Digest şu kaynaklardan biriyle verilir. Öncelik: CLI/constructor > ortam değişkeni > config dosyası.
-Kaynaklar birbirinin yerine geçer (birleştirilmez); anahtar döndürürken eski bir digest'in config'de
-kalıp geçerli olmaya devam etmesi bu şekilde engellenir.
+Öncelik: CLI/constructor > ortam değişkeni > config dosyası. Kaynaklar birbirinin yerine geçer
+(birleştirilmez); anahtar döndürürken eski bir digest'in config'de kalıp geçerli olmaya devam etmesi
+bu şekilde engellenir.
 
 ```bash
 # Ortam değişkeni (virgülle ayrılmış, isteğe bağlı "sha256:" öneki)
 export PROXMOX_MCP_API_KEY_HASHES=<digest>[,<digest2>]
 ```
 
-Ya da config dosyasında (`http.api_key_digests`):
+Ya da config dosyasında `http.api_key_digests` (64 karakterlik sha256 hex digest listesi). Digest
+verilmezse sunucu başlamaz (fail-closed). `proxmox.timeout` saniye cinsindendir (varsayılan 30,
+en çok 300, ortam değişkeni `PROXMOX_TIMEOUT`).
 
-```json
-{
-    "proxmox": {
-        "host": "your-proxmox-host",
-        "port": 8006,
-        "verify_ssl": true,
-        "service": "PVE",
-        "timeout": 30
-    },
-    "auth": {
-        "user": "username@pve",
-        "token_name": "your-token-name",
-        "token_value": "your-token-value"
-    },
-    "http": {
-        "api_key_digests": ["<64 karakterlik sha256 hex digest>"]
-    },
-    "logging": {
-        "level": "INFO"
-    }
-}
-```
-
-`proxmox.timeout` saniye cinsindendir (varsayılan 30, `0 < t <= 300`, ortam değişkeni `PROXMOX_TIMEOUT`).
-Digest verilmezse sunucu başlamaz (fail-closed).
-
-### 3. HTTP Server'ı Başlat
+### 3. Sunucuyu başlat
 
 ```bash
-# Start script kullan
+# Başlatma betiği (varsayılan 127.0.0.1:8812/proxmox-mcp)
 ./start_http_server.sh
 
-# Ya da direkt Python ile
-python -m proxmox_mcp.server_http --config proxmox-config/config.json --port 8812 --path /proxmox-mcp
+# Ya da doğrudan Python ile
+uv run python -m proxmox_mcp.server_http --config proxmox-config/config.json --port 8812 --path /proxmox-mcp
 ```
 
-Yalnızca yerel geliştirme için: `--no-auth` kimlik doğrulamayı kapatır ve sadece loopback
-adreslerinde (`127.0.0.1`, `::1`, `localhost`) çalışır. `/health` yolu kimlik doğrulamasından muaftır.
+Betik şu ortam değişkenlerini okur: `MCP_HTTP_HOST` (varsayılan `127.0.0.1`), `MCP_HTTP_PORT`
+(`8812`), `MCP_HTTP_PATH` (`/proxmox-mcp`) ve `PROXMOX_MCP_CONFIG`
+(`proxmox-config/config.json`). `python -m proxmox_mcp.server_http` ise ortam değişkeni değil
+`--host`, `--port`, `--path`, `--config` bayraklarını kabul eder.
 
-## 🔒 Authentication
+Yalnızca yerel geliştirme için: `--no-auth` kimlik doğrulamayı kapatır ve yalnızca loopback
+adreslerinde (`127.0.0.1`, `::1`, `localhost`) çalışır; bu modda loopback olmayan `Host`/`Origin`
+başlıkları 403 ile reddedilir.
 
-Tek bir paylaşılan anahtar seviyesi vardır; scope/rol ayrımı yoktur. Geçerli anahtara sahip istemci tüm
-araçları kullanabilir (VM oluşturma, silme ve komut çalıştırma dahil), bu yüzden anahtarı gizli tutun.
+## Kimlik doğrulama
 
-### Anahtar Kullanımı
+Tek bir paylaşılan anahtar seviyesi vardır; scope/rol ayrımı yoktur. Geçerli anahtara sahip istemci,
+politikanın izin verdiği tüm araçları kullanabilir, bu yüzden anahtarı gizli tutun. Yazma, yıkıcı
+ve exec araçları ayrıca `read_only` / `allow_destructive` / `allow_exec` politikasıyla korunur
+(varsayılan: yıkıcı ve exec kapalı).
 
-İstemci anahtarı `Authorization: Bearer <key>` veya `X-API-Key: <key>` başlığıyla gönderir:
+İstemci anahtarı `Authorization: Bearer <key>` veya `X-API-Key: <key>` başlığıyla gönderir. Anahtar
+yoksa ya da yanlışsa sunucu 401 döndürür.
+
+## MCP oturum akışı (curl)
+
+Streamable HTTP oturumlu çalışır: önce `initialize` ile oturum açılır, dönen `mcp-session-id`
+başlığı sonraki isteklerde gönderilir. Yanıtlar SSE biçimindedir (`event: message` / `data: ...`).
+
+<!-- verify:session-flow -->
+```bash
+URL=${URL:-http://127.0.0.1:8812/proxmox-mcp}
+KEY=${KEY:-my-secret-key}
+H1='Content-Type: application/json'
+H2='Accept: application/json, text/event-stream'
+
+# 1) Oturum aç ve oturum kimliğini al
+SID=$(curl -fsS -D - -o /dev/null -X POST "$URL" -H "$H1" -H "$H2" \
+  -H "Authorization: Bearer $KEY" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"0"}}}' \
+  | awk -F': ' 'tolower($1)=="mcp-session-id"{print $2}' | tr -d '\r')
+
+# 2) Başlatmayı onayla
+curl -fsS -X POST "$URL" -H "$H1" -H "$H2" -H "Authorization: Bearer $KEY" \
+  -H "mcp-session-id: $SID" \
+  -d '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+
+# 3) Araçları listele
+curl -fsS -X POST "$URL" -H "$H1" -H "$H2" -H "Authorization: Bearer $KEY" \
+  -H "mcp-session-id: $SID" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+
+# 4) Bir aracı çağır (health)
+curl -fsS -X POST "$URL" -H "$H1" -H "$H2" -H "Authorization: Bearer $KEY" \
+  -H "mcp-session-id: $SID" \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"health","arguments":{}}}'
+```
+
+Bir VM listesi için 4. adımda `"name":"get_vms"` kullanın. Yıkıcı bir aracı (`delete_vm` gibi)
+çağırmak `allow_destructive` ve `confirm=true` gerektirir; `confirm` olmadan yalnızca önizleme
+döner.
+
+### Sağlık kontrolü
+
+`GET /health` kimlik doğrulamasız tek uç noktadır ve yalnızca `{"status":"ok"}` döndürür:
 
 ```bash
-curl -X POST http://localhost:8812/proxmox-mcp \
-  -H "Authorization: Bearer YOUR_API_KEY_HERE" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"method": "tools/list"}'
+curl -fsS http://127.0.0.1:8812/health
 ```
 
-## 🔌 Cursor/VS Code Entegrasyonu
-
-### MCP Settings Konfigürasyonu
-
-Cursor/VS Code'da MCP ayarlarınıza şunu ekleyin:
-
-```json
-{
-  "mcpServers": {
-    "ProxmoxMCP-HTTP": {
-      "transport": {
-        "type": "http",
-        "url": "http://localhost:8812/proxmox-mcp",
-        "headers": {
-          "Authorization": "Bearer YOUR_API_KEY_HERE"
-        }
-      },
-      "description": "ProxmoxMCP HTTP Server (API key auth)"
-    }
-  }
-}
-```
-
-### SSE (Server-Sent Events) Desteği
-
-Daha iyi performans için SSE kullanabilirsiniz:
-
-```json
-{
-  "mcpServers": {
-    "ProxmoxMCP-SSE": {
-      "transport": {
-        "type": "sse",
-        "url": "http://localhost:8812/proxmox-mcp/sse",
-        "headers": {
-          "Authorization": "Bearer YOUR_API_KEY_HERE"
-        }
-      }
-    }
-  }
-}
-```
-
-## 🛠️ Geliştirme ve Test
-
-### Logging
-
-Debug modu için:
+Geçerli bir anahtarla çağıranlar ek ayrıntı görür (kimlik doğrulama modu, politika, Proxmox
+erişilebilirliği, PVE sürümü); aynı bilgi `health` aracıyla da alınabilir:
 
 ```bash
-python manage.py run_mcp_server --debug --log-file debug.log
+curl -fsS -H 'Authorization: Bearer my-secret-key' http://127.0.0.1:8812/health
 ```
 
-### Test Toolları
+## İstemci yapılandırması
+
+Claude Desktop, Cursor ve Cline için çalışan yapılandırma örnekleri [README.tr.md](README.tr.md)
+dosyasındaki "İstemci yapılandırması" bölümünde ve [`examples/`](examples) dizinindedir. HTTP için
+özet:
+
+- **Cursor**: `{"url": "http://127.0.0.1:8812/proxmox-mcp", "headers": {"Authorization": "Bearer YOUR_API_KEY"}}`
+- **Cline**: aynısı, ayrıca `"type": "streamableHttp"`
+- **Claude Desktop**: uzak HTTP için `npx mcp-remote` köprüsü kullanılır
+
+## Docker
 
 ```bash
-# Tool listesini test et
-curl -X POST http://localhost:8812/proxmox-mcp \
-  -H "Authorization: Bearer YOUR_API_KEY_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{"method": "tools/list"}'
-
-# VM listesini test et
-curl -X POST http://localhost:8812/proxmox-mcp \
-  -H "Authorization: Bearer YOUR_API_KEY_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "method": "tools/call",
-    "params": {
-      "name": "get_vms",
-      "arguments": {}
-    }
-  }'
+export PROXMOX_MCP_API_KEY_HASHES=<digest>
+docker compose up -d --build
+curl -fsS http://127.0.0.1:8812/health
 ```
 
-### Health Check
+Port yalnızca `127.0.0.1` üzerinde yayınlanır; uzaktan erişim için TLS sonlandıran bir reverse
+proxy kullanın.
 
-```bash
-curl -X POST http://localhost:8812/proxmox-mcp \
-  -H "Authorization: Bearer YOUR_API_KEY_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "method": "tools/call",
-    "params": {
-      "name": "health",
-      "arguments": {}
-    }
-  }'
-```
+## Güvenlik notları
 
-## 🔧 Konfigürasyon Seçenekleri
+1. **HTTPS kullanın**: Sunucuda yerleşik TLS yoktur. Loopback dışına bağlanırsanız TLS sonlandıran
+   bir reverse proxy koyun (başlangıçta uyarı loglanır).
+2. **Anahtar güvenliği**: Düz anahtarı güvenli saklayın; sunucuya yalnızca SHA-256 digest'i verilir.
+3. **Anahtar döndürme**: Yeni digest'i ortam değişkenine koyun; ortam değişkeni config'deki listeyi
+   tamamen değiştirir.
+4. **Rate limiting**: Production'da reverse proxy seviyesinde ekleyin.
 
-### Environment Variables
+## Sorun giderme
 
-```bash
-export MCP_HTTP_HOST="0.0.0.0"
-export MCP_HTTP_PORT="8812"
-export MCP_HTTP_PATH="/proxmox-mcp"
-export PROXMOX_MCP_CONFIG="proxmox-config/config.json"
-```
+1. **401 Unauthorized**: `Authorization: Bearer <düz anahtar>` veya `X-API-Key: <düz anahtar>`
+   gönderdiğinizden emin olun (digest'i değil).
+2. **400 "Missing session ID"**: `initialize` ile oturum açıp `mcp-session-id` başlığını sonraki
+   isteklere ekleyin (yukarıdaki akış).
+3. **403 "Host or Origin not allowed"**: `--no-auth` modunda yalnızca loopback `Host`/`Origin`
+   kabul edilir.
+4. **Sunucu başlamıyor (API anahtarı digest'i yok)**: `PROXMOX_MCP_API_KEY_HASHES` veya
+   `http.api_key_digests` ayarlayın; yerel geliştirmede loopback üzerinde `--no-auth` kullanın.
+5. **Bağlantı hatası**: Sunucunun çalıştığını, portun ve `MCP_HTTP_HOST`/`MCP_HTTP_PORT`
+   değerlerinin doğru olduğunu kontrol edin.
 
-### Command Line Seçenekleri
+Loglar yapılandırılan `logging.file` dosyasına yazılır (varsayılan örnek `proxmox_mcp.log`).
 
-```bash
-python -m proxmox_mcp.server_http \
-  --host 0.0.0.0 \
-  --port 8812 \
-  --path /proxmox-mcp \
-  --config proxmox-config/config.json \
-  --no-auth  # Auth'u devre dışı bırak (test için)
-```
+## Daha fazla bilgi
 
-## 🚨 Güvenlik Notları
-
-1. **HTTPS Kullanın**: Production'da mutlaka TLS sonlandıran bir reverse proxy kullanın
-2. **Anahtar Güvenliği**: API anahtarını güvenli saklayın; yapılandırmaya yalnızca SHA-256 digest yazılır
-3. **Anahtar Döndürme**: Yeni digest'i ortam değişkenine koyun; ortam değişkeni config'deki listeyi tamamen değiştirir
-4. **Rate Limiting**: Production'da reverse proxy seviyesinde rate limiting ekleyin
-
-## 🔍 Troubleshooting
-
-### Yaygın Hatalar
-
-1. **401 Unauthorized**
-   ```
-   {"error": "unauthorized", "message": "Valid API key required"}
-   ```
-   - Anahtarınızı ve digest'inizi kontrol edin
-   - `Authorization: Bearer <key>` veya `X-API-Key` başlığını doğru yazdığınızdan emin olun
-
-2. **Sunucu başlamıyor (No API key digests configured)**
-   - `PROXMOX_MCP_API_KEY_HASHES` veya `http.api_key_digests` ayarlayın
-   - Yerel geliştirmede loopback üzerinde `--no-auth` kullanın
-
-3. **Connection Error**
-   - Server'ın çalıştığından emin olun
-   - Port'un açık olduğunu kontrol edin
-   - Firewall ayarlarını kontrol edin
-
-### Log Analizi
-
-```bash
-tail -f proxmox_mcp.log | grep "AUDIT\|ERROR"
-```
-
-## 📚 Daha Fazla Bilgi
-
-- [FastMCP Documentation](https://github.com/jlowin/fastmcp)
-- [MCP Protocol Specification](https://spec.modelcontextprotocol.io/)
-- [ProxmoxMCP Ana Dokümantasyon](README.md)
+- [FastMCP dokümantasyonu](https://gofastmcp.com)
+- [MCP protokol spesifikasyonu](https://modelcontextprotocol.io/specification)
+- [Ana dokümantasyon](README.tr.md)

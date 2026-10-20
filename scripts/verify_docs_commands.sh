@@ -20,9 +20,8 @@ SERVER_PGID=""
 
 cleanup() {
     if [ -n "$SERVER_PGID" ]; then kill -- "-$SERVER_PGID" 2>/dev/null || true; fi
-    if [ "${VERIFY_DOCKER:-0}" = "1" ] && [ -f "$WORK/docker-compose.yml" ]; then
-        (cd "$WORK" && docker compose -f docker-compose.yml -f "$WORK/override.yml" down -v >/dev/null 2>&1) || true
-        docker rmi -f proxmox-mcp-extended:verify >/dev/null 2>&1 || true
+    if [ "${VERIFY_DOCKER:-0}" = "1" ] && [ -f "$WORK/repo/docker-compose.yml" ]; then
+        (cd "$WORK/repo" && docker compose -f docker-compose.yml -f "$WORK/override.yml" down -v --rmi local >/dev/null 2>&1) || true
     fi
     rm -rf "$WORK"
 }
@@ -46,6 +45,34 @@ wait_health() { # <port> <seconds>
         sleep 1
     done
     return 1
+}
+
+
+# extract_block <file> <fixed-string>: print the first fenced code block of <file> containing it
+extract_block() {
+    python3 - "$1" "$2" <<'PYEOF'
+import re
+import sys
+
+text = open(sys.argv[1], encoding="utf-8").read()
+for block in re.findall(r"^```[^\n]*\n(.*?)^```", text, re.M | re.S):
+    if sys.argv[2] in block:
+        print(block, end="")
+        break
+else:
+    sys.exit(1)
+PYEOF
+}
+# run_doc_block <label> <file> <fixed-string> <port> [expected-output-substring]
+run_doc_block() {
+    local label="$1" file="$2" needle="$3" port="$4" expect="${5:-}" code
+    code="$(extract_block "$file" "$needle" | sed "s/my-secret-key/$KEY/g; s/8812/$port/g")" || { fail "$label (block not found)"; return; }
+    if bash -c "$code" >"$WORK/block.log" 2>&1 && { [ -z "$expect" ] || grep -q "$expect" "$WORK/block.log"; }; then
+        pass "$label"
+    else
+        fail "$label"
+        sed 's/^/      /' "$WORK/block.log" | tail -n 12
+    fi
 }
 
 CLEAN="$WORK/repo"
@@ -115,6 +142,11 @@ if wait_health "$PORT" 40; then pass "python -m proxmox_mcp.server_http starts, 
 [ "$(probe "$PORT" /proxmox-mcp)" = "401 200" ] && pass "MCP initialize: 401 without key, 200 with Authorization: Bearer" || fail "auth probe"
 XCODE="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -H 'Accept: application/json, text/event-stream' -H "X-API-Key: $KEY" -d "$INIT" "http://127.0.0.1:$PORT/proxmox-mcp")"
 [ "$XCODE" = "200" ] && pass "MCP initialize with X-API-Key header: 200" || fail "X-API-Key probe"
+run_doc_block "README.md: curl initialize example" README.md '"clientInfo":{"name":"curl"' "$PORT" "protocolVersion"
+run_doc_block "HTTP_MCP_GUIDE.md: session flow (initialize, tools/list, tools/call health)" HTTP_MCP_GUIDE.md 'tools/call' "$PORT" "get_vms"
+run_doc_block "HTTP_MCP_GUIDE.md: GET /health" HTTP_MCP_GUIDE.md 'curl -fsS http://127.0.0.1:8812/health' "$PORT" '"status":"ok"'
+run_doc_block "HTTP_MCP_GUIDE.md: authenticated GET /health" HTTP_MCP_GUIDE.md "Authorization: Bearer my-secret-key' http" "$PORT" '"auth":"api-key"'
+run_doc_block "HTTP_MCP_GUIDE.md: digest generation" HTTP_MCP_GUIDE.md "python -m proxmox_mcp.auth.apikey" "$PORT" "$(printf '%s' "$KEY" | sha256sum | cut -c1-16)"
 kill -- "-$SERVER_PGID" 2>/dev/null || true
 wait "$SERVER_PGID" 2>/dev/null || true
 SERVER_PGID=""
