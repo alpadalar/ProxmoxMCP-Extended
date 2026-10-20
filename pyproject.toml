@@ -43,6 +43,7 @@ dev = [
     "ruff>=0.17,<0.18",
     "mypy>=2.4,<3",
     "types-requests>=2.32",
+    "tomli>=2; python_version < '3.11'",
 ]
 
 [tool.setuptools.packages.find]
