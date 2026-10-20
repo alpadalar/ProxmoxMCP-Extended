@@ -54,7 +54,7 @@ BAD_UPID = [
 # Tools without identifier parameters: explicitly exempt.
 NO_INPUT_TOOLS = {
     "get_nodes", "get_vms", "get_containers", "get_storage",
-    "get_cluster_status", "health",
+    "get_cluster_status", "health", "get_ha_status",
 }
 IDENT_HINTS = ("node", "vmid", "storage", "snapshot", "name", "iso", "ostype", "upid")
 

@@ -25,6 +25,7 @@ from .definitions import (
     EXECUTE_VM_COMMAND_DESC,
     GET_CLUSTER_STATUS_DESC,
     GET_CONTAINERS_DESC,
+    GET_HA_STATUS_DESC,
     GET_NODE_STATUS_DESC,
     GET_NODES_DESC,
     GET_STORAGE_DESC,
@@ -53,7 +54,7 @@ RISK_CLASSES = {
     "read": (
         "get_nodes", "get_node_status", "get_vms", "get_containers", "get_storage",
         "get_cluster_status", "get_vm_usage", "health", "get_task_status", "wait_for_task",
-        "list_snapshots", "list_backups",
+        "list_snapshots", "list_backups", "get_ha_status",
     ),
     "write": (
         "create_vm", "start_vm", "shutdown_vm", "create_snapshot",
@@ -368,6 +369,10 @@ def build_registry(ctx: ToolContext) -> List[ToolSpec]:
     @_tool(GET_CLUSTER_STATUS_DESC)
     def get_cluster_status():
         return ctx.cluster_tools.get_cluster_status()
+
+    @_tool(GET_HA_STATUS_DESC)
+    def get_ha_status():
+        return ctx.cluster_tools.get_ha_status()
 
     # Task tools
     @_tool(GET_TASK_STATUS_DESC)

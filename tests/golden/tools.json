@@ -198,6 +198,10 @@
     "params": []
   },
   {
+    "name": "get_ha_status",
+    "params": []
+  },
+  {
     "name": "get_node_status",
     "params": [
       {

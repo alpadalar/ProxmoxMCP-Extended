@@ -157,3 +157,8 @@ def test_container_tools_literal_risk():
         assert specs[name].annotations["destructiveHint"] is False
     assert specs["stop_container"].risk == "destructive"
     assert specs["stop_container"].annotations["destructiveHint"] is True
+
+
+def test_get_ha_status_literally_read_risk():
+    spec = next(s for s in build_registry(_ctx()) if s.name == "get_ha_status")
+    assert spec.risk == "read" and spec.annotations["readOnlyHint"] is True

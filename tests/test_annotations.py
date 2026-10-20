@@ -120,3 +120,9 @@ async def test_container_tool_annotations(ann):
         assert ann[name].idempotent_hint is True
     assert ann["stop_container"].destructive_hint is True
     assert ann["stop_container"].read_only_hint is False
+
+
+@pytest.mark.asyncio
+async def test_get_ha_status_annotations(ann):
+    assert ann["get_ha_status"].read_only_hint is True
+    assert ann["get_ha_status"].destructive_hint is False

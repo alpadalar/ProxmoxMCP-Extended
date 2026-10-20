@@ -188,6 +188,15 @@
   "POST nodes/*/lxc/*/status/start": "UPID:pve1:0000ABCD:00123456:65A1B2C3:vzstart:200:monitor@pve!mcp:",
   "POST nodes/*/lxc/*/status/stop": "UPID:pve1:0000ABCD:00123456:65A1B2C3:vzstop:200:monitor@pve!mcp:",
   "POST nodes/*/lxc/*/status/shutdown": "UPID:pve1:0000ABCD:00123456:65A1B2C3:vzshutdown:200:monitor@pve!mcp:",
+  "GET cluster/ha/status/current": [
+    {"id": "quorum", "type": "quorum", "node": "pve1", "status": "OK", "quorate": 1},
+    {"id": "master", "type": "master", "node": "pve1", "status": "pve1 (active, Tue Oct 20 10:00:00 2026)"},
+    {"id": "lrm:pve1", "type": "lrm", "node": "pve1", "status": "pve1 (active, Tue Oct 20 10:00:00 2026)"},
+    {"id": "service:vm:100", "type": "service", "sid": "vm:100", "node": "pve1", "state": "started", "request_state": "started", "crm_state": "started", "status": "vm:100, node=pve1, state=started"}
+  ],
+  "GET cluster/ha/resources": [
+    {"sid": "vm:100", "type": "vm", "state": "started", "max_relocate": 1, "max_restart": 1, "comment": "web frontend", "group": "prod", "failback": 1}
+  ],
   "GET nodes/*/tasks/*/status": {
     "status": "stopped",
     "exitstatus": "OK"

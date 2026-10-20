@@ -135,6 +135,15 @@ QEMU VM ids are refused (use start_vm/stop_vm/shutdown_vm); templates and invisi
 Example:
 Shut down container 200"""
 
+GET_HA_STATUS_DESC = """Get the High Availability (HA) status of the cluster (read-only).
+
+Returns quorum, the HA master, the local resource managers (lrm), the HA services with their states and the configured HA resources. 'ha_configured' is false when no service or resource exists. HA changes and PVE 9 HA affinity rules are not covered.
+
+Requires Sys.Audit on /.
+
+Example:
+Show the HA status of the cluster"""
+
 GET_VM_USAGE_DESC = """Get real-time resource usage details for a specific VM.
 
 Parameters:
