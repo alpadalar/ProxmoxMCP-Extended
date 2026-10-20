@@ -47,3 +47,10 @@ def test_fastmcp_bounded():
 
 def test_lock_committed():
     assert (ROOT / "uv.lock").is_file()
+
+
+def test_live_scripts_not_collected():
+    assert not (ROOT / "test_scripts").exists()
+    assert (ROOT / "scripts" / "live" / "README.md").is_file()
+    ini = _pyproject()["tool"]["pytest"]["ini_options"]
+    assert ini["testpaths"] == ["tests"]
