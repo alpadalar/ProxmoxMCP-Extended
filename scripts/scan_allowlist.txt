@@ -33,6 +33,3 @@ value:secret
 value:token
 value:password
 #
-# Planning notes that quote the text of a PEM header while describing the scanner tests.
-# No key material is present, only the header words.
-pem-private-key:.planning/phases/06-release-prep/06-03-PLAN.md

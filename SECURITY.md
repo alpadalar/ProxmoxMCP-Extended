@@ -167,7 +167,7 @@ trusted network.
 - No audit log beyond the normal application log, and no rate limiting in the server. Use a reverse
   proxy for rate limits and Proxmox's own task log for an audit trail of what was executed.
 - Behaviour is verified against a mock Proxmox harness (PVE 8 and PVE 9 fixtures), not against a live
-  cluster in CI. Live-cluster checks are on the maintainer checklist (`.planning/HUMAN-TESTS.md`).
+  cluster in CI. Live-cluster verification (PVE 8 and PVE 9) is still pending.
 - The 8-wait limit and exec concurrency limit are per process and in memory.
 - Process-level isolation is on you: run the server as an unprivileged user.
 
